@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미니게임 모음</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #4ade80;
+    --danger: #f87171;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Pretendard, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  a { color: inherit; }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-weight: 800;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-links {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .nav-links a { text-decoration: none; }
+  .nav-links a:hover { color: var(--text); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    color: #0f172a;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover { background: var(--panel-2); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 72px 24px 40px;
+    text-align: center;
+  }
+  .eyebrow {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 40px;
+    margin: 0 0 16px;
+    line-height: 1.25;
+  }
+  .hero p.lead {
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0 auto 8px;
+    max-width: 52ch;
+  }
+
+  /* ---------- Game grid ---------- */
+  section { max-width: 1080px; margin: 0 auto; padding: 40px 24px 56px; }
+  .section-title {
+    font-size: 22px;
+    margin: 0 0 24px;
+    text-align: center;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 18px;
+  }
+  .game-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px 22px;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .game-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 16px 32px rgba(0,0,0,0.35);
+  }
+  .game-card .icon {
+    font-size: 34px;
+    line-height: 1;
+  }
+  .game-card h3 { margin: 0; font-size: 18px; }
+  .game-card .tag {
+    align-self: flex-start;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--panel-2);
+    border-radius: 999px;
+    padding: 3px 10px;
+    margin-bottom: 2px;
+  }
+  .game-card p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; }
+  .game-card .play {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* ---------- Features ---------- */
+  .grid-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .card .icon { font-size: 26px; margin-bottom: 12px; display: block; }
+  .card h3 { margin: 0 0 8px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🎮 미니게임 모음</div>
+  <div class="nav-links">
+    <a href="#games">게임 목록</a>
+    <a href="#features">특징</a>
+  </div>
+  <a class="btn btn-primary" href="#games">▶ 게임 하러 가기</a>
+</nav>
+
+<section class="hero">
+  <div class="eyebrow">Vanilla HTML · CSS · JavaScript</div>
+  <h1>설치 없이 바로 즐기는<br>브라우저 미니게임 모음</h1>
+  <p class="lead">
+    회원가입도, 인터넷 연결도 필요 없습니다. 아래에서 원하는 게임을 골라 클릭 한 번으로 바로 플레이하세요.
+  </p>
+</section>
+
+<section id="games">
+  <h2 class="section-title">게임을 선택하세요</h2>
+  <div class="game-grid">
+    <a class="game-card" href="minesweeper.html">
+      <span class="icon">💣</span>
+      <span class="tag">전략 · 추리</span>
+      <h3>지뢰찾기</h3>
+      <p>숫자를 단서로 지뢰를 피해 모든 안전한 칸을 여는 클래식 퍼즐 게임.</p>
+      <span class="play">플레이하기 →</span>
+    </a>
+    <a class="game-card" href="tictactoe.html">
+      <span class="icon">⭕</span>
+      <span class="tag">2인 대전</span>
+      <h3>틱택토</h3>
+      <p>3x3 보드에서 O와 X를 번갈아 놓아 한 줄을 먼저 완성하면 승리.</p>
+      <span class="play">플레이하기 →</span>
+    </a>
+    <a class="game-card" href="rps.html">
+      <span class="icon">✊</span>
+      <span class="tag">확률 · 심리</span>
+      <h3>가위바위보</h3>
+      <p>컴퓨터를 상대로 가위, 바위, 보 중 하나를 골라 승부를 겨루는 게임.</p>
+      <span class="play">플레이하기 →</span>
+    </a>
+    <a class="game-card" href="baseball.html">
+      <span class="icon">⚾</span>
+      <span class="tag">추리 · 논리</span>
+      <h3>숫자야구</h3>
+      <p>스트라이크와 볼 힌트를 조합해 컴퓨터가 정한 숫자 3자리를 맞혀보세요.</p>
+      <span class="play">플레이하기 →</span>
+    </a>
+    <a class="game-card" href="memory.html">
+      <span class="icon">🃏</span>
+      <span class="tag">기억력</span>
+      <h3>카드 짝맞추기</h3>
+      <p>같은 그림 카드 두 장을 찾아 짝을 맞추는 두뇌 트레이닝 게임.</p>
+      <span class="play">플레이하기 →</span>
+    </a>
+  </div>
+</section>
+
+<section id="features">
+  <h2 class="section-title">모음 사이트 특징</h2>
+  <div class="grid-cards">
+    <div class="card">
+      <span class="icon">📦</span>
+      <h3>외부 라이브러리 없음</h3>
+      <p>모든 게임이 순수 HTML/CSS/JavaScript로만 제작되어 파일만 열면 바로 실행됩니다.</p>
+    </div>
+    <div class="card">
+      <span class="icon">🌊</span>
+      <h3>오프라인 실행 가능</h3>
+      <p>인터넷 연결이나 별도 설치 없이 로컬에서 모든 게임을 즐길 수 있습니다.</p>
+    </div>
+    <div class="card">
+      <span class="icon">🎨</span>
+      <h3>통일된 디자인</h3>
+      <p>다섯 개 게임 모두 같은 다크 테마와 UI로 구성되어 일관된 경험을 제공합니다.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  5개의 미니게임으로 구성된 순수 웹 게임 모음 사이트 · 제작: Claude Code
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가위바위보 - 미니게임 모음</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #4ade80;
+    --danger: #f87171;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--text);
+    gap: 16px;
+    padding: 24px 12px;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .topbar a:hover { background: var(--panel-2); }
+  .topbar .title { color: var(--muted); font-size: 14px; }
+
+  h1 { margin: 48px 0 0; font-size: 24px; }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 28px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    text-align: center;
+    width: 360px;
+    max-width: 90vw;
+  }
+
+  .arena {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .side .label { font-size: 12px; color: var(--muted); }
+  .hand {
+    width: 84px;
+    height: 84px;
+    border-radius: 14px;
+    background: var(--panel-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+  }
+  .hand.winner { background: rgba(74, 222, 128, 0.25); box-shadow: 0 0 0 2px var(--accent-2) inset; }
+  .vs { font-size: 14px; color: var(--muted); font-weight: 700; }
+
+  .status {
+    min-height: 26px;
+    font-weight: bold;
+    font-size: 17px;
+    margin-bottom: 20px;
+  }
+  .status.win { color: var(--accent-2); }
+  .status.lose { color: var(--danger); }
+  .status.draw { color: #facc15; }
+
+  .choices {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .choice-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    font-size: 30px;
+    cursor: pointer;
+    transition: transform 0.08s, background 0.1s;
+  }
+  .choice-btn:hover { background: #475569; transform: translateY(-2px); }
+  .choice-btn:active { transform: translateY(0); }
+
+  .score {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .score span b { color: var(--text); }
+
+  .reset-btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text);
+  }
+  .reset-btn:hover { background: var(--panel-2); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">🏠 홈</a>
+  <span class="title">✊ 가위바위보</span>
+</div>
+
+<h1>✊✋✌️ 가위바위보</h1>
+
+<div class="panel">
+  <div class="arena">
+    <div class="side">
+      <span class="label">나</span>
+      <div class="hand" id="playerHand">❔</div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="side">
+      <span class="label">컴퓨터</span>
+      <div class="hand" id="computerHand">❔</div>
+    </div>
+  </div>
+
+  <div class="status" id="status">가위, 바위, 보 중 하나를 선택하세요</div>
+
+  <div class="choices">
+    <button class="choice-btn" data-choice="scissors" title="가위">✌️</button>
+    <button class="choice-btn" data-choice="rock" title="바위">✊</button>
+    <button class="choice-btn" data-choice="paper" title="보">✋</button>
+  </div>
+
+  <div class="score">
+    <span>승 <b id="scoreWin">0</b></span>
+    <span>패 <b id="scoreLose">0</b></span>
+    <span>무 <b id="scoreDraw">0</b></span>
+  </div>
+
+  <button class="reset-btn" id="resetBtn">기록 초기화</button>
+</div>
+
+<script>
+(function () {
+  const EMOJI = { scissors: "✌️", rock: "✊", paper: "✋" };
+  const NAME = { scissors: "가위", rock: "바위", paper: "보" };
+  const BEATS = { scissors: "paper", rock: "scissors", paper: "rock" };
+
+  const playerHandEl = document.getElementById("playerHand");
+  const computerHandEl = document.getElementById("computerHand");
+  const statusEl = document.getElementById("status");
+  const scoreWinEl = document.getElementById("scoreWin");
+  const scoreLoseEl = document.getElementById("scoreLose");
+  const scoreDrawEl = document.getElementById("scoreDraw");
+  const resetBtn = document.getElementById("resetBtn");
+  const choiceBtns = document.querySelectorAll(".choice-btn");
+
+  let scores = { win: 0, lose: 0, draw: 0 };
+
+  function play(playerChoice) {
+    const choices = Object.keys(EMOJI);
+    const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+
+    playerHandEl.textContent = EMOJI[playerChoice];
+    computerHandEl.textContent = EMOJI[computerChoice];
+    playerHandEl.classList.remove("winner");
+    computerHandEl.classList.remove("winner");
+
+    let result;
+    if (playerChoice === computerChoice) {
+      result = "draw";
+    } else if (BEATS[playerChoice] === computerChoice) {
+      result = "win";
+    } else {
+      result = "lose";
+    }
+
+    if (result === "win") {
+      statusEl.textContent = `🎉 승리! ${NAME[playerChoice]}(이)가 ${NAME[computerChoice]}(을)를 이겼습니다`;
+      statusEl.className = "status win";
+      playerHandEl.classList.add("winner");
+      scores.win++;
+      scoreWinEl.textContent = scores.win;
+    } else if (result === "lose") {
+      statusEl.textContent = `💥 패배! ${NAME[computerChoice]}(이)가 ${NAME[playerChoice]}(을)를 이겼습니다`;
+      statusEl.className = "status lose";
+      computerHandEl.classList.add("winner");
+      scores.lose++;
+      scoreLoseEl.textContent = scores.lose;
+    } else {
+      statusEl.textContent = `🤝 무승부! 둘 다 ${NAME[playerChoice]}`;
+      statusEl.className = "status draw";
+      scores.draw++;
+      scoreDrawEl.textContent = scores.draw;
+    }
+  }
+
+  choiceBtns.forEach((btn) => {
+    btn.addEventListener("click", () => play(btn.dataset.choice));
+  });
+
+  resetBtn.addEventListener("click", () => {
+    scores = { win: 0, lose: 0, draw: 0 };
+    scoreWinEl.textContent = 0;
+    scoreLoseEl.textContent = 0;
+    scoreDrawEl.textContent = 0;
+    playerHandEl.textContent = "❔";
+    computerHandEl.textContent = "❔";
+    playerHandEl.classList.remove("winner");
+    computerHandEl.classList.remove("winner");
+    statusEl.textContent = "가위, 바위, 보 중 하나를 선택하세요";
+    statusEl.className = "status";
+  });
+})();
+</script>
+
+</body>
+</html>

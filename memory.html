@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카드 짝맞추기 - 미니게임 모음</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #4ade80;
+    --danger: #f87171;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--text);
+    gap: 16px;
+    padding: 90px 12px 40px;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .topbar a:hover { background: var(--panel-2); }
+  .topbar .title { color: var(--muted); font-size: 14px; }
+
+  h1 { margin: 0; font-size: 24px; }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .counter {
+    font-variant-numeric: tabular-nums;
+    background: #0f172a;
+    color: var(--accent);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    min-width: 70px;
+    text-align: center;
+    font-size: 13px;
+  }
+  .new-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    color: #0f172a;
+  }
+  .new-btn:hover { filter: brightness(1.08); }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(4, 70px);
+    grid-template-rows: repeat(4, 70px);
+    gap: 8px;
+  }
+
+  .card {
+    background: var(--panel-2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s, background 0.1s;
+  }
+  .card:hover { background: #475569; }
+  .card.flipped {
+    background: #0f172a;
+    border: 1px solid var(--accent);
+  }
+  .card.matched {
+    background: rgba(74, 222, 128, 0.2);
+    border: 1px solid var(--accent-2);
+    cursor: default;
+  }
+  .card.hidden-face { color: transparent; }
+
+  .status {
+    text-align: center;
+    margin-top: 14px;
+    min-height: 22px;
+    font-weight: bold;
+  }
+  .status.win { color: var(--accent-2); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">🏠 홈</a>
+  <span class="title">🃏 카드 짝맞추기</span>
+</div>
+
+<h1>🃏 카드 짝맞추기</h1>
+
+<div class="panel">
+  <div class="toolbar">
+    <div class="counter" id="movesCounter">이동 0</div>
+    <button class="new-btn" id="resetBtn">새 게임</button>
+    <div class="counter" id="timer">000</div>
+  </div>
+  <div id="board"></div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+(function () {
+  const EMOJIS = ["🍎","🍌","🍇","🍉","🍓","🍒","🍍","🥝"];
+
+  const boardEl = document.getElementById("board");
+  const movesEl = document.getElementById("movesCounter");
+  const timerEl = document.getElementById("timer");
+  const statusEl = document.getElementById("status");
+  const resetBtn = document.getElementById("resetBtn");
+
+  let cardEls = [];
+  let cardValues = [];
+  let flipped = [];
+  let matchedCount = 0;
+  let moves = 0;
+  let locked = false;
+  let timerId = null;
+  let seconds = 0;
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function startTimer() {
+    stopTimer();
+    seconds = 0;
+    timerEl.textContent = "000";
+    timerId = setInterval(() => {
+      seconds++;
+      timerEl.textContent = String(Math.min(seconds, 999)).padStart(3, "0");
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function newGame() {
+    cardValues = shuffle([...EMOJIS, ...EMOJIS]);
+    flipped = [];
+    matchedCount = 0;
+    moves = 0;
+    locked = false;
+    movesEl.textContent = "이동 0";
+    statusEl.textContent = "";
+    statusEl.className = "status";
+    stopTimer();
+    timerEl.textContent = "000";
+
+    boardEl.innerHTML = "";
+    cardEls = cardValues.map((value, i) => {
+      const el = document.createElement("div");
+      el.className = "card hidden-face";
+      el.textContent = value;
+      el.addEventListener("click", () => onCardClick(i));
+      boardEl.appendChild(el);
+      return el;
+    });
+  }
+
+  function onCardClick(i) {
+    if (locked) return;
+    const el = cardEls[i];
+    if (el.classList.contains("flipped") || el.classList.contains("matched")) return;
+
+    if (flipped.length === 0 && seconds === 0 && !timerId) {
+      startTimer();
+    }
+
+    el.classList.remove("hidden-face");
+    el.classList.add("flipped");
+    flipped.push(i);
+
+    if (flipped.length === 2) {
+      moves++;
+      movesEl.textContent = "이동 " + moves;
+      locked = true;
+      const [a, b] = flipped;
+      if (cardValues[a] === cardValues[b]) {
+        cardEls[a].classList.add("matched");
+        cardEls[b].classList.add("matched");
+        cardEls[a].classList.remove("flipped");
+        cardEls[b].classList.remove("flipped");
+        flipped = [];
+        locked = false;
+        matchedCount++;
+        if (matchedCount === EMOJIS.length) {
+          stopTimer();
+          statusEl.textContent = `🎉 완료! 이동 ${moves}회, ${seconds}초`;
+          statusEl.className = "status win";
+        }
+      } else {
+        setTimeout(() => {
+          cardEls[a].classList.remove("flipped");
+          cardEls[a].classList.add("hidden-face");
+          cardEls[b].classList.remove("flipped");
+          cardEls[b].classList.add("hidden-face");
+          flipped = [];
+          locked = false;
+        }, 700);
+      }
+    }
+  }
+
+  resetBtn.addEventListener("click", newGame);
+
+  newGame();
+})();
+</script>
+
+</body>
+</html>

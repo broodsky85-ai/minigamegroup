@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>틱택토 - 미니게임 모음</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #4ade80;
+    --danger: #f87171;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--text);
+    gap: 16px;
+    padding: 24px 12px;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .topbar a:hover { background: var(--panel-2); }
+  .topbar .title { color: var(--muted); font-size: 14px; }
+
+  h1 { margin: 48px 0 0; font-size: 24px; }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+
+  .turn-info {
+    margin-bottom: 14px;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .turn-info .mark { color: var(--accent); font-weight: 800; }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 84px);
+    grid-template-rows: repeat(3, 84px);
+    gap: 6px;
+    background: #0f172a;
+    padding: 6px;
+    border-radius: 8px;
+    margin: 0 auto;
+  }
+
+  .cell {
+    background: var(--panel-2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 800;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .cell:hover { background: #475569; }
+  .cell.taken { cursor: default; }
+  .cell.x { color: #60a5fa; }
+  .cell.o { color: #fb923c; }
+  .cell.win { background: rgba(74, 222, 128, 0.25); }
+
+  .status {
+    margin-top: 16px;
+    min-height: 24px;
+    font-weight: bold;
+    font-size: 16px;
+  }
+  .status.win { color: var(--accent-2); }
+  .status.draw { color: #facc15; }
+
+  .score {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .score span b { color: var(--text); }
+
+  .reset-btn {
+    margin-top: 18px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    color: #0f172a;
+  }
+  .reset-btn:hover { filter: brightness(1.08); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">🏠 홈</a>
+  <span class="title">⭕ 틱택토</span>
+</div>
+
+<h1>⭕ 틱택토</h1>
+
+<div class="panel">
+  <div class="turn-info" id="turnInfo">차례: <span class="mark" id="turnMark">X</span></div>
+  <div id="board"></div>
+  <div class="status" id="status"></div>
+  <div class="score">
+    <span>X 승 <b id="scoreX">0</b></span>
+    <span>무승부 <b id="scoreD">0</b></span>
+    <span>O 승 <b id="scoreO">0</b></span>
+  </div>
+  <button class="reset-btn" id="resetBtn">새 게임</button>
+</div>
+
+<script>
+(function () {
+  const WIN_LINES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6],
+  ];
+
+  const boardEl = document.getElementById("board");
+  const statusEl = document.getElementById("status");
+  const turnMarkEl = document.getElementById("turnMark");
+  const turnInfoEl = document.getElementById("turnInfo");
+  const resetBtn = document.getElementById("resetBtn");
+  const scoreXEl = document.getElementById("scoreX");
+  const scoreOEl = document.getElementById("scoreO");
+  const scoreDEl = document.getElementById("scoreD");
+
+  let cells = [];
+  let cellEls = [];
+  let current = "X";
+  let gameOver = false;
+  let scores = { X: 0, O: 0, D: 0 };
+
+  function renderBoard() {
+    boardEl.innerHTML = "";
+    cellEls = [];
+    for (let i = 0; i < 9; i++) {
+      const el = document.createElement("div");
+      el.className = "cell";
+      el.addEventListener("click", () => onCellClick(i));
+      boardEl.appendChild(el);
+      cellEls.push(el);
+    }
+  }
+
+  function newGame() {
+    cells = Array(9).fill(null);
+    current = "X";
+    gameOver = false;
+    statusEl.textContent = "";
+    statusEl.className = "status";
+    turnInfoEl.style.visibility = "visible";
+    turnMarkEl.textContent = current;
+    renderBoard();
+  }
+
+  function checkResult() {
+    for (const line of WIN_LINES) {
+      const [a, b, c] = line;
+      if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+        return { winner: cells[a], line };
+      }
+    }
+    if (cells.every((v) => v !== null)) {
+      return { winner: "draw" };
+    }
+    return null;
+  }
+
+  function onCellClick(i) {
+    if (gameOver || cells[i]) return;
+
+    cells[i] = current;
+    const el = cellEls[i];
+    el.textContent = current;
+    el.classList.add("taken", current.toLowerCase());
+
+    const result = checkResult();
+    if (result) {
+      gameOver = true;
+      turnInfoEl.style.visibility = "hidden";
+      if (result.winner === "draw") {
+        statusEl.textContent = "🤝 무승부!";
+        statusEl.className = "status draw";
+        scores.D++;
+        scoreDEl.textContent = scores.D;
+      } else {
+        statusEl.textContent = `🎉 ${result.winner} 승리!`;
+        statusEl.className = "status win";
+        for (const idx of result.line) {
+          cellEls[idx].classList.add("win");
+        }
+        scores[result.winner]++;
+        if (result.winner === "X") scoreXEl.textContent = scores.X;
+        else scoreOEl.textContent = scores.O;
+      }
+      return;
+    }
+
+    current = current === "X" ? "O" : "X";
+    turnMarkEl.textContent = current;
+  }
+
+  resetBtn.addEventListener("click", newGame);
+
+  newGame();
+})();
+</script>
+
+</body>
+</html>

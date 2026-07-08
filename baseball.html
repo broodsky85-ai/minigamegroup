@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>숫자야구 - 미니게임 모음</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #4ade80;
+    --danger: #f87171;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg);
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--text);
+    gap: 16px;
+    padding: 90px 12px 40px;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .topbar a:hover { background: var(--panel-2); }
+  .topbar .title { color: var(--muted); font-size: 14px; }
+
+  h1 { margin: 0; font-size: 24px; }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    width: 420px;
+    max-width: 92vw;
+  }
+
+  .rule {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 18px;
+    line-height: 1.6;
+  }
+  .rule b { color: var(--text); }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  #guessInput {
+    flex: 1;
+    background: #0f172a;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 18px;
+    letter-spacing: 4px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  #guessInput:focus { outline: 2px solid var(--accent); }
+  .submit-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    color: #0f172a;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn:disabled { opacity: 0.5; cursor: default; filter: none; }
+
+  .error-msg {
+    min-height: 18px;
+    font-size: 12px;
+    color: var(--danger);
+    margin-bottom: 10px;
+  }
+
+  .status {
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    min-height: 24px;
+    margin: 10px 0;
+  }
+  .status.win { color: var(--accent-2); }
+
+  .attempts {
+    margin-top: 14px;
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .attempt-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .attempt-row .guess {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: 3px;
+  }
+  .attempt-row .result { color: var(--muted); font-size: 13px; }
+  .attempt-row .result b { color: var(--text); }
+  .attempt-row .idx { color: var(--muted); font-size: 12px; width: 22px; }
+
+  .reset-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text);
+  }
+  .reset-btn:hover { background: var(--panel-2); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">🏠 홈</a>
+  <span class="title">⚾ 숫자야구</span>
+</div>
+
+<h1>⚾ 숫자야구</h1>
+
+<div class="panel">
+  <p class="rule">
+    컴퓨터가 <b>1~9 중복 없는 숫자 3자리</b>를 정했습니다.<br>
+    숫자와 자리가 모두 맞으면 <b>스트라이크</b>, 숫자는 맞지만 자리가 다르면 <b>볼</b>,
+    하나도 맞지 않으면 <b>아웃</b>입니다. 3스트라이크면 정답!
+  </p>
+
+  <div class="input-row">
+    <input type="text" id="guessInput" maxlength="3" inputmode="numeric" placeholder="예: 123">
+    <button class="submit-btn" id="submitBtn">추리하기</button>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+  <div class="status" id="status"></div>
+
+  <div class="attempts" id="attempts"></div>
+
+  <button class="reset-btn" id="resetBtn">새 게임</button>
+</div>
+
+<script>
+(function () {
+  const guessInput = document.getElementById("guessInput");
+  const submitBtn = document.getElementById("submitBtn");
+  const errorMsg = document.getElementById("errorMsg");
+  const statusEl = document.getElementById("status");
+  const attemptsEl = document.getElementById("attempts");
+  const resetBtn = document.getElementById("resetBtn");
+
+  let answer = [];
+  let tries = 0;
+  let gameOver = false;
+
+  function generateAnswer() {
+    const digits = [1,2,3,4,5,6,7,8,9];
+    for (let i = digits.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [digits[i], digits[j]] = [digits[j], digits[i]];
+    }
+    return digits.slice(0, 3);
+  }
+
+  function newGame() {
+    answer = generateAnswer();
+    tries = 0;
+    gameOver = false;
+    attemptsEl.innerHTML = "";
+    statusEl.textContent = "";
+    statusEl.className = "status";
+    errorMsg.textContent = "";
+    guessInput.value = "";
+    guessInput.disabled = false;
+    submitBtn.disabled = false;
+    guessInput.focus();
+  }
+
+  function judge(guess) {
+    let strikes = 0, balls = 0;
+    for (let i = 0; i < 3; i++) {
+      if (guess[i] === answer[i]) strikes++;
+      else if (answer.includes(guess[i])) balls++;
+    }
+    return { strikes, balls };
+  }
+
+  function addAttemptRow(guessStr, strikes, balls) {
+    tries++;
+    const row = document.createElement("div");
+    row.className = "attempt-row";
+    let resultText;
+    if (strikes === 0 && balls === 0) {
+      resultText = "아웃";
+    } else {
+      resultText = `<b>${strikes}</b>스트라이크 <b>${balls}</b>볼`;
+    }
+    row.innerHTML = `
+      <span class="idx">#${tries}</span>
+      <span class="guess">${guessStr}</span>
+      <span class="result">${resultText}</span>
+    `;
+    attemptsEl.prepend(row);
+  }
+
+  function submitGuess() {
+    if (gameOver) return;
+    const raw = guessInput.value.trim();
+
+    if (!/^\d{3}$/.test(raw)) {
+      errorMsg.textContent = "1~9 숫자 3자리를 입력하세요.";
+      return;
+    }
+    const digits = raw.split("").map(Number);
+    if (digits.some((d) => d === 0)) {
+      errorMsg.textContent = "0은 사용하지 않습니다. 1~9 숫자만 입력하세요.";
+      return;
+    }
+    if (new Set(digits).size !== 3) {
+      errorMsg.textContent = "중복되지 않는 숫자 3개를 입력하세요.";
+      return;
+    }
+    errorMsg.textContent = "";
+
+    const { strikes, balls } = judge(digits);
+    addAttemptRow(raw, strikes, balls);
+    guessInput.value = "";
+
+    if (strikes === 3) {
+      gameOver = true;
+      statusEl.textContent = `🎉 정답입니다! ${tries}번 만에 맞혔습니다.`;
+      statusEl.className = "status win";
+      guessInput.disabled = true;
+      submitBtn.disabled = true;
+    } else {
+      guessInput.focus();
+    }
+  }
+
+  submitBtn.addEventListener("click", submitGuess);
+  guessInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitGuess();
+  });
+  resetBtn.addEventListener("click", newGame);
+
+  newGame();
+})();
+</script>
+
+</body>
+</html>
