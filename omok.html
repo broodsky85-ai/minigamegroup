@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오목 10단계 - 미니게임 모음</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #4ade80;
+    --danger: #f87171;
+    --cell: 32px;
+  }
+  @media (max-width: 560px) {
+    :root { --cell: 22px; }
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: "Segoe UI", Pretendard, Arial, sans-serif;
+    color: var(--text);
+    gap: 16px;
+    padding: 24px 12px 40px;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .topbar a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .topbar a:hover { background: var(--panel-2); }
+  .topbar .title { color: var(--muted); font-size: 14px; }
+  .topbar .guide-link { border-color: var(--accent); color: var(--accent); }
+
+  h1 { margin: 56px 0 0; font-size: 24px; text-align: center; }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    max-width: 96vw;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  select {
+    background: #0f172a;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    color: #0f172a;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover { background: var(--panel-2); }
+
+  .turn-info {
+    font-size: 15px;
+    color: var(--muted);
+    min-height: 20px;
+    text-align: center;
+  }
+  .turn-info b { color: var(--text); }
+  .turn-info.thinking { color: var(--accent); }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(15, var(--cell));
+    grid-template-rows: repeat(15, var(--cell));
+    background: linear-gradient(135deg, #d3a86c, #b98a4d);
+    border: 3px solid #7c5a30;
+    border-radius: 4px;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.35);
+  }
+
+  .cell {
+    position: relative;
+    width: var(--cell);
+    height: var(--cell);
+    border-right: 1px solid rgba(0,0,0,0.35);
+    border-bottom: 1px solid rgba(0,0,0,0.35);
+    cursor: pointer;
+  }
+  .cell:nth-child(15n) { border-right: none; }
+  .cell:nth-child(n+211) { border-bottom: none; }
+
+  .cell.star::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 6px; height: 6px;
+    background: rgba(0,0,0,0.45);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .cell.has-stone.star::after { display: none; }
+
+  .stone {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 82%; height: 82%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .stone.black {
+    background: radial-gradient(circle at 32% 28%, #6b7280, #0f172a 72%);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.6);
+  }
+  .stone.white {
+    background: radial-gradient(circle at 32% 28%, #ffffff, #cbd5e1 78%);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.45);
+    border: 1px solid #94a3b8;
+  }
+  .stone.last::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 26%; height: 26%;
+    border-radius: 50%;
+    background: var(--danger);
+    transform: translate(-50%, -50%);
+  }
+  .cell.win .stone {
+    box-shadow: 0 0 10px 4px var(--accent-2);
+  }
+
+  .status {
+    min-height: 24px;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: center;
+  }
+  .status.win { color: var(--accent-2); }
+  .status.lose { color: var(--danger); }
+  .status.draw { color: #facc15; }
+
+  .score {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 14px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .score span b { color: var(--text); }
+
+  .hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">🏠 홈</a>
+  <a class="guide-link" href="omok-guide.html">📖 공략집</a>
+  <span class="title">⚫ 오목 10단계</span>
+</div>
+
+<h1>⚫ 오목 10단계</h1>
+
+<div class="panel">
+  <div class="toolbar">
+    <select id="levelSelect"></select>
+    <button class="btn" id="resetBtn">새 게임</button>
+    <button class="btn btn-ghost" id="scoreResetBtn">전적 초기화</button>
+  </div>
+  <div class="turn-info" id="turnInfo">당신(⚫) 차례입니다</div>
+  <div id="board"></div>
+  <div class="status" id="status"></div>
+  <div class="score">
+    <span>승 <b id="scoreWin">0</b></span>
+    <span>무 <b id="scoreDraw">0</b></span>
+    <span>패 <b id="scoreLose">0</b></span>
+  </div>
+  <div class="hint">당신은 흑돌로 선공입니다. 가로·세로·대각선 중 어느 방향이든 5개를 먼저 이으면 승리!</div>
+</div>
+
+<script>
+(function () {
+  const SIZE = 15;
+  const EMPTY = 0, BLACK = 1, WHITE = 2;
+  const DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
+  const STAR_POINTS = new Set(["3,3", "3,11", "11,3", "11,11", "7,7"]);
+  const WIN_SCORE = 1e12;
+
+  const LEVELS = [
+    { label: "1단계 (입문)",   depth: 1, cand: 6,  randomChance: 0.55, randomTop: 3, blockChance: 0.45 },
+    { label: "2단계 (초급1)",  depth: 1, cand: 8,  randomChance: 0.45, randomTop: 3, blockChance: 0.6 },
+    { label: "3단계 (초급2)",  depth: 2, cand: 6,  randomChance: 0.35, randomTop: 2, blockChance: 0.75 },
+    { label: "4단계 (쉬움)",   depth: 2, cand: 8,  randomChance: 0.25, randomTop: 2, blockChance: 0.85 },
+    { label: "5단계 (보통1)",  depth: 2, cand: 10, randomChance: 0.15, randomTop: 2, blockChance: 0.9 },
+    { label: "6단계 (보통2)",  depth: 3, cand: 6,  randomChance: 0.10, randomTop: 1, blockChance: 0.95 },
+    { label: "7단계 (어려움1)", depth: 3, cand: 8,  randomChance: 0.05, randomTop: 1, blockChance: 1 },
+    { label: "8단계 (어려움2)", depth: 3, cand: 10, randomChance: 0.02, randomTop: 1, blockChance: 1 },
+    { label: "9단계 (고수)",   depth: 4, cand: 6,  randomChance: 0,    randomTop: 1, blockChance: 1 },
+    { label: "10단계 (마스터)", depth: 4, cand: 8,  randomChance: 0,    randomTop: 1, blockChance: 1 },
+  ];
+
+  const boardEl = document.getElementById("board");
+  const statusEl = document.getElementById("status");
+  const turnInfoEl = document.getElementById("turnInfo");
+  const resetBtn = document.getElementById("resetBtn");
+  const scoreResetBtn = document.getElementById("scoreResetBtn");
+  const levelSelect = document.getElementById("levelSelect");
+  const scoreWinEl = document.getElementById("scoreWin");
+  const scoreDrawEl = document.getElementById("scoreDraw");
+  const scoreLoseEl = document.getElementById("scoreLose");
+
+  let board = [];
+  let cellEls = [];
+  let currentTurn = BLACK;
+  let gameOver = false;
+  let aiThinking = false;
+  let lastMoveEl = null;
+  let scores = { win: 0, draw: 0, lose: 0 };
+
+  LEVELS.forEach((lv, i) => {
+    const opt = document.createElement("option");
+    opt.value = i + 1;
+    opt.textContent = lv.label;
+    if (i === 0) opt.selected = true;
+    levelSelect.appendChild(opt);
+  });
+
+  function inBounds(r, c) {
+    return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+  }
+
+  function buildBoard() {
+    board = [];
+    for (let r = 0; r < SIZE; r++) board.push(new Array(SIZE).fill(EMPTY));
+  }
+
+  function renderBoard() {
+    boardEl.innerHTML = "";
+    cellEls = [];
+    for (let r = 0; r < SIZE; r++) {
+      const rowEls = [];
+      for (let c = 0; c < SIZE; c++) {
+        const el = document.createElement("div");
+        el.className = "cell";
+        if (STAR_POINTS.has(r + "," + c)) el.classList.add("star");
+        el.dataset.r = r;
+        el.dataset.c = c;
+        boardEl.appendChild(el);
+        rowEls.push(el);
+      }
+      cellEls.push(rowEls);
+    }
+  }
+
+  function findWinningLine(bd, r, c, player) {
+    for (const [dr, dc] of DIRS) {
+      const cells = [[r, c]];
+      let rr = r + dr, cc = c + dc;
+      while (inBounds(rr, cc) && bd[rr][cc] === player) { cells.push([rr, cc]); rr += dr; cc += dc; }
+      rr = r - dr; cc = c - dc;
+      while (inBounds(rr, cc) && bd[rr][cc] === player) { cells.unshift([rr, cc]); rr -= dr; cc -= dc; }
+      if (cells.length >= 5) return cells;
+    }
+    return null;
+  }
+
+  function patternScore(count, openEnds) {
+    if (count >= 5) return 1000000000;
+    if (count === 4) return openEnds === 2 ? 5000000 : openEnds === 1 ? 500000 : 0;
+    if (count === 3) return openEnds === 2 ? 50000 : openEnds === 1 ? 3000 : 0;
+    if (count === 2) return openEnds === 2 ? 500 : openEnds === 1 ? 100 : 0;
+    if (count === 1) return openEnds === 2 ? 10 : openEnds === 1 ? 3 : 0;
+    return 0;
+  }
+
+  function evaluatePoint(bd, r, c, player) {
+    let total = 0;
+    for (const [dr, dc] of DIRS) {
+      let forward = 0;
+      let rr = r + dr, cc = c + dc;
+      while (inBounds(rr, cc) && bd[rr][cc] === player) { forward++; rr += dr; cc += dc; }
+      const openForward = inBounds(rr, cc) && bd[rr][cc] === EMPTY;
+
+      let backward = 0;
+      rr = r - dr; cc = c - dc;
+      while (inBounds(rr, cc) && bd[rr][cc] === player) { backward++; rr -= dr; cc -= dc; }
+      const openBackward = inBounds(rr, cc) && bd[rr][cc] === EMPTY;
+
+      const count = forward + backward + 1;
+      const openEnds = (openForward ? 1 : 0) + (openBackward ? 1 : 0);
+      total += patternScore(count, openEnds);
+    }
+    return total;
+  }
+
+  function evaluateBoard(bd, player) {
+    let score = 0;
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const owner = bd[r][c];
+        if (owner === EMPTY) continue;
+        const val = evaluatePoint(bd, r, c, owner);
+        score += owner === player ? val : -val;
+      }
+    }
+    return score;
+  }
+
+  function generateCandidateCells(bd) {
+    const set = new Set();
+    const result = [];
+    let hasStone = false;
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (bd[r][c] === EMPTY) continue;
+        hasStone = true;
+        for (let dr = -2; dr <= 2; dr++) {
+          for (let dc = -2; dc <= 2; dc++) {
+            const nr = r + dr, nc = c + dc;
+            if (!inBounds(nr, nc) || bd[nr][nc] !== EMPTY) continue;
+            const key = nr * SIZE + nc;
+            if (!set.has(key)) { set.add(key); result.push([nr, nc]); }
+          }
+        }
+      }
+    }
+    if (!hasStone) return [[7, 7]];
+    return result;
+  }
+
+  function orderedCandidates(bd, player, limit) {
+    const opp = player === BLACK ? WHITE : BLACK;
+    const cells = generateCandidateCells(bd);
+    const scored = cells.map(([r, c]) => {
+      bd[r][c] = player;
+      const atk = evaluatePoint(bd, r, c, player);
+      bd[r][c] = opp;
+      const def = evaluatePoint(bd, r, c, opp);
+      bd[r][c] = EMPTY;
+      return { r, c, score: atk + def * 0.9 };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit).map((o) => [o.r, o.c]);
+  }
+
+  function minimax(bd, depth, alpha, beta, currentPlayer, aiPlayer, candLimit, ply) {
+    const candidates = orderedCandidates(bd, currentPlayer, candLimit);
+    if (depth === 0 || candidates.length === 0) {
+      return { score: evaluateBoard(bd, aiPlayer) };
+    }
+    const isMax = currentPlayer === aiPlayer;
+    let bestScore = isMax ? -Infinity : Infinity;
+    let bestMove = candidates[0];
+    for (const [r, c] of candidates) {
+      bd[r][c] = currentPlayer;
+      let score;
+      const win = findWinningLine(bd, r, c, currentPlayer);
+      if (win) {
+        score = isMax ? WIN_SCORE - ply : -WIN_SCORE + ply;
+      } else {
+        const next = currentPlayer === BLACK ? WHITE : BLACK;
+        score = minimax(bd, depth - 1, alpha, beta, next, aiPlayer, candLimit, ply + 1).score;
+      }
+      bd[r][c] = EMPTY;
+      if (isMax) {
+        if (score > bestScore) { bestScore = score; bestMove = [r, c]; }
+        alpha = Math.max(alpha, score);
+      } else {
+        if (score < bestScore) { bestScore = score; bestMove = [r, c]; }
+        beta = Math.min(beta, score);
+      }
+      if (beta <= alpha) break;
+    }
+    return { score: bestScore, move: bestMove };
+  }
+
+  function chooseAiMove(level) {
+    const cfg = LEVELS[level - 1];
+    const candidatesAll = generateCandidateCells(board);
+    if (candidatesAll.length === 0) return null;
+
+    for (const [r, c] of candidatesAll) {
+      board[r][c] = WHITE;
+      const win = findWinningLine(board, r, c, WHITE);
+      board[r][c] = EMPTY;
+      if (win) return [r, c];
+    }
+
+    const blockingMoves = candidatesAll.filter(([r, c]) => {
+      board[r][c] = BLACK;
+      const win = findWinningLine(board, r, c, BLACK);
+      board[r][c] = EMPTY;
+      return !!win;
+    });
+    if (blockingMoves.length > 0 && Math.random() < cfg.blockChance) {
+      return blockingMoves[0];
+    }
+
+    const ordered = orderedCandidates(board, WHITE, cfg.cand);
+    const result = minimax(board, cfg.depth, -Infinity, Infinity, WHITE, WHITE, cfg.cand, 0);
+    let move = result.move || ordered[0];
+
+    if (cfg.randomChance > 0 && Math.random() < cfg.randomChance && ordered.length > 1) {
+      const topN = ordered.slice(0, Math.min(cfg.randomTop + 1, ordered.length));
+      move = topN[Math.floor(Math.random() * topN.length)];
+    }
+    return move;
+  }
+
+  function placeStone(r, c, player) {
+    board[r][c] = player;
+    const el = cellEls[r][c];
+    el.classList.add("has-stone");
+    const stone = document.createElement("div");
+    stone.className = "stone " + (player === BLACK ? "black" : "white");
+    el.appendChild(stone);
+    if (lastMoveEl) lastMoveEl.classList.remove("last");
+    stone.classList.add("last");
+    lastMoveEl = stone;
+  }
+
+  function isBoardFull() {
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (board[r][c] === EMPTY) return false;
+      }
+    }
+    return true;
+  }
+
+  function highlightWin(line) {
+    for (const [r, c] of line) cellEls[r][c].classList.add("win");
+  }
+
+  function updateScoreDisplay() {
+    scoreWinEl.textContent = scores.win;
+    scoreDrawEl.textContent = scores.draw;
+    scoreLoseEl.textContent = scores.lose;
+  }
+
+  function endGame(winLine, winner) {
+    gameOver = true;
+    turnInfoEl.style.visibility = "hidden";
+    if (!winner) {
+      statusEl.textContent = "🤝 무승부!";
+      statusEl.className = "status draw";
+      scores.draw++;
+    } else if (winner === BLACK) {
+      highlightWin(winLine);
+      statusEl.textContent = "🎉 당신의 승리입니다!";
+      statusEl.className = "status win";
+      scores.win++;
+    } else {
+      highlightWin(winLine);
+      statusEl.textContent = "🤖 AI가 승리했습니다.";
+      statusEl.className = "status lose";
+      scores.lose++;
+    }
+    updateScoreDisplay();
+  }
+
+  function updateStatus() {
+    if (currentTurn === BLACK) {
+      turnInfoEl.textContent = "당신(⚫) 차례입니다";
+      turnInfoEl.className = "turn-info";
+    } else {
+      turnInfoEl.textContent = "AI(⚪)가 생각 중입니다...";
+      turnInfoEl.className = "turn-info thinking";
+    }
+  }
+
+  function onBoardClick(e) {
+    const cellEl = e.target.closest(".cell");
+    if (!cellEl) return;
+    const r = Number(cellEl.dataset.r);
+    const c = Number(cellEl.dataset.c);
+    if (gameOver || aiThinking || currentTurn !== BLACK || board[r][c] !== EMPTY) return;
+
+    placeStone(r, c, BLACK);
+    const win = findWinningLine(board, r, c, BLACK);
+    if (win) { endGame(win, BLACK); return; }
+    if (isBoardFull()) { endGame(null, null); return; }
+
+    currentTurn = WHITE;
+    updateStatus();
+    aiThinking = true;
+
+    setTimeout(() => {
+      const level = Number(levelSelect.value);
+      const move = chooseAiMove(level);
+      aiThinking = false;
+      if (!move) { endGame(null, null); return; }
+      const [r2, c2] = move;
+      placeStone(r2, c2, WHITE);
+      const win2 = findWinningLine(board, r2, c2, WHITE);
+      if (win2) { endGame(win2, WHITE); return; }
+      if (isBoardFull()) { endGame(null, null); return; }
+      currentTurn = BLACK;
+      updateStatus();
+    }, 300);
+  }
+
+  function newGame() {
+    buildBoard();
+    renderBoard();
+    currentTurn = BLACK;
+    gameOver = false;
+    aiThinking = false;
+    lastMoveEl = null;
+    statusEl.textContent = "";
+    statusEl.className = "status";
+    turnInfoEl.style.visibility = "visible";
+    updateStatus();
+  }
+
+  function resetScores() {
+    scores = { win: 0, draw: 0, lose: 0 };
+    updateScoreDisplay();
+  }
+
+  boardEl.addEventListener("click", onBoardClick);
+  resetBtn.addEventListener("click", newGame);
+  levelSelect.addEventListener("change", newGame);
+  scoreResetBtn.addEventListener("click", resetScores);
+
+  newGame();
+})();
+</script>
+
+</body>
+</html>
