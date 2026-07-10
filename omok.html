@@ -1727,6 +1727,9 @@
     badges.className = "badges";
 
     if (isWin) {
+      if (noItem) {
+        addBadge(badges, "record", "완벽한 승리", "어떤 도움도 받지 않고 승리했습니다.");
+      }
       if (summary.firstWin) {
         addBadge(badges, "record", "첫 승리", lv.name + "을(를) 처음으로 꺾었습니다.");
       } else if (summary.newBestMoves) {
