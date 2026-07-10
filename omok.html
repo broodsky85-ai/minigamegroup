@@ -1392,6 +1392,10 @@
 
   const THREAT_SCORE = 3000;   // 막힌 4 또는 열린 3 이상
   const FORK_BONUS = 40000;
+  /* 4목 이상은 성격과 무관하게 온전한 무게로 본다.
+     공격형(defBias < 1)이 상대의 열린 4를 깎아서 보면, 몇 수 앞까지만 읽는 탐색이
+     "맞불도 해볼 만하다"고 착각해 지는 수를 둔다. 취향은 작은 모양에서만 허용한다. */
+  const CRITICAL_SCORE = 400000;
 
   function patternScore(count, openEnds) {
     if (count >= 5) return 1000000000;
