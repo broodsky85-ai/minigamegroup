@@ -778,6 +778,41 @@
 
 </div>
 
+<div id="recordsTab" class="tab-panel">
+  <div class="inner">
+    <div class="hero">
+      <div class="eyebrow">내 도전 기록</div>
+      <h2>기록실</h2>
+      <p>이 브라우저에 저장된 나의 기록입니다. 다른 기기나 다른 사람의 기록과는 합쳐지지 않습니다.</p>
+    </div>
+
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <h3 class="section-title">📋 단계별 기록</h3>
+    <div class="table-wrap">
+      <table class="records-table">
+        <thead>
+          <tr>
+            <th>단계</th>
+            <th>상대</th>
+            <th class="num">도전</th>
+            <th class="num">승리</th>
+            <th class="num">최소 수</th>
+            <th class="num">최단 시간</th>
+            <th class="num">무아이템</th>
+          </tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin: 12px auto 0;">무아이템 = 수읽기와 차례 되돌리기를 한 번도 쓰지 않고 거둔 승리 중 최소 수</p>
+
+    <div class="cta">
+      <button class="btn btn-ghost" id="wipeBtn">모든 기록 초기화</button>
+    </div>
+  </div>
+</div>
+
 <div id="guideTab" class="tab-panel">
   <div class="inner">
     <div class="hero">
