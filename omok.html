@@ -1706,6 +1706,7 @@
       ["상대", currentLevel + "단계"],
       ["총 착수", moveCount + "수"],
       ["소요 시간", formatTime(seconds)],
+      ["아이템", noItem ? "미사용" : itemsUsed + "회"],
     ];
     for (const [k, v] of stats) {
       const cell = document.createElement("div");
