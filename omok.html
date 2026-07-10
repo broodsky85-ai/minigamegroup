@@ -1339,6 +1339,20 @@
     if (lastMoveEl) lastMoveEl.classList.remove("last");
     stone.classList.add("last");
     lastMoveEl = stone;
+    moveCount++;
+    liveMovesEl.textContent = moveCount;
+  }
+
+  function startTimer() {
+    startedAt = Date.now();
+    stopTimer();
+    tickTimer = setInterval(() => {
+      liveTimeEl.textContent = formatTime(elapsedSeconds());
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   }
 
   function isBoardFull() {
