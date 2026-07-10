@@ -1545,6 +1545,7 @@
     moveCount = 0;
     history = [];
     for (const mv of moves) placeStone(mv.r, mv.c, mv.player);
+    liveMovesEl.textContent = moveCount;   // 전부 되돌려 착수가 0이 되는 경우까지 반영
   }
 
   function updateItemButtons() {
