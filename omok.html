@@ -1856,7 +1856,8 @@
     const cv = document.createElement("canvas");
     cv.width = W;
     cv.height = H;
-    const g = cv.getContext("2d");
+    const g = cv.getContext && cv.getContext("2d");
+    if (!g) return null;   // canvas를 못 쓰는 환경에서도 결과 화면은 떠야 한다
     const FONT = '"Segoe UI", Pretendard, Arial, sans-serif';
 
     g.fillStyle = "#070b18";
