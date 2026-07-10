@@ -1440,7 +1440,12 @@
         const owner = bd[r][c];
         if (owner === EMPTY) continue;
         const val = evaluatePoint(bd, r, c, owner);
-        score += owner === player ? val : -val * persona.defBias;
+        if (owner === player) {
+          score += val;
+        } else {
+          const w = val >= CRITICAL_SCORE ? Math.max(1, persona.defBias) : persona.defBias;
+          score -= val * w;
+        }
       }
     }
     return score;
