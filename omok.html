@@ -1158,8 +1158,13 @@
     return { attempts: s.attempts || 0, wins: s.wins || [] };
   }
 
+  function wipeStore() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* 무시 */ }
+    store = { unlocked: 1, levels: {} };
+  }
+
   // 승리 기록을 남기고, 이번 판이 어떤 의미였는지 돌려준다.
-  function saveRecord(level, result, moves, seconds) {
+  function saveRecord(level, result, moves, seconds, noItem) {
     const key = String(level);
     const s = store.levels[key] || { attempts: 0, wins: [] };
     s.attempts++;
@@ -1171,10 +1176,11 @@
       if (bestMovesBefore === null || w.moves < bestMovesBefore) bestMovesBefore = w.moves;
       if (bestTimeBefore === null || w.seconds < bestTimeBefore) bestTimeBefore = w.seconds;
     }
+    const hadNoItemWin = prevWins.some((w) => w.noItem);
 
     let unlockedLevel = null;
     if (result === "win") {
-      s.wins.push({ moves: moves, seconds: seconds });
+      s.wins.push({ moves: moves, seconds: seconds, noItem: !!noItem });
       s.wins.sort((a, b) => a.moves - b.moves);
       if (s.wins.length > MAX_WINS_PER_LEVEL) s.wins.length = MAX_WINS_PER_LEVEL;
       if (level === store.unlocked && level < LEVELS.length) {
@@ -1204,7 +1210,26 @@
       newBestTime: result === "win" && (bestTimeBefore === null || seconds < bestTimeBefore),
       prevBestTime: bestTimeBefore,
       firstWin: result === "win" && prevWins.length === 0,
+      firstNoItemWin: result === "win" && !!noItem && !hadNoItemWin,
       unlockedLevel: unlockedLevel,
+    };
+  }
+
+  // 단계별 요약 (기록실 표에서 쓴다)
+  function summarize(level) {
+    const s = getStats(level);
+    let bestMoves = null, bestSeconds = null, bestNoItemMoves = null;
+    for (const w of s.wins) {
+      if (bestMoves === null || w.moves < bestMoves) bestMoves = w.moves;
+      if (bestSeconds === null || w.seconds < bestSeconds) bestSeconds = w.seconds;
+      if (w.noItem && (bestNoItemMoves === null || w.moves < bestNoItemMoves)) bestNoItemMoves = w.moves;
+    }
+    return {
+      attempts: s.attempts,
+      wins: s.wins.length,
+      bestMoves: bestMoves,
+      bestSeconds: bestSeconds,
+      bestNoItemMoves: bestNoItemMoves,
     };
   }
 
