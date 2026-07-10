@@ -1775,8 +1775,30 @@
       resultCardEl.appendChild(rank);
     }
 
+    // 승리하면 공유 카드를 그려 미리 보여준다.
+    let shareCanvas = null;
+    if (isWin) {
+      shareCanvas = drawShareCard(currentLevel, moveCount, seconds, noItem, summary);
+      shareCanvas.className = "share-preview";
+      resultCardEl.appendChild(shareCanvas);
+      const msg = document.createElement("p");
+      msg.className = "share-msg";
+      msg.id = "shareMsg";
+      resultCardEl.appendChild(msg);
+    }
+
     const actions = document.createElement("div");
     actions.className = "result-actions";
+
+    if (isWin) {
+      actions.appendChild(makeButton("🖼️ 기록 카드 저장", false, () => {
+        downloadCard(shareCanvas, currentLevel);
+      }));
+      actions.appendChild(makeButton("📋 기록 문구 복사", false, () => {
+        copyShareText(currentLevel, moveCount, seconds, noItem, summary);
+      }));
+    }
+
     if (isWin && currentLevel < LEVELS.length && store.unlocked > currentLevel) {
       const next = LEVELS[currentLevel];
       actions.appendChild(makeButton(
