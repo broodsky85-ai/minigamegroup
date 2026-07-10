@@ -1598,9 +1598,14 @@
     gameOver = false;
     aiThinking = false;
     lastMoveEl = null;
+    moveCount = 0;
+    liveMovesEl.textContent = "0";
+    liveTimeEl.textContent = "0초";
+    boardShellEl.classList.remove("shake");
     statusEl.textContent = "";
     statusEl.className = "status";
     turnInfoEl.style.visibility = "visible";
+    startTimer();
     updateStatus();
   }
 
