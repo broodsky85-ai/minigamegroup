@@ -997,7 +997,8 @@
       winLine: "첫 번째 관문을 통과했습니다.",
       desc: "AI가 즉시 이길 수 있는 수는 놓치지 않지만, 방어는 절반 가까이(약 45%) 실패하고 대부분 근처의 아무 자리에나 둡니다. 계획적인 수읽기는 거의 없습니다.",
       tip: "열린 3이나 열린 4를 만들면 AI가 못 막을 확률이 높습니다. 복잡하게 생각하지 말고 한 방향으로 돌을 쭉 이어보세요.",
-      depth: 1, cand: 6, randomChance: 0.55, randomTop: 3, blockChance: 0.45,
+      depth: 1, cand: 6, randomChance: 0.55, randomTop: 3, blockChance: 0.45
+      persona: { defBias: 0.9, forkWeight: 0 },   // 새싹: 성격이랄 게 없다
     },
     {
       name: "수습생", icon: "📘", neon: "#34d399", tag: "약한 방어",
@@ -1006,7 +1007,8 @@
       winLine: "기본 실력은 충분하군요.",
       desc: "1단계보다 넓은 범위의 수를 살펴보지만, 여전히 방어 성공률이 60% 정도이고 상황 판단 없이 눈앞의 수만 봅니다.",
       tip: "한 곳에서 위협을 만드는 척하다가 반대편에서 진짜 승부를 내는 식으로 조금만 변칙을 줘도 쉽게 뚫립니다.",
-      depth: 1, cand: 8, randomChance: 0.45, randomTop: 3, blockChance: 0.6,
+      depth: 1, cand: 8, randomChance: 0.45, randomTop: 3, blockChance: 0.6
+      persona: { defBias: 0.9, forkWeight: 0 },   // 수습생: 아직 평범하다
     },
     {
       name: "방패", icon: "🛡️", neon: "#38bdf8", tag: "1수 앞 계산 시작",
@@ -1015,7 +1017,8 @@
       winLine: "철벽을 깨뜨렸습니다.",
       desc: "상대(당신)의 다음 반응까지 한 수 앞서 계산하기 시작합니다. 방어 성공률은 75%로 올라갑니다.",
       tip: "단순한 열린 3 하나로는 막힐 수 있습니다. 두 개 이상의 방향에서 동시에 위협을 준비하는 이중 위협 전략을 연습하기 좋은 단계입니다.",
-      depth: 2, cand: 6, randomChance: 0.35, randomTop: 2, blockChance: 0.75,
+      depth: 2, cand: 6, randomChance: 0.35, randomTop: 2, blockChance: 0.75
+      persona: { defBias: 1.45, forkWeight: 0 },   // 방패: 상대 모양을 무겁게 본다
     },
     {
       name: "추격자", icon: "🏹", neon: "#22d3ee", tag: "넓어진 시야",
@@ -1024,7 +1027,8 @@
       winLine: "추격을 따돌렸습니다.",
       desc: "더 많은 후보 수를 비교하며 방어 성공률이 85%까지 오릅니다. 명백한 실수는 줄어들지만 먼 미래의 위협은 아직 잘 못 봅니다.",
       tip: "눈에 보이는 위협보다 2~3수 뒤에 완성되는 '숨은 이중 위협'을 미리 설계하면 AI가 대응하지 못하고 뚫립니다.",
-      depth: 2, cand: 8, randomChance: 0.25, randomTop: 2, blockChance: 0.85,
+      depth: 2, cand: 8, randomChance: 0.25, randomTop: 2, blockChance: 0.85
+      persona: { defBias: 0.65, forkWeight: 0.25 },   // 추격자: 공격을 우선한다
     },
     {
       name: "함정술사", icon: "🕸️", neon: "#a78bfa", tag: "균형 잡힌 실력",
@@ -1033,7 +1037,8 @@
       winLine: "함정을 모두 간파했습니다.",
       desc: "방어 성공률 90%, 더 많은 후보 수를 검토합니다. 이 단계부터는 실수를 노리기보다 정직한 공격 전략이 더 잘 통합니다.",
       tip: "하나의 큰 위협에 집중하기보다, 여러 방향으로 돌을 분산시켜 다음 수에 선택지를 넓혀두는 '포석'이 중요해집니다.",
-      depth: 2, cand: 10, randomChance: 0.15, randomTop: 2, blockChance: 0.9,
+      depth: 2, cand: 10, randomChance: 0.15, randomTop: 2, blockChance: 0.9
+      persona: { defBias: 1.0, forkWeight: 1.1 },   // 함정술사: 이중 위협을 노린다
     },
     {
       name: "맹공", icon: "⚔️", neon: "#fb7185", tag: "2수 앞 수읽기",
@@ -1042,7 +1047,8 @@
       winLine: "맹공을 버텨내고 반격에 성공했습니다.",
       desc: "2수 앞(자신-상대-자신)까지 내다보는 탐색을 시작합니다. 방어 성공률 95%로 웬만한 열린 3, 열린 4는 정확히 막습니다.",
       tip: "단발성 위협은 대부분 막힙니다. 하나의 수로 두 개의 열린 3을 동시에 만드는 '양삼' 모양을 노려야 승산이 있습니다.",
-      depth: 3, cand: 6, randomChance: 0.10, randomTop: 1, blockChance: 0.95,
+      depth: 3, cand: 6, randomChance: 0.10, randomTop: 1, blockChance: 0.95
+      persona: { defBias: 0.5, forkWeight: 0.35 },   // 맹공: 방어를 뒤로 미룬다
     },
     {
       name: "철벽", icon: "🧱", neon: "#818cf8", tag: "완벽한 방어",
@@ -1051,7 +1057,8 @@
       winLine: "철벽에 균열을 만들었습니다.",
       desc: "즉시 승리로 이어지는 상대의 수는 절대 놓치지 않습니다(방어 성공률 100%). 3수 앞까지 계산해 공격 기회도 놓치지 않습니다.",
       tip: "이제부터는 '함정'이 필요합니다. 당장은 약해 보이지만 3~4수 뒤에 이중 위협으로 이어지는 복합적인 모양을 미리 짜두세요.",
-      depth: 3, cand: 8, randomChance: 0.05, randomTop: 1, blockChance: 1,
+      depth: 3, cand: 8, randomChance: 0.05, randomTop: 1, blockChance: 1
+      persona: { defBias: 1.5, forkWeight: 0.1 },   // 철벽: 가장 방어적이다
     },
     {
       name: "심판자", icon: "⚖️", neon: "#fbbf24", tag: "넓고 정확한 수읽기",
@@ -1060,7 +1067,8 @@
       winLine: "심판자의 인정을 받았습니다.",
       desc: "7단계와 같은 3수 앞 계산에 더해 더 많은 후보 수를 비교해 정교하게 최선의 수를 찾습니다. 실수를 거의 하지 않습니다.",
       tip: "초반 포석 단계에서 승부가 결정되는 경우가 많습니다. 중앙을 선점하고 여러 방향으로 확장 가능한 모양을 최대한 빨리 만드세요.",
-      depth: 3, cand: 10, randomChance: 0.02, randomTop: 1, blockChance: 1,
+      depth: 3, cand: 10, randomChance: 0.02, randomTop: 1, blockChance: 1
+      persona: { defBias: 1.0, forkWeight: 0.5 },   // 심판자: 균형
     },
     {
       name: "지배자", icon: "🔱", neon: "#f87171", tag: "4수 앞 수읽기",
@@ -1069,7 +1077,8 @@
       winLine: "지배자의 영역을 무너뜨렸습니다.",
       desc: "자신-상대-자신-상대까지 4수 앞을 내다보는 깊은 탐색을 수행합니다. 실수 확률 0%, 방어 성공률 100%로 웬만한 계획은 미리 읽힙니다.",
       tip: "정면 승부보다 초반 포석에서 우위를 가져가야 합니다. 두 개 이상의 잠재적 위협을 동시에 키워서 AI의 수읽기 범위를 넘어서는 복잡한 국면을 만드세요.",
-      depth: 4, cand: 6, randomChance: 0, randomTop: 1, blockChance: 1,
+      depth: 4, cand: 6, randomChance: 0, randomTop: 1, blockChance: 1
+      persona: { defBias: 1.05, forkWeight: 0.7 },   // 지배자: 균형 + 함정
     },
     {
       name: "오목왕", icon: "👑", neon: "#fcd34d", tag: "최종보스", final: true,
@@ -1078,7 +1087,8 @@
       winLine: "오목왕 격파! 이제 당신이 새로운 오목왕입니다.",
       desc: "9단계와 동일한 4수 앞 탐색이지만 더 넓은 후보 수를 비교해 최선의 수를 찾는 최고 난이도입니다. 실수도, 놓치는 위협도 없습니다.",
       tip: "정공법으로는 이기기 어렵습니다. 첫 몇 수부터 남들이 잘 두지 않는 변칙적인 포석으로 AI의 평가 함수가 예상하지 못한 복잡한 모양을 만들어보세요. 여러 번 두면서 AI의 패턴을 파악하는 것도 방법입니다.",
-      depth: 4, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1,
+      depth: 4, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1
+      persona: { defBias: 1.0, forkWeight: 1.0 },   // 오목왕: 모든 것을 갖췄다
     },
   ];
 
