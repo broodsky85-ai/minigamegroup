@@ -1018,7 +1018,7 @@
       desc: "상대(당신)의 다음 반응까지 한 수 앞서 계산하기 시작합니다. 방어 성공률은 75%로 올라갑니다.",
       tip: "단순한 열린 3 하나로는 막힐 수 있습니다. 두 개 이상의 방향에서 동시에 위협을 준비하는 이중 위협 전략을 연습하기 좋은 단계입니다.",
       depth: 2, cand: 6, randomChance: 0.35, randomTop: 2, blockChance: 0.75,
-      persona: { defBias: 1.45, forkWeight: 0 },   // 방패: 상대 모양을 무겁게 본다
+      persona: { defBias: 1.35, forkWeight: 0 },   // 방패: 상대 모양을 무겁게 본다
     },
     {
       name: "추격자", icon: "🏹", neon: "#22d3ee", tag: "넓어진 시야",
@@ -1028,7 +1028,7 @@
       desc: "더 많은 후보 수를 비교하며 방어 성공률이 85%까지 오릅니다. 명백한 실수는 줄어들지만 먼 미래의 위협은 아직 잘 못 봅니다.",
       tip: "눈에 보이는 위협보다 2~3수 뒤에 완성되는 '숨은 이중 위협'을 미리 설계하면 AI가 대응하지 못하고 뚫립니다.",
       depth: 2, cand: 8, randomChance: 0.25, randomTop: 2, blockChance: 0.85,
-      persona: { defBias: 0.65, forkWeight: 0.25 },   // 추격자: 공격을 우선한다
+      persona: { defBias: 0.78, forkWeight: 0.25 },   // 추격자: 공격을 우선한다
     },
     {
       name: "함정술사", icon: "🕸️", neon: "#a78bfa", tag: "균형 잡힌 실력",
@@ -1048,7 +1048,7 @@
       desc: "2수 앞(자신-상대-자신)까지 내다보는 탐색을 시작합니다. 방어 성공률 95%로 웬만한 열린 3, 열린 4는 정확히 막습니다.",
       tip: "단발성 위협은 대부분 막힙니다. 하나의 수로 두 개의 열린 3을 동시에 만드는 '양삼' 모양을 노려야 승산이 있습니다.",
       depth: 3, cand: 6, randomChance: 0.10, randomTop: 1, blockChance: 0.95,
-      persona: { defBias: 0.5, forkWeight: 0.35 },   // 맹공: 방어를 뒤로 미룬다
+      persona: { defBias: 0.8, forkWeight: 0.35 },   // 맹공: 방어를 뒤로 미룬다
     },
     {
       name: "철벽", icon: "🧱", neon: "#818cf8", tag: "완벽한 방어",
@@ -1058,7 +1058,7 @@
       desc: "즉시 승리로 이어지는 상대의 수는 절대 놓치지 않습니다(방어 성공률 100%). 3수 앞까지 계산해 공격 기회도 놓치지 않습니다.",
       tip: "이제부터는 '함정'이 필요합니다. 당장은 약해 보이지만 3~4수 뒤에 이중 위협으로 이어지는 복합적인 모양을 미리 짜두세요.",
       depth: 3, cand: 8, randomChance: 0.05, randomTop: 1, blockChance: 1,
-      persona: { defBias: 1.5, forkWeight: 0.1 },   // 철벽: 가장 방어적이다
+      persona: { defBias: 1.4, forkWeight: 0.1 },   // 철벽: 가장 방어적이다
     },
     {
       name: "심판자", icon: "⚖️", neon: "#fbbf24", tag: "넓고 정확한 수읽기",
