@@ -1502,6 +1502,7 @@
 
   function chooseAiMove(level) {
     const cfg = LEVELS[level - 1];
+    setPersona(cfg.persona);
     const candidatesAll = generateCandidateCells(board);
     if (candidatesAll.length === 0) return null;
 
