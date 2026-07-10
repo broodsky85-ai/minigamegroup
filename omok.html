@@ -1373,6 +1373,16 @@
     return null;
   }
 
+  /* 보스의 성격.
+     defBias  — 상대 모양을 얼마나 무겁게 볼지. 1보다 크면 방어형, 작으면 공격형.
+     forkWeight — 한 수로 두 방향에 위협을 만드는 '이중 위협'을 얼마나 노릴지. */
+  const NEUTRAL_PERSONA = { defBias: 0.9, forkWeight: 0.4 };
+  let persona = NEUTRAL_PERSONA;
+  function setPersona(p) { persona = p || NEUTRAL_PERSONA; }
+
+  const THREAT_SCORE = 3000;   // 막힌 4 또는 열린 3 이상
+  const FORK_BONUS = 40000;
+
   function patternScore(count, openEnds) {
     if (count >= 5) return 1000000000;
     if (count === 4) return openEnds === 2 ? 5000000 : openEnds === 1 ? 500000 : 0;
@@ -1384,6 +1394,7 @@
 
   function evaluatePoint(bd, r, c, player) {
     let total = 0;
+    let threatDirs = 0;
     for (const [dr, dc] of DIRS) {
       let forward = 0;
       let rr = r + dr, cc = c + dc;
@@ -1397,7 +1408,13 @@
 
       const count = forward + backward + 1;
       const openEnds = (openForward ? 1 : 0) + (openBackward ? 1 : 0);
-      total += patternScore(count, openEnds);
+      const s = patternScore(count, openEnds);
+      if (s >= THREAT_SCORE) threatDirs++;
+      total += s;
+    }
+    // 두 방향에서 동시에 위협이 서는 자리를 함정술사 계열이 특히 좋아한다.
+    if (threatDirs >= 2 && persona.forkWeight > 0) {
+      total += FORK_BONUS * persona.forkWeight * (threatDirs - 1);
     }
     return total;
   }
@@ -1409,7 +1426,7 @@
         const owner = bd[r][c];
         if (owner === EMPTY) continue;
         const val = evaluatePoint(bd, r, c, owner);
-        score += owner === player ? val : -val;
+        score += owner === player ? val : -val * persona.defBias;
       }
     }
     return score;
