@@ -1063,10 +1063,16 @@
   function renderBossGrid() {
     bossGridEl.innerHTML = "";
     LEVELS.forEach((lv, i) => {
+      const level = i + 1;
+      const locked = level > store.unlocked;
+      const stats = getStats(level);
+      const cleared = stats.wins.length > 0;
+
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "boss-card";
+      btn.className = "boss-card" + (locked ? " locked" : "");
       btn.style.setProperty("--neon", lv.neon);
+      btn.disabled = locked;
       btn.innerHTML =
         '<div class="row">' +
           '<span class="icon"></span>' +
@@ -1076,17 +1082,21 @@
           "</div>" +
         "</div>" +
         '<p class="tagline"></p>';
-      btn.querySelector(".icon").textContent = lv.icon;
-      btn.querySelector(".stage").textContent = (i + 1) + "단계";
+      btn.querySelector(".icon").textContent = locked ? "🔒" : lv.icon;
+      btn.querySelector(".stage").textContent =
+        level + "단계" + (cleared ? " · 클리어" : "");
       btn.querySelector(".name").textContent = lv.name;
-      btn.querySelector(".tagline").textContent = lv.tagline;
-      if (lv.final) {
+      btn.querySelector(".tagline").textContent = locked
+        ? (level - 1) + "단계 " + LEVELS[i - 1].name + "을(를) 꺾으면 해금됩니다."
+        : lv.tagline;
+
+      if (lv.final && !locked) {
         const badge = document.createElement("span");
         badge.className = "final-badge";
         badge.textContent = "최종보스";
         btn.appendChild(badge);
       }
-      btn.addEventListener("click", () => startBattle(i + 1));
+      if (!locked) btn.addEventListener("click", () => startBattle(level));
       bossGridEl.appendChild(btn);
     });
   }
