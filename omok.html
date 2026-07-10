@@ -1525,8 +1525,60 @@
     if (lastMoveEl) lastMoveEl.classList.remove("last");
     stone.classList.add("last");
     lastMoveEl = stone;
+    history.push({ r: r, c: c, player: player });
     moveCount++;
     liveMovesEl.textContent = moveCount;
+  }
+
+  /* ---------- 아이템 ---------- */
+  function clearSuggestions() {
+    boardEl.querySelectorAll(".cell.suggest").forEach((el) => el.classList.remove("suggest"));
+  }
+
+  // 착수 기록으로 보드를 다시 그린다. 되돌리기가 DOM을 직접 손대지 않도록.
+  function rebuildFromHistory() {
+    const moves = history.slice();
+    buildBoard();
+    renderBoard();
+    lastMoveEl = null;
+    moveCount = 0;
+    history = [];
+    for (const mv of moves) placeStone(mv.r, mv.c, mv.player);
+  }
+
+  function updateItemButtons() {
+    hintCountEl.textContent = hintsLeft;
+    undoCountEl.textContent = undosLeft;
+    const playable = !gameOver && !aiThinking && currentTurn === BLACK;
+    hintBtn.disabled = !playable || hintsLeft <= 0;
+    undoBtn.disabled = !playable || undosLeft <= 0 || history.length < 2;
+  }
+
+  function useHint() {
+    if (gameOver || aiThinking || currentTurn !== BLACK || hintsLeft <= 0) return;
+    const picks = orderedCandidates(board, BLACK, 3);
+    if (!picks.length) return;
+    hintsLeft--;
+    itemsUsed++;
+    clearSuggestions();
+    for (const [r, c] of picks) cellEls[r][c].classList.add("suggest");
+    updateItemButtons();
+    turnInfoEl.textContent = "추천 위치 " + picks.length + "곳을 표시했습니다. 최종 선택은 당신의 몫입니다.";
+    turnInfoEl.className = "turn-info";
+  }
+
+  function useUndo() {
+    if (gameOver || aiThinking || currentTurn !== BLACK || undosLeft <= 0) return;
+    if (history.length < 2) return;   // 내 수와 AI의 응수가 둘 다 있어야 되돌릴 수 있다
+    history.pop();                    // AI의 응수
+    history.pop();                    // 나의 마지막 수
+    undosLeft--;
+    itemsUsed++;
+    clearSuggestions();
+    rebuildFromHistory();
+    updateItemButtons();
+    turnInfoEl.textContent = "이전 차례로 돌아왔습니다. 같은 실수를 반복하지 마세요.";
+    turnInfoEl.className = "turn-info";
   }
 
   function startTimer() {
