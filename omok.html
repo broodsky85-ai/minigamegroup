@@ -1625,6 +1625,7 @@
   }
 
   function startBattle(level) {
+    hideResult();
     currentLevel = level;
     renderBossBanner(level);
     selectView.classList.remove("active");
