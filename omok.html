@@ -1675,7 +1675,7 @@
     parent.appendChild(d);
   }
 
-  function showResult(result, summary, seconds) {
+  function showResult(result, summary, seconds, noItem) {
     const lv = LEVELS[currentLevel - 1];
     const isWin = result === "win";
     const neon = isWin ? lv.neon : result === "lose" ? "#f87171" : "#fcd34d";
