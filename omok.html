@@ -750,10 +750,14 @@
           <button class="btn btn-ghost" id="scoreResetBtn">전적 초기화</button>
         </div>
         <div class="turn-info" id="turnInfo">당신(⚫) 차례입니다</div>
-        <div class="board-shell">
+        <div class="board-shell" id="boardShell">
           <div id="board"></div>
         </div>
         <div class="status" id="status"></div>
+        <div class="score">
+          <span>착수 <b id="liveMoves">0</b>수</span>
+          <span>시간 <b id="liveTime">0초</b></span>
+        </div>
         <div class="score">
           <span>승 <b id="scoreWin">0</b></span>
           <span>무 <b id="scoreDraw">0</b></span>
