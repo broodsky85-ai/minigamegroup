@@ -1376,24 +1376,179 @@
 
   function endGame(winLine, winner) {
     gameOver = true;
+    stopTimer();
     turnInfoEl.style.visibility = "hidden";
     const lv = LEVELS[currentLevel - 1];
+    const seconds = elapsedSeconds();
+    liveTimeEl.textContent = formatTime(seconds);
+
+    let result;
     if (!winner) {
+      result = "draw";
       statusEl.textContent = "🤝 무승부!";
       statusEl.className = "status draw";
       scores.draw++;
     } else if (winner === BLACK) {
+      result = "win";
       highlightWin(winLine);
       statusEl.textContent = "🎉 " + lv.winLine;
       statusEl.className = "status win";
       scores.win++;
     } else {
+      result = "lose";
       highlightWin(winLine);
       statusEl.textContent = "패배 · " + lv.name + "이(가) 먼저 다섯 개를 이었습니다.";
       statusEl.className = "status lose";
       scores.lose++;
+      boardShellEl.classList.remove("shake");
+      void boardShellEl.offsetWidth;
+      boardShellEl.classList.add("shake");
     }
     updateScoreDisplay();
+
+    const summary = saveRecord(currentLevel, result, moveCount, seconds);
+    if (summary.unlockedLevel) renderBossGrid();
+
+    // 승리 라인을 잠깐 보여준 뒤 결과 화면을 띄운다.
+    setTimeout(() => showResult(result, summary, seconds), result === "draw" ? 500 : 1100);
+  }
+
+  /* ---------- 결과 오버레이 ---------- */
+  function makeButton(label, primary, onClick) {
+    const b = document.createElement("button");
+    b.className = "btn" + (primary ? "" : " btn-ghost");
+    b.textContent = label;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function addBadge(parent, cls, title, body) {
+    const d = document.createElement("div");
+    d.className = "badge " + cls;
+    const t = document.createElement("span");
+    t.className = "b-title";
+    t.textContent = title;
+    d.appendChild(t);
+    d.appendChild(document.createTextNode(body));
+    parent.appendChild(d);
+  }
+
+  function showResult(result, summary, seconds) {
+    const lv = LEVELS[currentLevel - 1];
+    const isWin = result === "win";
+    const neon = isWin ? lv.neon : result === "lose" ? "#f87171" : "#fcd34d";
+
+    resultCardEl.style.setProperty("--neon", neon);
+    resultCardEl.innerHTML = "";
+
+    const verdict = document.createElement("h2");
+    verdict.className = "verdict";
+    verdict.id = "verdictText";
+    verdict.textContent = isWin ? "승리" : result === "lose" ? "패배" : "무승부";
+    resultCardEl.appendChild(verdict);
+
+    const line = document.createElement("p");
+    line.className = "boss-line";
+    if (isWin) {
+      line.textContent = lv.winLine;
+    } else if (result === "lose") {
+      line.textContent = lv.name + "이(가) 먼저 다섯 개의 돌을 연결했습니다.";
+    } else {
+      line.textContent = "보드가 가득 찼습니다. 승부를 가리지 못했습니다.";
+    }
+    resultCardEl.appendChild(line);
+
+    const grid = document.createElement("div");
+    grid.className = "stat-grid";
+    const stats = [
+      ["상대", currentLevel + "단계"],
+      ["총 착수", moveCount + "수"],
+      ["소요 시간", formatTime(seconds)],
+    ];
+    for (const [k, v] of stats) {
+      const cell = document.createElement("div");
+      cell.className = "stat";
+      const ke = document.createElement("span");
+      ke.className = "k";
+      ke.textContent = k;
+      const ve = document.createElement("span");
+      ve.className = "v";
+      ve.textContent = v;
+      cell.appendChild(ke);
+      cell.appendChild(ve);
+      grid.appendChild(cell);
+    }
+    resultCardEl.appendChild(grid);
+
+    const badges = document.createElement("div");
+    badges.className = "badges";
+
+    if (isWin) {
+      if (summary.firstWin) {
+        addBadge(badges, "record", "첫 승리", lv.name + "을(를) 처음으로 꺾었습니다.");
+      } else if (summary.newBestMoves) {
+        addBadge(badges, "record", "최소 수 개인 신기록",
+          "기존 기록보다 " + (summary.prevBestMoves - moveCount) + "수 빠르게 승리했습니다.");
+      } else if (summary.newBestTime) {
+        addBadge(badges, "record", "시간 기록 갱신",
+          "기존 최고 기록을 " + (summary.prevBestTime - seconds) + "초 단축했습니다.");
+      }
+
+      if (summary.unlockedLevel) {
+        const next = LEVELS[summary.unlockedLevel - 1];
+        if (next.final) {
+          addBadge(badges, "unlock", "최종보스 해금",
+            "10단계 오목왕이 당신을 기다립니다.");
+        } else {
+          addBadge(badges, "unlock", "새로운 상대 등장",
+            summary.unlockedLevel + "단계 " + next.name + "이(가) 해금되었습니다.");
+        }
+      }
+      if (currentLevel === LEVELS.length) {
+        addBadge(badges, "record", "오목왕 정복자",
+          "10개의 관문을 모두 통과했습니다. 이제 당신이 새로운 오목왕입니다.");
+      }
+    } else if (result === "lose") {
+      addBadge(badges, "record", "포기하지 않는 기록",
+        "이번이 " + summary.attempts + "번째 도전입니다. 상대의 수는 이미 확인했습니다.");
+    }
+
+    if (badges.children.length) resultCardEl.appendChild(badges);
+
+    if (isWin && summary.totalWins > 1) {
+      const rank = document.createElement("p");
+      rank.className = "my-rank";
+      rank.innerHTML =
+        "내 " + currentLevel + "단계 기록 중 <b>" + summary.rank + "위</b> / " +
+        summary.totalWins + "승 · " + summary.attempts + "판 도전";
+      resultCardEl.appendChild(rank);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "result-actions";
+    if (isWin && currentLevel < LEVELS.length && store.unlocked > currentLevel) {
+      const next = LEVELS[currentLevel];
+      actions.appendChild(makeButton(
+        "다음 상대 · " + (currentLevel + 1) + "단계 " + next.name, true,
+        () => { hideResult(); startBattle(currentLevel + 1); }
+      ));
+      actions.appendChild(makeButton("다시 도전", false, () => { hideResult(); newGame(); }));
+    } else {
+      actions.appendChild(makeButton(
+        isWin ? "다시 도전" : "바로 재도전", true,
+        () => { hideResult(); newGame(); }
+      ));
+    }
+    actions.appendChild(makeButton("상대 선택", false, () => { hideResult(); backToSelect(); }));
+    resultCardEl.appendChild(actions);
+
+    overlayEl.hidden = false;
+    const first = resultCardEl.querySelector(".btn");
+    if (first) first.focus();
+  }
+
+  function hideResult() {
+    overlayEl.hidden = true;
   }
 
   function updateStatus() {
