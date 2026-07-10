@@ -1824,6 +1824,248 @@
     overlayEl.hidden = true;
   }
 
+  /* ---------- 공유 카드 ---------- */
+  function hexA(hex, alpha) {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
+
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+
+  function shareTitle(level) {
+    const lv = LEVELS[level - 1];
+    return lv.final ? "오목왕 격파" : level + "단계 " + lv.name + " 격파";
+  }
+
+  function drawShareCard(level, moves, seconds, noItem, summary) {
+    const lv = LEVELS[level - 1];
+    const W = 800, H = 800;
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H;
+    const g = cv.getContext("2d");
+    const FONT = '"Segoe UI", Pretendard, Arial, sans-serif';
+
+    g.fillStyle = "#070b18";
+    g.fillRect(0, 0, W, H);
+    const glow = g.createRadialGradient(W / 2, 60, 0, W / 2, 60, 640);
+    glow.addColorStop(0, hexA(lv.neon, 0.30));
+    glow.addColorStop(1, "rgba(7,11,24,0)");
+    g.fillStyle = glow;
+    g.fillRect(0, 0, W, H);
+
+    g.strokeStyle = lv.neon;
+    g.lineWidth = 3;
+    g.shadowColor = lv.neon;
+    g.shadowBlur = 24;
+    roundRect(g, 26, 26, W - 52, H - 52, 30);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    g.textAlign = "center";
+
+    g.fillStyle = "#8b9bb5";
+    g.font = "600 26px " + FONT;
+    g.fillText("오 목  챌 린 지", W / 2, 108);
+
+    g.font = "96px " + FONT;
+    g.fillText(lv.icon, W / 2, 232);
+
+    g.fillStyle = lv.neon;
+    g.shadowColor = hexA(lv.neon, 0.9);
+    g.shadowBlur = 30;
+    g.font = "900 54px " + FONT;
+    g.fillText(shareTitle(level), W / 2, 320);
+    g.shadowBlur = 0;
+
+    // 통계 3칸
+    const items = [
+      ["총 착수", moves + "수"],
+      ["소요 시간", formatTime(seconds)],
+      ["아이템", noItem ? "미사용" : itemsUsed + "회"],
+    ];
+    const boxW = 210, boxH = 130, gap = 18;
+    const totalW = boxW * 3 + gap * 2;
+    let x = (W - totalW) / 2;
+    for (const [k, v] of items) {
+      g.fillStyle = "rgba(30, 42, 69, 0.85)";
+      roundRect(g, x, 380, boxW, boxH, 16);
+      g.fill();
+      g.fillStyle = "#8b9bb5";
+      g.font = "600 22px " + FONT;
+      g.fillText(k, x + boxW / 2, 424);
+      g.fillStyle = "#e6edf7";
+      g.font = "800 38px " + FONT;
+      g.fillText(v, x + boxW / 2, 476);
+      x += boxW + gap;
+    }
+
+    // 강조 한 줄
+    let highlight = "";
+    if (noItem) highlight = "완벽한 승리 · 어떤 도움도 받지 않았습니다";
+    else if (summary && summary.newBestMoves) highlight = "최소 수 개인 신기록";
+    else if (summary && summary.rank) highlight = "내 " + level + "단계 기록 중 " + summary.rank + "위 / " + summary.totalWins + "승";
+    if (highlight) {
+      g.fillStyle = "#fcd34d";
+      g.font = "700 28px " + FONT;
+      g.fillText(highlight, W / 2, 578);
+    }
+
+    g.fillStyle = "#e6edf7";
+    g.font = "800 36px " + FONT;
+    g.fillText(
+      lv.final ? "다음 오목왕은 누구인가?" : "이 기록을 깰 수 있나요?",
+      W / 2, 668
+    );
+
+    g.fillStyle = "#5b6b85";
+    g.font = "500 22px " + FONT;
+    g.fillText("10명의 AI를 꺾고 오목왕에 도전하라", W / 2, 716);
+
+    return cv;
+  }
+
+  function shareMessage(text) {
+    const el = document.getElementById("shareMsg");
+    if (el) el.textContent = text;
+  }
+
+  function downloadCard(canvas, level) {
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (!blob) { shareMessage("이미지를 만들지 못했습니다."); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "오목챌린지_" + level + "단계.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      shareMessage("기록 카드를 저장했습니다.");
+    }, "image/png");
+  }
+
+  function buildShareText(level, moves, seconds, noItem, summary) {
+    const lines = [
+      "오목 챌린지",
+      shareTitle(level),
+      moves + "수 · " + formatTime(seconds) + " · " + (noItem ? "무아이템 승리" : "아이템 " + itemsUsed + "회"),
+    ];
+    if (summary && summary.totalWins > 1) {
+      lines.push("내 " + level + "단계 기록 중 " + summary.rank + "위 / " + summary.totalWins + "승");
+    }
+    lines.push(LEVELS[level - 1].final ? "다음 오목왕은 누구인가?" : "이 기록을 깰 수 있나요?");
+    return lines.join("\n");
+  }
+
+  function copyShareText(level, moves, seconds, noItem, summary) {
+    const text = buildShareText(level, moves, seconds, noItem, summary);
+    const done = () => shareMessage("기록 문구를 복사했습니다.");
+    const fail = () => shareMessage("복사에 실패했습니다. 카드를 저장해 보세요.");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fail);
+      return;
+    }
+    // 구형 브라우저 및 file:// 환경 대비
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      done();
+    } catch (e) {
+      fail();
+    }
+  }
+
+  /* ---------- 기록실 ---------- */
+  function renderRecords() {
+    const cards = [
+      ["해금한 단계", store.unlocked + " / " + LEVELS.length, false],
+    ];
+    let cleared = 0, totalWins = 0, totalGames = 0, noItemClears = 0;
+    for (let L = 1; L <= LEVELS.length; L++) {
+      const s = summarize(L);
+      totalGames += s.attempts;
+      totalWins += s.wins;
+      if (s.wins > 0) cleared++;
+      if (s.bestNoItemMoves !== null) noItemClears++;
+    }
+    cards.push(["클리어한 보스", cleared + "명", cleared === LEVELS.length]);
+    cards.push(["무아이템 클리어", noItemClears + "명", noItemClears > 0]);
+    cards.push(["총 전적", totalWins + "승 / " + totalGames + "판", false]);
+
+    summaryGridEl.innerHTML = "";
+    for (const [k, v, gold] of cards) {
+      const d = document.createElement("div");
+      d.className = "summary-card";
+      const ke = document.createElement("span");
+      ke.className = "k";
+      ke.textContent = k;
+      const ve = document.createElement("span");
+      ve.className = "v" + (gold ? " gold" : "");
+      ve.textContent = v;
+      d.appendChild(ke);
+      d.appendChild(ve);
+      summaryGridEl.appendChild(d);
+    }
+
+    recordsBodyEl.innerHTML = "";
+    LEVELS.forEach((lv, i) => {
+      const level = i + 1;
+      const locked = level > store.unlocked;
+      const s = summarize(level);
+
+      const tr = document.createElement("tr");
+      if (locked) tr.className = "locked-row";
+
+      const cells = [
+        { text: level + "단계" },
+        { html: true, boss: true },
+        { text: String(s.attempts), num: true },
+        { text: String(s.wins), num: true },
+        { text: s.bestMoves === null ? "—" : s.bestMoves + "수", num: true, best: s.bestMoves !== null },
+        { text: s.bestSeconds === null ? "—" : formatTime(s.bestSeconds), num: true },
+        { text: s.bestNoItemMoves === null ? "—" : s.bestNoItemMoves + "수", num: true, best: s.bestNoItemMoves !== null },
+      ];
+
+      cells.forEach((cell) => {
+        const td = document.createElement("td");
+        if (cell.num) td.className = "num";
+        if (cell.best) td.classList.add("best");
+        if (cell.boss) {
+          td.className = "boss";
+          td.style.setProperty("--neon", lv.neon);
+          const dot = document.createElement("span");
+          dot.className = "dot";
+          td.appendChild(dot);
+          td.appendChild(document.createTextNode(locked ? "🔒 " + lv.name : lv.name));
+        } else {
+          td.textContent = cell.text;
+          if (cell.text === "—") td.classList.add("empty");
+        }
+        tr.appendChild(td);
+      });
+      recordsBodyEl.appendChild(tr);
+    });
+  }
+
   function updateStatus() {
     if (currentTurn === BLACK) {
       turnInfoEl.textContent = "당신(⚫) 차례입니다";
