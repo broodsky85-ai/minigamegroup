@@ -1615,6 +1615,8 @@
   function endGame(winLine, winner) {
     gameOver = true;
     stopTimer();
+    clearSuggestions();
+    updateItemButtons();
     turnInfoEl.style.visibility = "hidden";
     const lv = LEVELS[currentLevel - 1];
     const seconds = elapsedSeconds();
