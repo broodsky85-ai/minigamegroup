@@ -1463,7 +1463,7 @@
       bd[r][c] = opp;
       const def = evaluatePoint(bd, r, c, opp);
       bd[r][c] = EMPTY;
-      return { r, c, score: atk + def * 0.9 };
+      return { r, c, score: atk + def * persona.defBias };
     });
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, limit).map((o) => [o.r, o.c]);
