@@ -1509,8 +1509,13 @@
           "10개의 관문을 모두 통과했습니다. 이제 당신이 새로운 오목왕입니다.");
       }
     } else if (result === "lose") {
-      addBadge(badges, "record", "포기하지 않는 기록",
-        "이번이 " + summary.attempts + "번째 도전입니다. 상대의 수는 이미 확인했습니다.");
+      if (summary.attempts >= 3 && summary.totalWins === 0) {
+        addBadge(badges, "record", "포기하지 않는 기록",
+          "이번이 " + summary.attempts + "번째 도전입니다. 아직 패턴을 읽는 중입니다. 한 판만 더 도전해 보세요.");
+      } else {
+        addBadge(badges, "record", "다음 판을 위해",
+          "상대의 수는 이미 확인했습니다. 다음 도전에서는 달라질 수 있습니다.");
+      }
     }
 
     if (badges.children.length) resultCardEl.appendChild(badges);
