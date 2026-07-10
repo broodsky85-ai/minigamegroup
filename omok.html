@@ -1540,7 +1540,7 @@
       actions.appendChild(makeButton("다시 도전", false, () => { hideResult(); newGame(); }));
     } else {
       actions.appendChild(makeButton(
-        isWin ? "다시 도전" : "바로 재도전", true,
+        result === "lose" ? "바로 재도전" : "다시 도전", true,
         () => { hideResult(); newGame(); }
       ));
     }
