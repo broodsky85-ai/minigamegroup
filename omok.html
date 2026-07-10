@@ -1629,6 +1629,8 @@
   }
 
   function backToSelect() {
+    stopTimer();
+    renderBossGrid();
     battleView.classList.remove("active");
     selectView.classList.add("active");
     scrollTop();
