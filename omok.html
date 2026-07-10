@@ -1120,6 +1120,12 @@
   let tickTimer = null;
   let scores = { win: 0, draw: 0, lose: 0 };
 
+  let history = [];            // [{r, c, player}] — 차례 되돌리기용
+  const ITEM_LIMIT = 3;
+  let hintsLeft = ITEM_LIMIT;
+  let undosLeft = ITEM_LIMIT;
+  let itemsUsed = 0;           // 이번 판에서 아이템을 쓴 횟수
+
   /* ---------- 기록 저장소 ----------
      지금은 localStorage 로컬 기록만 다룬다.
      나중에 서버 랭킹을 붙이면 이 두 함수 안쪽만 fetch로 바꾸면 된다. */
