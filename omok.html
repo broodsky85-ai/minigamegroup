@@ -1811,14 +1811,16 @@
     const c = Number(cellEl.dataset.c);
     if (gameOver || aiThinking || currentTurn !== BLACK || board[r][c] !== EMPTY) return;
 
+    clearSuggestions();
     placeStone(r, c, BLACK);
     const win = findWinningLine(board, r, c, BLACK);
     if (win) { endGame(win, BLACK); return; }
     if (isBoardFull()) { endGame(null, null); return; }
 
     currentTurn = WHITE;
-    updateStatus();
     aiThinking = true;
+    updateStatus();
+    updateItemButtons();
 
     setTimeout(() => {
       const move = chooseAiMove(currentLevel);
@@ -1831,6 +1833,7 @@
       if (isBoardFull()) { endGame(null, null); return; }
       currentTurn = BLACK;
       updateStatus();
+      updateItemButtons();
     }, 300);
   }
 
