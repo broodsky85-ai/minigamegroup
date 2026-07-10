@@ -1651,9 +1651,16 @@
   goToGameBtn.addEventListener("click", () => switchTab("game"));
 
   boardEl.addEventListener("click", onBoardClick);
-  resetBtn.addEventListener("click", newGame);
-  backBtn.addEventListener("click", backToSelect);
+  resetBtn.addEventListener("click", () => { hideResult(); newGame(); });
+  backBtn.addEventListener("click", () => { hideResult(); backToSelect(); });
   scoreResetBtn.addEventListener("click", resetScores);
+
+  overlayEl.addEventListener("click", (e) => {
+    if (e.target === overlayEl) hideResult();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlayEl.hidden) hideResult();
+  });
 
   renderBossGrid();
   renderGuideLevels();
