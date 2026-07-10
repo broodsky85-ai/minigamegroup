@@ -2155,12 +2155,16 @@
     scrollTop();
   }
 
+  const TABS = { game: "gameTab", records: "recordsTab", guide: "guideTab" };
+
   function switchTab(tabName) {
     document.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.tab === tabName);
     });
-    document.getElementById("gameTab").classList.toggle("active", tabName === "game");
-    document.getElementById("guideTab").classList.toggle("active", tabName === "guide");
+    for (const key of Object.keys(TABS)) {
+      document.getElementById(TABS[key]).classList.toggle("active", key === tabName);
+    }
+    if (tabName === "records") renderRecords();
     scrollTop();
   }
 
@@ -2172,7 +2176,23 @@
   boardEl.addEventListener("click", onBoardClick);
   resetBtn.addEventListener("click", () => { hideResult(); newGame(); });
   backBtn.addEventListener("click", () => { hideResult(); backToSelect(); });
-  scoreResetBtn.addEventListener("click", resetScores);
+  hintBtn.addEventListener("click", useHint);
+  undoBtn.addEventListener("click", useUndo);
+
+  wipeBtn.addEventListener("click", () => {
+    const ok = window.confirm(
+      "저장된 모든 기록과 해금 상태가 사라집니다.\n1단계 새싹부터 다시 시작하게 됩니다. 계속할까요?"
+    );
+    if (!ok) return;
+    wipeStore();
+    scores = { win: 0, draw: 0, lose: 0 };
+    updateScoreDisplay();
+    renderBossGrid();
+    renderRecords();
+    hideResult();
+    battleView.classList.remove("active");
+    selectView.classList.add("active");
+  });
 
   overlayEl.addEventListener("click", (e) => {
     if (e.target === overlayEl) hideResult();
@@ -2183,7 +2203,9 @@
 
   renderBossGrid();
   renderGuideLevels();
+  renderRecords();
   updateScoreDisplay();
+  updateItemButtons();
 })();
 </script>
 
