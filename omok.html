@@ -1576,6 +1576,7 @@
 
   function useHint() {
     if (gameOver || aiThinking || currentTurn !== BLACK || hintsLeft <= 0) return;
+    setPersona(NEUTRAL_PERSONA);   // 힌트는 상대 성격에 물들지 않게 중립으로 본다
     const picks = orderedCandidates(board, BLACK, 3);
     if (!picks.length) return;
     hintsLeft--;
