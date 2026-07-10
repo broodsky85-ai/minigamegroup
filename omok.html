@@ -748,7 +748,14 @@
         <div class="toolbar">
           <button class="btn btn-ghost" id="backBtn">← 상대 선택</button>
           <button class="btn" id="resetBtn">다시 도전</button>
-          <button class="btn btn-ghost" id="scoreResetBtn">전적 초기화</button>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-neon" id="hintBtn" title="유리한 수가 있는 위치를 표시합니다">
+            🔍 수읽기 <span class="count" id="hintCount">3</span>
+          </button>
+          <button class="btn btn-neon" id="undoBtn" title="당신과 AI의 마지막 수를 함께 되돌립니다">
+            ↩️ 차례 되돌리기 <span class="count" id="undoCount">3</span>
+          </button>
         </div>
         <div class="turn-info" id="turnInfo">당신(⚫) 차례입니다</div>
         <div class="board-shell" id="boardShell">
