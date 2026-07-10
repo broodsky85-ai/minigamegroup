@@ -1646,11 +1646,13 @@
     }
     updateScoreDisplay();
 
-    const summary = saveRecord(currentLevel, result, moveCount, seconds);
+    const noItem = itemsUsed === 0;
+    const summary = saveRecord(currentLevel, result, moveCount, seconds, noItem);
     if (summary.unlockedLevel) renderBossGrid();
+    renderRecords();
 
     // 승리 라인을 잠깐 보여준 뒤 결과 화면을 띄운다.
-    setTimeout(() => showResult(result, summary, seconds), result === "draw" ? 500 : 1100);
+    setTimeout(() => showResult(result, summary, seconds, noItem), result === "draw" ? 500 : 1100);
   }
 
   /* ---------- 결과 오버레이 ---------- */
