@@ -1845,6 +1845,10 @@
     aiThinking = false;
     lastMoveEl = null;
     moveCount = 0;
+    history = [];
+    hintsLeft = ITEM_LIMIT;
+    undosLeft = ITEM_LIMIT;
+    itemsUsed = 0;
     liveMovesEl.textContent = "0";
     liveTimeEl.textContent = "0초";
     boardShellEl.classList.remove("shake");
@@ -1853,11 +1857,7 @@
     turnInfoEl.style.visibility = "visible";
     startTimer();
     updateStatus();
-  }
-
-  function resetScores() {
-    scores = { win: 0, draw: 0, lose: 0 };
-    updateScoreDisplay();
+    updateItemButtons();
   }
 
   /* ---------- 화면 전환 ---------- */
