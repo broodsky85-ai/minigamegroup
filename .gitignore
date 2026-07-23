@@ -4,3 +4,14 @@
 # 테스트 의존성
 tests/node_modules/
 tests/package-lock.json
+
+# Android local build outputs / generated web asset mirror
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/
+android/app/src/main/assets/web/
+
+# 로컬 작업 지침 / 배포 인수인계 메모
+AGENTS.md
+OMOK_RELEASE_HANDOFF.md

@@ -41,14 +41,15 @@ cards[0].click();
 check("대국 화면 전환", $("battleView").classList.contains("active"));
 check("보스 배너에 이름", $("bossBanner").textContent.includes("새싹"));
 check("보드 225칸", doc.querySelectorAll("#board .cell").length === 225);
-check("아이템 3/3", $("hintCount").textContent === "3" && $("undoCount").textContent === "3");
+check("아이템 4종 각 1회", ["hintCount","undoCount","dangerCount","futureCount"].every((id) => $(id).textContent === "1"));
 check("되돌리기는 처음엔 비활성", $("undoBtn").disabled === true);
 check("수읽기는 처음엔 활성", $("hintBtn").disabled === false);
 
 // ---------- 3. 수읽기 (빈 보드에서는 중앙 한 곳만 후보다) ----------
 $("hintBtn").click();
 check("빈 보드 수읽기는 중앙 1곳", suggests() === 1, suggests() + "곳");
-check("수읽기 잔여 2", $("hintCount").textContent === "2");
+  check("수읽기 잔여 0", $("hintCount").textContent === "0");
+  check("소진된 수읽기에 광고 충전 표시", $("hintBtn").classList.contains("ad-refill") && $("hintBtn").textContent.includes("광고 보고"));
 
 // ---------- 4. 착수 → 추천 표시 사라짐, AI 응수 ----------
 cell(7, 7).click();
@@ -66,8 +67,9 @@ check("내 돌 1개", stones() === 1);
   $("undoBtn").click();
   check("되돌리기 후 돌 0개", stones() === 0, stones() + "개");
   check("되돌리기 후 착수 0", $("liveMoves").textContent === "0", $("liveMoves").textContent);
-  check("되돌리기 잔여 2", $("undoCount").textContent === "2");
-  check("되돌린 뒤 다시 비활성", $("undoBtn").disabled === true);
+  check("되돌리기 잔여 0", $("undoCount").textContent === "0");
+  check("소진된 되돌리기에 광고 충전 표시", $("undoBtn").classList.contains("ad-refill") && $("undoBtn").textContent.includes("광고 보고"));
+  check("소진 후 광고 충전 버튼 유지", $("undoBtn").disabled === false);
   check("되돌리기 안내 문구", $("turnInfo").textContent.includes("이전 차례로"));
 
   cell(7, 7).click();
@@ -92,10 +94,10 @@ check("내 돌 1개", stones() === 1);
   }
   check("반복 되돌리기 후 돌 수 = 착수 수", sane);
   check("되돌리기 소진", $("undoCount").textContent === "0", "잔여 " + $("undoCount").textContent);
-  check("소진되면 비활성", $("undoBtn").disabled === true);
+  check("소진되어도 광고 충전 가능", $("undoBtn").disabled === false);
 
   $("hintBtn").click();
-  check("중반 수읽기는 3곳", suggests() === 3, suggests() + "곳");
+  check("소진 아이템은 광고 안내", $("itemNote").textContent.includes("안드로이드 배포판"));
 
   // ---------- 7. 실제로 1단계를 이겨본다 (AI가 막으면 재시도) ----------
   let won = false;
@@ -136,10 +138,10 @@ check("내 돌 1개", stones() === 1);
   doc.querySelector('.tab-btn[data-tab="records"]').click();
   check("기록실 탭 활성", $("recordsTab").classList.contains("active"));
   const rows = doc.querySelectorAll("#recordsBody tr");
-  check("기록실 표 10행", rows.length === 10, rows.length + "행");
+  check("기록실 표 15행", rows.length === 15, rows.length + "행");
   check("요약 카드 4개", doc.querySelectorAll(".summary-card").length === 4);
   if (won) {
-    check("승리 후 8행만 잠김", doc.querySelectorAll("#recordsBody tr.locked-row").length === 8);
+    check("승리 후 13행만 잠김", doc.querySelectorAll("#recordsBody tr.locked-row").length === 13);
     check("1단계 최소 수 기록됨", !rows[0].children[4].textContent.includes("—"), rows[0].children[4].textContent);
     check("1단계 무아이템 기록됨", !rows[0].children[6].textContent.includes("—"), rows[0].children[6].textContent);
   }

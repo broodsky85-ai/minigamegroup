@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>오목 챌린지 - 10명의 AI를 꺾고 오목왕에 도전하라</title>
+<meta name="theme-color" content="#070b18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/omok-192.png">
+<link rel="apple-touch-icon" href="icons/omok-192.png">
+<title>오목 챌린지 - 인간계를 넘어 신계에 도전하라</title>
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -68,6 +74,15 @@
   }
   .topbar a:hover { background: var(--panel-2); }
   .topbar .title { color: var(--muted); font-size: 14px; }
+  .topbar .settings-btn { padding:6px 11px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; }
+  .topbar .install-btn { margin-left:auto; padding:6px 11px; border:1px solid var(--accent); border-radius:8px; background:rgba(56,189,248,.1); color:var(--accent); cursor:pointer; }
+  .app-loader { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#070b18; transition:opacity .2s ease; }
+  .app-loader.hidden { opacity:0; pointer-events:none; }
+  .loader-mark { width:76px; height:76px; border-radius:50%; background:linear-gradient(135deg,#111 48%,#f7f2e7 52%); box-shadow:-12px 0 30px #38bdf877,12px 0 30px #c084fc77; animation:loaderPulse .8s ease-in-out infinite alternate; }
+  @keyframes loaderPulse { to { transform:scale(1.08); } }
+  .update-banner { position:fixed; left:50%; bottom:18px; z-index:60; transform:translateX(-50%); width:min(440px,calc(100% - 24px)); display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid var(--accent); border-radius:12px; background:#131c31; box-shadow:0 10px 36px #000a; }
+  .update-banner[hidden] { display:none; }
+  .update-banner span { font-size:13px; }
 
   .tabs {
     position: sticky;
@@ -187,6 +202,59 @@
   .select-head h2 { margin: 0; font-size: clamp(17px, 4.4vw, 21px); }
   .select-head span { color: var(--muted); font-size: 13px; }
 
+  .realm-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: min(520px, 100%);
+    margin: 0 auto 22px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: rgba(19, 28, 49, 0.72);
+  }
+  .realm-btn {
+    position: relative;
+    padding: 12px 14px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.18s ease;
+  }
+  .realm-btn small {
+    display: block;
+    margin-top: 1px;
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.72;
+  }
+  .realm-btn.active[data-realm="human"] {
+    color: #07111b;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.36);
+  }
+  .realm-btn.active[data-realm="divine"] {
+    color: #160c2b;
+    background: linear-gradient(135deg, #fcd34d, #c084fc);
+    box-shadow: 0 0 22px rgba(192, 132, 252, 0.42);
+  }
+  .realm-btn.locked { cursor: not-allowed; opacity: 0.5; }
+
+  .realm-intro {
+    max-width: 1000px;
+    margin: 0 auto 16px;
+    padding: 14px 18px;
+    border: 1px solid color-mix(in srgb, var(--realm-color) 40%, var(--border));
+    border-radius: 13px;
+    background: linear-gradient(100deg, color-mix(in srgb, var(--realm-color) 12%, transparent), transparent 70%);
+  }
+  .realm-intro strong { color: var(--realm-color); }
+  .realm-intro span { color: var(--muted); font-size: 13px; margin-left: 8px; }
+
   /* Boss grid */
   .boss-grid {
     display: grid;
@@ -270,6 +338,32 @@
     color: #1a1204;
     background: linear-gradient(135deg, #fcd34d, #f59e0b);
   }
+  .boss-card.divine {
+    background:
+      radial-gradient(circle at 88% 15%, color-mix(in srgb, var(--neon) 20%, transparent), transparent 28%),
+      linear-gradient(160deg, color-mix(in srgb, var(--neon) 15%, transparent), transparent 62%),
+      #16152d;
+  }
+  .boss-card.divine::after {
+    content: "✦";
+    position: absolute;
+    right: 16px;
+    top: 10px;
+    color: var(--neon);
+    opacity: 0.45;
+    font-size: 18px;
+    text-shadow: 0 0 12px var(--neon);
+  }
+  .boss-card .realm-badge {
+    align-self: flex-start;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    color: #1b102b;
+    background: linear-gradient(135deg, #fcd34d, #c084fc);
+  }
 
   /* Battle view */
   .battle-wrap {
@@ -344,6 +438,9 @@
   }
   .turn-info b { color: var(--text); }
   .turn-info.thinking { color: var(--accent); }
+  .turn-info.thinking::after { content:""; display:inline-block; width:1.4em; text-align:left; animation:thinkingDots 1.1s steps(4,end) infinite; }
+  @keyframes thinkingDots { 0%{content:""} 25%{content:"."} 50%{content:".."} 75%,100%{content:"..."} }
+  body.reduce-motion .turn-info.thinking::after { animation:none; content:"..."; }
 
   .board-shell {
     padding: 8px;
@@ -462,6 +559,22 @@
     animation: fadeIn 0.25s ease;
   }
   .overlay[hidden] { display: none; }
+  .settings-overlay { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:20px; background:rgba(3,5,15,.82); }
+  .settings-overlay[hidden] { display:none; }
+  .settings-card { width:min(420px,100%); max-height:88vh; overflow-y:auto; padding:22px; border:1px solid var(--border); border-radius:16px; background:var(--panel); box-shadow:0 20px 60px #0008; }
+  .settings-card h2 { margin:0 0 14px; }
+  .setting-row { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:12px 0; border-bottom:1px solid var(--border); }
+  .setting-row input { width:20px; height:20px; accent-color:var(--accent); }
+  .account-panel { margin-top:18px; padding:15px; border:1px solid var(--border); border-radius:13px; background:rgba(255,255,255,.025); }
+  .account-panel h3 { margin:0 0 7px; font-size:16px; }
+  .account-status { margin:0; color:var(--text); font-weight:800; word-break:keep-all; }
+  .account-message { min-height:20px; margin:7px 0 0; color:var(--muted); font-size:13px; line-height:1.5; word-break:keep-all; }
+  .account-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .account-actions button { min-height:42px; border:1px solid var(--border); border-radius:9px; background:var(--panel2); color:var(--text); font-weight:800; cursor:pointer; }
+  .account-actions .primary { grid-column:1/-1; border-color:#4ade80aa; color:#4ade80; }
+  .account-actions .danger { color:#fb7185; }
+  .account-actions button[hidden] { display:none; }
+  .settings-card .btn { width:100%; margin-top:18px; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .result-card {
@@ -573,6 +686,29 @@
   }
   .btn:disabled:hover { filter: none; }
   .btn-neon:disabled:hover { background: transparent; }
+  .item-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:10px 0; }
+  .item-grid .btn { min-height:46px; padding:8px; }
+  .item-label { display:block; }
+  .item-ad-copy {
+    display:none;
+    margin-top:3px;
+    color:var(--gold);
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:-0.02em;
+  }
+  .item-grid .btn.ad-refill {
+    border-color:var(--gold);
+    background:rgba(255,209,102,.1);
+    box-shadow:0 0 14px rgba(255,209,102,.2);
+  }
+  .item-grid .btn.ad-refill .count { display:none; }
+  .item-grid .btn.ad-refill .item-ad-copy { display:block; }
+  .item-grid .btn.ad-refill:not(:disabled) { animation:adRefillPulse 1.8s ease-in-out infinite; }
+  @keyframes adRefillPulse {
+    50% { box-shadow:0 0 20px rgba(255,209,102,.42); }
+  }
+  .item-note { min-height:20px; text-align:center; color:var(--muted); font-size:12px; }
 
   /* 힌트로 추천된 자리 */
   .cell.suggest::before {
@@ -675,6 +811,79 @@
   }
   .boss-card.locked .icon { filter: none; }
 
+  /* ---------- 신계 개방 ---------- */
+  .realm-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(192, 132, 252, 0.26), transparent 24%),
+      radial-gradient(circle at 50% 50%, rgba(252, 211, 77, 0.14), transparent 48%),
+      rgba(3, 5, 15, 0.96);
+  }
+  .cell.danger::before { content:"!"; position:absolute; inset:10%; display:grid; place-items:center; border:2px solid #fb7185; border-radius:50%; color:#fb7185; font-weight:900; }
+  .cell.future-ai::before { content:"AI"; position:absolute; inset:10%; display:grid; place-items:center; border:2px dashed #c084fc; border-radius:50%; color:#7e22ce; font-size:9px; font-weight:900; }
+  .cell.future-player::before { content:"나"; position:absolute; inset:10%; display:grid; place-items:center; border:2px dashed #38bdf8; border-radius:50%; color:#075985; font-size:9px; font-weight:900; }
+  .hall-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
+  .hall-card { padding:14px; border:1px solid var(--border); border-radius:12px; background:var(--panel); color:var(--muted); }
+  .hall-card.unlocked { color:var(--text); border-color:#fcd34d; cursor:pointer; }
+  .hall-card.selected { box-shadow:0 0 18px rgba(252,211,77,.35); }
+  .hall-card b { display:block; color:inherit; }
+  .realm-gate[hidden] { display: none; }
+  .realm-gate::before,
+  .realm-gate::after {
+    content: "";
+    position: absolute;
+    width: min(58vw, 420px);
+    height: min(78vh, 620px);
+    border: 2px solid rgba(252, 211, 77, 0.72);
+    border-radius: 50% 50% 16% 16%;
+    box-shadow: 0 0 36px rgba(192, 132, 252, 0.7), inset 0 0 36px rgba(252, 211, 77, 0.2);
+    animation: gatePulse 1.2s ease-in-out infinite alternate;
+  }
+  .realm-gate::after {
+    width: min(46vw, 330px);
+    height: min(66vh, 510px);
+    border-color: rgba(192, 132, 252, 0.72);
+    animation-delay: -0.6s;
+  }
+  .gate-copy {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    animation: gateReveal 0.7s ease both;
+  }
+  .gate-mark {
+    font-size: clamp(48px, 16vw, 84px);
+    color: var(--gold);
+    text-shadow: 0 0 28px #c084fc, 0 0 54px #fcd34d;
+  }
+  .gate-copy .eyebrow { color: #d8b4fe; margin: 10px 0 4px; }
+  .gate-copy h2 {
+    margin: 0;
+    font-size: clamp(32px, 9vw, 58px);
+    background: linear-gradient(180deg, #fff, #fcd34d 48%, #c084fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .gate-copy p { color: #d5c8e8; margin: 8px 0 0; }
+  @keyframes gatePulse {
+    from { transform: scale(0.96); opacity: 0.62; }
+    to { transform: scale(1.03); opacity: 1; }
+  }
+  @keyframes gateReveal {
+    from { transform: translateY(18px) scale(0.94); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .realm-gate::before, .realm-gate::after, .gate-copy { animation: none; }
+  }
+
   .status {
     min-height: 24px;
     font-weight: 800;
@@ -722,6 +931,13 @@
     margin: 40px 0 18px;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--border);
+  }
+  .guide-realm-divider {
+    margin: 34px 0 16px;
+    color: #d8b4fe;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-align: center;
   }
 
   .basics-grid {
@@ -815,10 +1031,13 @@
 </style>
 </head>
 <body>
+<div class="app-loader" id="appLoader" aria-label="오목 챌린지 불러오는 중"><div class="loader-mark"></div></div>
 
 <div class="topbar">
   <a href="index.html">🏠 홈</a>
   <span class="title">⚫ 오목 챌린지</span>
+  <button class="install-btn" id="installBtn" hidden>📲 앱 설치</button>
+  <button class="settings-btn" id="settingsBtn" aria-label="게임 설정">⚙️ 설정</button>
 </div>
 
 <div class="tabs">
@@ -832,16 +1051,22 @@
   <!-- 보스 선택 화면 -->
   <div id="selectView" class="view active">
     <div class="hero-main">
-      <div class="eyebrow">10단계 AI 보스전</div>
+      <div class="eyebrow" id="challengeEyebrow">AI 보스전</div>
       <h1>오목 챌린지</h1>
-      <p class="subtitle">10명의 AI를 꺾고 오목왕에 도전하라</p>
-      <p class="lede">1단계 새싹부터 최종보스 <b>오목왕</b>까지. 당신은 몇 단계까지 갈 수 있나요?</p>
+      <p class="subtitle" id="challengeSubtitle">인간계를 넘어 신계에 도전하라</p>
+      <p class="lede" id="challengeLede"></p>
     </div>
 
     <div class="select-head">
       <h2>상대를 고르세요</h2>
       <span>단계가 오를수록 AI는 더 깊이 읽습니다</span>
     </div>
+
+    <div class="realm-switch" aria-label="도전 영역 선택">
+      <button class="realm-btn active" data-realm="human">🌍 인간계<small>1~10단계</small></button>
+      <button class="realm-btn" data-realm="divine">🔒 신계<small>11단계부터</small></button>
+    </div>
+    <div class="realm-intro" id="realmIntro"></div>
 
     <div class="boss-grid" id="bossGrid"></div>
   </div>
@@ -856,14 +1081,19 @@
           <button class="btn btn-ghost" id="backBtn">← 상대 선택</button>
           <button class="btn" id="resetBtn">다시 도전</button>
         </div>
-        <div class="toolbar">
+        <div class="item-grid">
           <button class="btn btn-neon" id="hintBtn" title="유리한 수가 있는 위치를 표시합니다">
-            🔍 수읽기 <span class="count" id="hintCount">3</span>
+            <span class="item-label">🔍 수읽기 <span class="count" id="hintCount">1</span></span>
+            <span class="item-ad-copy">📺 광고 보고 +1 충전</span>
           </button>
           <button class="btn btn-neon" id="undoBtn" title="당신과 AI의 마지막 수를 함께 되돌립니다">
-            ↩️ 차례 되돌리기 <span class="count" id="undoCount">3</span>
+            <span class="item-label">↩️ 되돌리기 <span class="count" id="undoCount">1</span></span>
+            <span class="item-ad-copy">📺 광고 보고 +1 충전</span>
           </button>
+          <button class="btn btn-neon" id="dangerBtn" title="AI의 가장 위험한 다음 수를 표시합니다"><span class="item-label">🛡 위기 감지 <span class="count" id="dangerCount">1</span></span><span class="item-ad-copy">📺 광고 보고 +1 충전</span></button>
+          <button class="btn btn-neon" id="futureBtn" title="AI 예상 수와 추천 대응 수를 표시합니다"><span class="item-label">🔮 미래보기 <span class="count" id="futureCount">1</span></span><span class="item-ad-copy">📺 광고 보고 +1 충전</span></button>
         </div>
+        <div class="item-note" id="itemNote">각 아이템은 판마다 1회 무료입니다.</div>
         <div class="turn-info" id="turnInfo">당신(⚫) 차례입니다</div>
         <div class="board-shell" id="boardShell">
           <div id="board"></div>
@@ -894,6 +1124,8 @@
     </div>
 
     <div class="summary-grid" id="summaryGrid"></div>
+    <h3 class="section-title">🏛️ 개인 명예의 전당</h3>
+    <div class="hall-grid" id="hallGrid"></div>
 
     <h3 class="section-title">📋 단계별 기록</h3>
     <div class="table-wrap">
@@ -925,7 +1157,7 @@
     <div class="hero">
       <div class="eyebrow">단계별 공략</div>
       <h2>오목 챌린지 공략집</h2>
-      <p>1단계 새싹부터 10단계 오목왕까지, AI가 어떻게 더 똑똑해지는지 그리고 각 상대를 이기기 위한 전략을 정리했습니다.</p>
+      <p id="guideIntro"></p>
     </div>
 
     <h3 class="section-title">🧠 기본 개념부터 잡고 가기</h3>
@@ -962,7 +1194,7 @@
       </div>
     </div>
 
-    <h3 class="section-title">📊 10명의 AI, 하나씩 무너뜨리기</h3>
+    <h3 class="section-title" id="guideBossTitle">📊 AI 보스, 하나씩 무너뜨리기</h3>
 
     <div id="guideLevels"></div>
 
@@ -975,6 +1207,38 @@
 <div class="overlay" id="overlay" hidden>
   <div class="result-card" id="resultCard" role="dialog" aria-modal="true" aria-labelledby="verdictText"></div>
 </div>
+
+<div class="realm-gate" id="realmGate" hidden role="dialog" aria-modal="true" aria-label="신계 개방">
+  <div class="gate-copy">
+    <div class="gate-mark">✦</div>
+    <div class="eyebrow">인간계의 끝을 넘었다</div>
+    <h2>신계 개방</h2>
+    <p>더 이상 실수하는 상대는 없습니다.</p>
+  </div>
+</div>
+
+<div class="settings-overlay" id="settingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="settings-card">
+    <h2 id="settingsTitle">⚙️ 게임 설정</h2>
+    <label class="setting-row"><span>효과음</span><input type="checkbox" id="soundSetting"></label>
+    <label class="setting-row"><span>모바일 진동</span><input type="checkbox" id="vibrationSetting"></label>
+    <label class="setting-row"><span>화면 연출</span><input type="checkbox" id="motionSetting"></label>
+    <section class="account-panel" aria-labelledby="accountTitle">
+      <h3 id="accountTitle">☁️ 계정 및 기록 백업</h3>
+      <p class="account-status" id="accountStatus">이 기기에 기록 저장 중</p>
+      <p class="account-message" id="accountMessage">Google 계정을 연결하면 기기를 바꿔도 기록을 이어갈 수 있습니다.</p>
+      <div class="account-actions">
+        <button class="primary" id="googleSignInBtn" hidden>Google 계정으로 기록 연결</button>
+        <button id="syncRecordsBtn" hidden>지금 동기화</button>
+        <button id="accountSignOutBtn" hidden>로그아웃</button>
+        <button class="danger" id="deleteAccountBtn" hidden>계정 삭제</button>
+      </div>
+    </section>
+    <button class="btn" id="settingsCloseBtn">설정 완료</button>
+    <p class="hint" style="margin:12px auto 0;">오목 챌린지 v1.0.0 · PWA</p>
+  </div>
+</div>
+<div class="update-banner" id="updateBanner" hidden><span>새 버전이 준비되었습니다.</span><button class="btn" id="updateBtn">업데이트</button></div>
 
 <footer>
   오목 챌린지 · 미니게임 모음 · 제작: Claude Code
@@ -991,7 +1255,7 @@
   // 단계 = 보스. 이름/문구/색상/AI 파라미터를 한 곳에서 정의한다.
   const LEVELS = [
     {
-      name: "새싹", icon: "🌱", neon: "#4ade80", tag: "거의 무작위",
+      name: "새싹", icon: "🌱", neon: "#4ade80", tag: "거의 무작위", realm: "human",
       tagline: "오목을 막 배우기 시작한 초보 AI. 가끔 공격 기회를 놓칩니다.",
       quote: "처음이라도 봐주지는 않을게요.",
       winLine: "첫 번째 관문을 통과했습니다.",
@@ -1001,7 +1265,7 @@
       persona: { defBias: 0.9, forkWeight: 0 },   // 새싹: 성격이랄 게 없다
     },
     {
-      name: "수습생", icon: "📘", neon: "#34d399", tag: "약한 방어",
+      name: "수습생", icon: "📘", neon: "#34d399", tag: "약한 방어", realm: "human",
       tagline: "기본적인 공격과 방어를 익힌 AI. 방심하면 빈틈을 노립니다.",
       quote: "한 단계 전과 같을 거라고 생각하지 마세요.",
       winLine: "기본 실력은 충분하군요.",
@@ -1011,7 +1275,7 @@
       persona: { defBias: 0.9, forkWeight: 0 },   // 수습생: 아직 평범하다
     },
     {
-      name: "방패", icon: "🛡️", neon: "#38bdf8", tag: "방어 우선",
+      name: "방패", icon: "🛡️", neon: "#38bdf8", tag: "방어 우선", realm: "human",
       tagline: "공격보다 방어를 우선하는 AI. 당신의 연결을 끈질기게 차단합니다.",
       quote: "당신의 공격은 여기서 끝입니다.",
       winLine: "철벽을 깨뜨렸습니다.",
@@ -1021,7 +1285,7 @@
       persona: { defBias: 1.5, forkWeight: 0 },   // 방패: 상대 모양을 무겁게 본다
     },
     {
-      name: "추격자", icon: "🏹", neon: "#22d3ee", tag: "공격 우선",
+      name: "추격자", icon: "🏹", neon: "#22d3ee", tag: "공격 우선", realm: "human",
       tagline: "한 번 잡은 공격 기회를 놓치지 않는 AI. 계속해서 압박해 옵니다.",
       quote: "도망칠 곳은 없습니다.",
       winLine: "추격을 따돌렸습니다.",
@@ -1031,7 +1295,7 @@
       persona: { defBias: 0.62, forkWeight: 0.25 },   // 추격자: 공격을 우선한다
     },
     {
-      name: "함정술사", icon: "🕸️", neon: "#a78bfa", tag: "이중 위협 선호",
+      name: "함정술사", icon: "🕸️", neon: "#a78bfa", tag: "이중 위협 선호", realm: "human",
       tagline: "눈앞의 공격보다 두 수 뒤의 함정을 노리는 AI. 방심하면 양쪽이 동시에 무너집니다.",
       quote: "당신이 보고 있는 수가 전부일까요?",
       winLine: "함정을 모두 간파했습니다.",
@@ -1041,7 +1305,7 @@
       persona: { defBias: 1.0, forkWeight: 1.1 },   // 함정술사: 이중 위협을 노린다
     },
     {
-      name: "맹공", icon: "⚔️", neon: "#fb7185", tag: "공격 우선 · 2수 앞",
+      name: "맹공", icon: "⚔️", neon: "#fb7185", tag: "공격 우선 · 2수 앞", realm: "human",
       tagline: "방어보다 공격을 우선하는 AI. 초반부터 강하게 몰아붙입니다.",
       quote: "막기만 해서는 이길 수 없습니다.",
       winLine: "맹공을 버텨내고 반격에 성공했습니다.",
@@ -1051,7 +1315,7 @@
       persona: { defBias: 0.55, forkWeight: 0.35 },   // 맹공: 방어를 뒤로 미룬다
     },
     {
-      name: "철벽", icon: "🧱", neon: "#818cf8", tag: "완벽한 방어",
+      name: "철벽", icon: "🧱", neon: "#818cf8", tag: "완벽한 방어", realm: "human",
       tagline: "실수가 거의 없는 방어형 AI. 작은 틈도 쉽게 허용하지 않습니다.",
       quote: "한 번이라도 실수하면 끝입니다.",
       winLine: "철벽에 균열을 만들었습니다.",
@@ -1061,7 +1325,7 @@
       persona: { defBias: 1.55, forkWeight: 0.1 },   // 철벽: 가장 방어적이다
     },
     {
-      name: "심판자", icon: "⚖️", neon: "#fbbf24", tag: "넓고 정확한 수읽기",
+      name: "심판자", icon: "⚖️", neon: "#fbbf24", tag: "넓고 정확한 수읽기", realm: "human",
       tagline: "공격과 방어의 균형이 뛰어난 AI. 당신의 실력을 냉정하게 시험합니다.",
       quote: "지금부터 진짜 실력을 보겠습니다.",
       winLine: "심판자의 인정을 받았습니다.",
@@ -1071,7 +1335,7 @@
       persona: { defBias: 1.0, forkWeight: 0.5 },   // 심판자: 균형
     },
     {
-      name: "지배자", icon: "🔱", neon: "#f87171", tag: "전면 장악 · 4수 앞",
+      name: "지배자", icon: "🔱", neon: "#f87171", tag: "전면 장악 · 4수 앞", realm: "human",
       tagline: "보드 전체를 장악하며 싸우는 최상급 AI. 몇 수 앞까지 흐름을 읽습니다.",
       quote: "이 판의 주인은 이미 정해졌습니다.",
       winLine: "지배자의 영역을 무너뜨렸습니다.",
@@ -1081,7 +1345,7 @@
       persona: { defBias: 1.05, forkWeight: 0.7 },   // 지배자: 균형 + 함정
     },
     {
-      name: "오목왕", icon: "👑", neon: "#fcd34d", tag: "최종보스", final: true,
+      name: "오목왕", icon: "👑", neon: "#fcd34d", tag: "인간계 최종보스", realm: "human", final: true,
       tagline: "공격 방어 함정 수읽기를 모두 갖춘 최종보스. 여기까지 도달한 도전자는 많지 않습니다.",
       quote: "마지막 한 판입니다. 당신의 모든 수를 보여주세요.",
       winLine: "오목왕 격파! 이제 당신이 새로운 오목왕입니다.",
@@ -1089,6 +1353,61 @@
       tip: "정공법으로는 이기기 어렵습니다. 첫 몇 수부터 남들이 잘 두지 않는 변칙적인 포석으로 AI의 평가 함수가 예상하지 못한 복잡한 모양을 만들어보세요. 여러 번 두면서 AI의 패턴을 파악하는 것도 방법입니다.",
       depth: 4, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1,
       persona: { defBias: 1.0, forkWeight: 1.0 },   // 오목왕: 모든 것을 갖췄다
+    },
+    {
+      name: "문지기", icon: "⛩️", neon: "#c084fc", tag: "신계 포석 · 양수 차단", realm: "divine",
+      tagline: "인간계의 수법을 모두 꿰뚫는 신계의 첫 관문. 초반부터 좋은 자리를 내주지 않습니다.",
+      quote: "왕의 자리는 인간계의 끝일 뿐입니다.",
+      winLine: "신계의 문지기를 넘어 첫 발을 내디뎠습니다.",
+      desc: "오목왕보다 넓은 후보를 살피며 중앙 포석을 중시합니다. 신계 전용 위협 탐색으로 한 수 뒤의 이중 위협을 미리 찾아 공격하고 차단합니다.",
+      tip: "익숙한 중앙 포석만 반복하면 문지기의 계산에 그대로 들어갑니다. 서로 떨어진 두 축을 키워 수읽기 후보를 분산시키세요.",
+      depth: 4, cand: 9, randomChance: 0, randomTop: 1, blockChance: 1,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: false, forcingDefense: false, opening: true, tacticalCand: 12 },
+      persona: { defBias: 1.08, forkWeight: 1.3, centerWeight: 12 },
+    },
+    {
+      name: "천리안", icon: "👁️", neon: "#a78bfa", tag: "위협 예지", realm: "divine",
+      tagline: "아직 완성되지 않은 위협까지 먼저 보는 감시자. 뻔한 함정은 놓치지 않습니다.",
+      quote: "두기 전부터 그 수의 끝을 보았습니다.",
+      winLine: "천리안의 시야 밖에서 승리를 만들어냈습니다.",
+      desc: "이중 위협의 공격과 방어를 항상 검사하고 더 넓은 탐색 후보를 비교합니다. 초반에는 중앙과 별점을 잇는 안정적인 포석을 선택합니다.",
+      tip: "즉시 완성되는 함정보다 가치가 비슷한 후보를 여러 곳에 남겨 판단을 흔드세요. 한쪽에 돌이 몰리면 모두 읽힙니다.",
+      depth: 4, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: false, forcingDefense: false, opening: true, tacticalCand: 14 },
+      persona: { defBias: 1.12, forkWeight: 1.5, centerWeight: 14 },
+    },
+    {
+      name: "파괴신", icon: "⚡", neon: "#fb7185", tag: "강제 수순 공격", realm: "divine",
+      tagline: "막을 수밖에 없는 수를 연속으로 던지는 공격의 신. 한 번 주도권을 내주면 끝까지 몰아칩니다.",
+      quote: "막아보세요. 그다음 수는 이미 준비됐으니.",
+      winLine: "파괴신의 연속 공격을 견디고 반격에 성공했습니다.",
+      desc: "5수 앞 탐색에 더해, 먼저 4목을 강요한 뒤 이중 위협으로 이어지는 강제 수순을 별도로 찾아냅니다.",
+      tip: "공격 한 번을 허용한 뒤 막으려 하면 늦습니다. 열린 2 단계부터 공격 축을 끊고, 수비하면서 동시에 내 모양을 키우세요.",
+      depth: 5, cand: 6, randomChance: 0, randomTop: 1, blockChance: 1,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: false, opening: true, tacticalCand: 12 },
+      persona: { defBias: 0.92, forkWeight: 1.8, centerWeight: 15 },
+    },
+    {
+      name: "운명신", icon: "🌀", neon: "#60a5fa", tag: "강제 수순 간파", realm: "divine",
+      tagline: "공격의 시작점까지 찾아 지워버리는 수호자. 단순한 양수 유도는 통하지 않습니다.",
+      quote: "당신이 만들 미래는 여기서 닫힙니다.",
+      winLine: "정해진 운명을 뒤집고 신의 계산을 벗어났습니다.",
+      desc: "자신의 강제 공격뿐 아니라 플레이어가 다음 수부터 시작할 강제 수순도 미리 찾아 첫 지점을 차단합니다. 5수 앞 탐색 후보도 더 넓습니다.",
+      tip: "완성된 공격보다 여러 강제 수순의 시작점을 동시에 만드는 포석이 필요합니다. 중앙 한곳에 집착하지 마세요.",
+      depth: 5, cand: 7, randomChance: 0, randomTop: 1, blockChance: 1,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 14 },
+      persona: { defBias: 1.18, forkWeight: 1.8, centerWeight: 17 },
+    },
+    {
+      name: "오목신", icon: "✦", neon: "#fcd34d", tag: "신계 최종보스", realm: "divine", final: true,
+      tagline: "포석, 위협 예지, 강제 수순, 깊은 탐색을 모두 갖춘 신계의 주인.",
+      quote: "여기까지 온 인간은 처음이군요. 신의 한 수를 넘어보십시오.",
+      winLine: "오목신 격파! 인간의 수가 신의 계산을 넘어섰습니다.",
+      desc: "신계의 모든 전술 검사와 가장 깊고 넓은 5수 탐색을 함께 사용합니다. 무작위 실수 없이 공격과 방어의 강제 수순을 먼저 계산합니다.",
+      tip: "정해진 공략은 없습니다. 초반부터 여러 방향의 잠재력을 유지하고, 상대가 강제 수순을 시작하기 전에 주도권을 잡아야 합니다.",
+      depth: 5, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 16 },
+      persona: { defBias: 1.12, forkWeight: 2.1, centerWeight: 20 },
     },
   ];
 
@@ -1100,8 +1419,30 @@
   const backBtn = document.getElementById("backBtn");
   const hintBtn = document.getElementById("hintBtn");
   const undoBtn = document.getElementById("undoBtn");
+  const dangerBtn = document.getElementById("dangerBtn");
+  const futureBtn = document.getElementById("futureBtn");
   const hintCountEl = document.getElementById("hintCount");
   const undoCountEl = document.getElementById("undoCount");
+  const dangerCountEl = document.getElementById("dangerCount");
+  const futureCountEl = document.getElementById("futureCount");
+  const itemNoteEl = document.getElementById("itemNote");
+  const hallGridEl = document.getElementById("hallGrid");
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsOverlayEl = document.getElementById("settingsOverlay");
+  const settingsCloseBtn = document.getElementById("settingsCloseBtn");
+  const soundSettingEl = document.getElementById("soundSetting");
+  const vibrationSettingEl = document.getElementById("vibrationSetting");
+  const motionSettingEl = document.getElementById("motionSetting");
+  const accountStatusEl = document.getElementById("accountStatus");
+  const accountMessageEl = document.getElementById("accountMessage");
+  const googleSignInBtn = document.getElementById("googleSignInBtn");
+  const syncRecordsBtn = document.getElementById("syncRecordsBtn");
+  const accountSignOutBtn = document.getElementById("accountSignOutBtn");
+  const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+  const installBtn = document.getElementById("installBtn");
+  const updateBannerEl = document.getElementById("updateBanner");
+  const updateBtn = document.getElementById("updateBtn");
+  const appLoaderEl = document.getElementById("appLoader");
   const summaryGridEl = document.getElementById("summaryGrid");
   const recordsBodyEl = document.getElementById("recordsBody");
   const wipeBtn = document.getElementById("wipeBtn");
@@ -1118,6 +1459,13 @@
   const battleView = document.getElementById("battleView");
   const overlayEl = document.getElementById("overlay");
   const resultCardEl = document.getElementById("resultCard");
+  const realmGateEl = document.getElementById("realmGate");
+  const realmIntroEl = document.getElementById("realmIntro");
+  const challengeEyebrowEl = document.getElementById("challengeEyebrow");
+  const challengeLedeEl = document.getElementById("challengeLede");
+  const guideIntroEl = document.getElementById("guideIntro");
+  const guideBossTitleEl = document.getElementById("guideBossTitle");
+  const realmButtons = Array.from(document.querySelectorAll(".realm-btn"));
 
   let board = [];
   let cellEls = [];
@@ -1130,12 +1478,97 @@
   let startedAt = 0;
   let tickTimer = null;
   let scores = { win: 0, draw: 0, lose: 0 };
+  let selectedRealm = "human";
 
   let history = [];            // [{r, c, player}] — 차례 되돌리기용
-  const ITEM_LIMIT = 3;
+  const ITEM_LIMIT = 1;
   let hintsLeft = ITEM_LIMIT;
   let undosLeft = ITEM_LIMIT;
+  let dangersLeft = ITEM_LIMIT;
+  let futuresLeft = ITEM_LIMIT;
   let itemsUsed = 0;           // 이번 판에서 아이템을 쓴 횟수
+  let adRefills = 0;
+  const SETTINGS_KEY = "omok-settings-v1";
+  let settings = loadSettings();
+  let accountState = { native: !!window.OmokAccount, signedIn: false, anonymous: true, name: "", email: "" };
+  let audioContext = null;
+  let deferredInstallPrompt = null;
+
+  function setupPwa() {
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault(); deferredInstallPrompt = event; installBtn.hidden = false;
+    });
+    installBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) return; deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice; deferredInstallPrompt = null; installBtn.hidden = true;
+    });
+    window.addEventListener("appinstalled", () => { installBtn.hidden = true; deferredInstallPrompt = null; });
+    if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+    navigator.serviceWorker.register("./sw.js").then((registration) => {
+      if (registration.waiting && navigator.serviceWorker.controller) updateBannerEl.hidden = false;
+      const watch = (worker) => worker && worker.addEventListener("statechange", () => {
+        if (worker.state === "installed" && navigator.serviceWorker.controller) updateBannerEl.hidden = false;
+      });
+      watch(registration.installing); registration.addEventListener("updatefound", () => watch(registration.installing));
+      updateBtn.addEventListener("click", () => { if (registration.waiting) registration.waiting.postMessage("SKIP_WAITING"); });
+    }).catch(() => { /* 오프라인 기능 실패가 게임을 막지 않는다 */ });
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (!refreshing) { refreshing = true; location.reload(); } });
+  }
+
+  function loadSettings() {
+    try { return Object.assign({ sound: true, vibration: true, motion: true }, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); }
+    catch (e) { return { sound: true, vibration: true, motion: true }; }
+  }
+  function saveSettings() {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* 세션 설정만 유지 */ }
+    document.body.classList.toggle("reduce-motion", !settings.motion);
+  }
+  function playEffect(kind) {
+    if (!settings.sound) return;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    try {
+      audioContext = audioContext || new AC(); const osc = audioContext.createOscillator(); const gain = audioContext.createGain();
+      const tones = { black: 260, white: 360, win: 660, lose: 150, item: 520 }; osc.frequency.value = tones[kind] || 300;
+      gain.gain.setValueAtTime(0.045, audioContext.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + (kind === "win" ? .35 : .12));
+      osc.connect(gain); gain.connect(audioContext.destination); osc.start(); osc.stop(audioContext.currentTime + (kind === "win" ? .35 : .12));
+    } catch (e) { /* 오디오가 막혀도 게임은 계속된다 */ }
+  }
+  function vibrate(pattern) { if (settings.vibration && navigator.vibrate) navigator.vibrate(pattern); }
+  function syncSettingsUI() { soundSettingEl.checked=settings.sound; vibrationSettingEl.checked=settings.vibration; motionSettingEl.checked=settings.motion; saveSettings(); }
+
+  function renderAccountUI() {
+    if (!accountState.native) {
+      accountStatusEl.textContent = "이 기기에 기록 저장 중";
+      accountMessageEl.textContent = "Google 기록 백업은 Android 앱에서 사용할 수 있습니다.";
+      googleSignInBtn.hidden = syncRecordsBtn.hidden = accountSignOutBtn.hidden = deleteAccountBtn.hidden = true;
+      return;
+    }
+    const linked = accountState.signedIn && !accountState.anonymous;
+    accountStatusEl.textContent = linked
+      ? (accountState.name || accountState.email || "Google 계정 연결됨")
+      : "게스트로 플레이 중";
+    if (!accountMessageEl.dataset.custom) {
+      accountMessageEl.textContent = linked
+        ? "게임 기록이 Google 계정에 안전하게 백업됩니다."
+        : "지금 기록은 유지됩니다. Google 계정을 연결하면 다른 기기에서도 이어할 수 있습니다.";
+    }
+    googleSignInBtn.hidden = linked;
+    syncRecordsBtn.hidden = false;
+    accountSignOutBtn.hidden = !linked;
+    deleteAccountBtn.hidden = !linked;
+  }
+
+  window.onOmokAccountChanged = function (status) {
+    accountState = Object.assign(accountState, status || {}, { native: true });
+    delete accountMessageEl.dataset.custom;
+    renderAccountUI();
+  };
+
+  window.setOmokAccountMessage = function (message) {
+    accountMessageEl.dataset.custom = "1";
+    accountMessageEl.textContent = message || "";
+  };
 
   /* ---------- 기록 저장소 ----------
      지금은 localStorage 로컬 기록만 다룬다.
@@ -1143,26 +1576,118 @@
   const STORE_KEY = "omok-challenge-v1";
   const MAX_WINS_PER_LEVEL = 50;
 
+  function emptyStore() {
+    return { schemaVersion: 2, unlocked: 1, levels: {}, streak: 0, bestStreak: 0, title: "도전자", updatedAt: 0 };
+  }
+
+  function normalizeStore(raw) {
+    const clean = emptyStore();
+    if (!raw || typeof raw !== "object") return clean;
+    clean.unlocked = Math.max(1, Math.min(Number(raw.unlocked) || 1, LEVELS.length));
+    clean.streak = Math.max(0, Number(raw.streak) || 0);
+    clean.bestStreak = Math.max(clean.streak, Number(raw.bestStreak) || 0);
+    clean.title = typeof raw.title === "string" && raw.title ? raw.title.slice(0, 30) : "도전자";
+    clean.updatedAt = Math.max(0, Number(raw.updatedAt) || 0);
+    const sourceLevels = raw.levels && typeof raw.levels === "object" ? raw.levels : {};
+    for (let level = 1; level <= LEVELS.length; level++) {
+      const source = sourceLevels[level] || sourceLevels[String(level)];
+      if (!source || typeof source !== "object") continue;
+      const wins = Array.isArray(source.wins) ? source.wins.filter((win) => win && Number.isFinite(Number(win.moves)) && Number.isFinite(Number(win.seconds))).map((win) => ({
+        moves: Math.max(0, Number(win.moves) || 0),
+        seconds: Math.max(0, Number(win.seconds) || 0),
+        noItem: !!win.noItem,
+        itemUses: Math.max(0, Number(win.itemUses) || 0),
+        adRefills: Math.max(0, Number(win.adRefills) || 0),
+        at: Math.max(0, Number(win.at) || 0)
+      })).slice(0, MAX_WINS_PER_LEVEL * 4) : [];
+      clean.levels[String(level)] = { attempts: Math.max(0, Number(source.attempts) || 0), wins: wins };
+    }
+    return clean;
+  }
+
+  function winIdentity(win) {
+    return [win.at, win.moves, win.seconds, win.noItem ? 1 : 0, win.itemUses, win.adRefills].join(":");
+  }
+
+  function mergeStores(localRaw, cloudRaw) {
+    const local = normalizeStore(localRaw);
+    const cloud = normalizeStore(cloudRaw);
+    const newer = cloud.updatedAt > local.updatedAt ? cloud : local;
+    const merged = emptyStore();
+    merged.unlocked = Math.max(local.unlocked, cloud.unlocked);
+    merged.streak = newer.streak;
+    merged.bestStreak = Math.max(local.bestStreak, cloud.bestStreak, merged.streak);
+    merged.title = newer.title;
+    merged.updatedAt = Math.max(local.updatedAt, cloud.updatedAt);
+    for (let level = 1; level <= LEVELS.length; level++) {
+      const a = local.levels[String(level)] || { attempts: 0, wins: [] };
+      const b = cloud.levels[String(level)] || { attempts: 0, wins: [] };
+      const seen = new Set();
+      const wins = [];
+      a.wins.concat(b.wins).forEach((win) => {
+        const key = winIdentity(win);
+        if (!seen.has(key)) { seen.add(key); wins.push(win); }
+      });
+      wins.sort((x, y) => x.moves - y.moves || x.seconds - y.seconds || y.at - x.at);
+      if (wins.length || a.attempts || b.attempts) merged.levels[String(level)] = {
+        attempts: Math.max(a.attempts, b.attempts, wins.length),
+        wins: wins.slice(0, MAX_WINS_PER_LEVEL)
+      };
+    }
+    return merged;
+  }
+
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
       const s = raw ? JSON.parse(raw) : null;
       if (!s || typeof s !== "object") throw new Error("empty");
-      return { unlocked: s.unlocked || 1, levels: s.levels || {} };
+      const clean = normalizeStore(s);
+      const levels = clean.levels;
+      let unlocked = clean.unlocked;
+      // 기존 10단계 버전에서 오목왕을 이미 깬 기록은 신계를 바로 열어준다.
+      const oldFinal = levels["10"] || levels[10];
+      if (unlocked === 10 && oldFinal && Array.isArray(oldFinal.wins) && oldFinal.wins.length > 0) {
+        unlocked = 11;
+      }
+      clean.unlocked = unlocked;
+      return clean;
     } catch (e) {
-      return { unlocked: 1, levels: {} };
+      return emptyStore();
     }
   }
 
-  function persist(store) {
+  function persist(store, touch) {
     try {
+      store.schemaVersion = 2;
+      if (touch !== false) store.updatedAt = Date.now();
       localStorage.setItem(STORE_KEY, JSON.stringify(store));
+      if (touch !== false && window.OmokAccount && window.OmokAccount.recordsChanged) {
+        setTimeout(() => window.OmokAccount.recordsChanged(), 0);
+      }
     } catch (e) {
       /* 시크릿 모드 등에서 저장이 막히면 이번 세션에서만 유지된다 */
     }
   }
 
   let store = loadStore();
+
+  window.OmokRecords = {
+    getSnapshot: function () { return JSON.parse(JSON.stringify(store)); },
+    mergeSnapshot: function (cloudSnapshot) {
+      store = mergeStores(store, cloudSnapshot);
+      persist(store, false);
+      renderBossGrid(); renderRecords(); updateScoreDisplay();
+      return this.getSnapshot();
+    },
+    clearAll: function () {
+      wipeStore();
+      scores = { win: 0, draw: 0, lose: 0 };
+      selectedRealm = "human";
+      renderBossGrid(); renderRecords(); updateScoreDisplay();
+      return this.getSnapshot();
+    }
+  };
 
   function getStats(level) {
     const s = store.levels[level] || {};
@@ -1171,7 +1696,7 @@
 
   function wipeStore() {
     try { localStorage.removeItem(STORE_KEY); } catch (e) { /* 무시 */ }
-    store = { unlocked: 1, levels: {} };
+    store = emptyStore();
   }
 
   // 승리 기록을 남기고, 이번 판이 어떤 의미였는지 돌려준다.
@@ -1191,7 +1716,7 @@
 
     let unlockedLevel = null;
     if (result === "win") {
-      s.wins.push({ moves: moves, seconds: seconds, noItem: !!noItem });
+      s.wins.push({ moves: moves, seconds: seconds, noItem: !!noItem, itemUses: itemsUsed, adRefills: adRefills, at: Date.now() });
       s.wins.sort((a, b) => a.moves - b.moves);
       if (s.wins.length > MAX_WINS_PER_LEVEL) s.wins.length = MAX_WINS_PER_LEVEL;
       if (level === store.unlocked && level < LEVELS.length) {
@@ -1200,6 +1725,8 @@
       }
     }
 
+    if (result === "win") { store.streak = (store.streak || 0) + 1; store.bestStreak = Math.max(store.bestStreak || 0, store.streak); }
+    else store.streak = 0;
     store.levels[key] = s;
     persist(store);
 
@@ -1257,9 +1784,51 @@
   }
 
   /* ---------- 보스 선택 화면 렌더링 ---------- */
+  function objectParticle(name) {
+    const last = name.charCodeAt(name.length - 1);
+    const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
+    return name + (hasBatchim ? "을" : "를");
+  }
+
+  function renderChallengeCopy() {
+    const humanLevels = LEVELS.filter((lv) => lv.realm === "human");
+    const divineLevels = LEVELS.filter((lv) => lv.realm === "divine");
+    const first = LEVELS[0];
+    const last = LEVELS[LEVELS.length - 1];
+    challengeEyebrowEl.textContent = LEVELS.length + "단계 AI 보스전";
+    challengeLedeEl.innerHTML =
+      "1단계 " + first.name + "부터 신계 최종보스 <b>" + last.name +
+      "</b>까지. 당신은 어디까지 갈 수 있나요?";
+    guideIntroEl.textContent =
+      "1단계 " + first.name + "부터 " + LEVELS.length + "단계 " + last.name +
+      "까지, AI가 어떻게 강해지는지와 각 상대의 공략을 정리했습니다.";
+    guideBossTitleEl.textContent =
+      "📊 " + humanLevels.length + "명의 인간계와 " + divineLevels.length + "명의 신계 보스";
+  }
+
+  function renderRealmSwitch() {
+    const divineUnlocked = store.unlocked > 10;
+    realmButtons.forEach((btn) => {
+      const realm = btn.dataset.realm;
+      btn.classList.toggle("active", realm === selectedRealm);
+      btn.classList.toggle("locked", realm === "divine" && !divineUnlocked);
+      if (realm === "human") {
+        btn.innerHTML = "🌍 인간계<small>1~10단계 · 오목왕</small>";
+      } else {
+        btn.innerHTML = (divineUnlocked ? "✦" : "🔒") + " 신계<small>11~15단계 · 오목신</small>";
+      }
+    });
+    const divine = selectedRealm === "divine";
+    realmIntroEl.style.setProperty("--realm-color", divine ? "#c084fc" : "#38bdf8");
+    realmIntroEl.innerHTML = divine
+      ? "<strong>✦ 신계</strong><span>실수 없는 AI가 이중 위협과 강제 수순까지 읽습니다.</span>"
+      : "<strong>🌍 인간계</strong><span>기초부터 최상급 수읽기까지, 10명의 보스를 차례로 돌파하세요.</span>";
+  }
+
   function renderBossGrid() {
     bossGridEl.innerHTML = "";
     LEVELS.forEach((lv, i) => {
+      if (lv.realm !== selectedRealm) return;
       const level = i + 1;
       const locked = level > store.unlocked;
       const stats = getStats(level);
@@ -1267,7 +1836,7 @@
 
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "boss-card" + (locked ? " locked" : "");
+      btn.className = "boss-card" + (lv.realm === "divine" ? " divine" : "") + (locked ? " locked" : "");
       btn.style.setProperty("--neon", lv.neon);
       btn.disabled = locked;
       btn.innerHTML =
@@ -1284,18 +1853,24 @@
         level + "단계" + (cleared ? " · 클리어" : "");
       btn.querySelector(".name").textContent = lv.name;
       btn.querySelector(".tagline").textContent = locked
-        ? (level - 1) + "단계 " + LEVELS[i - 1].name + "을(를) 꺾으면 해금됩니다."
+        ? (level - 1) + "단계 " + objectParticle(LEVELS[i - 1].name) + " 꺾으면 해금됩니다."
         : lv.tagline;
 
       if (lv.final && !locked) {
         const badge = document.createElement("span");
         badge.className = "final-badge";
-        badge.textContent = "최종보스";
+        badge.textContent = lv.realm === "divine" ? "신계 최종보스" : "인간계 최종보스";
+        btn.appendChild(badge);
+      } else if (lv.realm === "divine" && !locked) {
+        const badge = document.createElement("span");
+        badge.className = "realm-badge";
+        badge.textContent = "신계";
         btn.appendChild(badge);
       }
       if (!locked) btn.addEventListener("click", () => startBattle(level));
       bossGridEl.appendChild(btn);
     });
+    renderRealmSwitch();
   }
 
   function renderBossBanner(level) {
@@ -1312,7 +1887,7 @@
       '<p class="quote"></p>';
     bossBannerEl.querySelector(".icon").textContent = lv.icon;
     bossBannerEl.querySelector(".stage").textContent =
-      level + "단계" + (lv.final ? " · 최종보스" : "");
+      level + "단계 · " + (lv.realm === "divine" ? "신계" : "인간계") + (lv.final ? " 최종보스" : "");
     bossBannerEl.querySelector(".name").textContent = lv.name;
     bossBannerEl.querySelector(".quote").textContent = "“" + lv.quote + "”";
     battleView.style.setProperty("--neon", lv.neon);
@@ -1321,6 +1896,12 @@
   function renderGuideLevels() {
     guideLevelsEl.innerHTML = "";
     LEVELS.forEach((lv, i) => {
+      if (i === 10) {
+        const divider = document.createElement("h4");
+        divider.className = "guide-realm-divider";
+        divider.textContent = "✦ 신계 · 11단계부터";
+        guideLevelsEl.appendChild(divider);
+      }
       const card = document.createElement("div");
       card.className = "level-card";
       card.style.setProperty("--neon", lv.neon);
@@ -1386,7 +1967,7 @@
   /* 보스의 성격.
      defBias  — 상대 모양을 얼마나 무겁게 볼지. 1보다 크면 방어형, 작으면 공격형.
      forkWeight — 한 수로 두 방향에 위협을 만드는 '이중 위협'을 얼마나 노릴지. */
-  const NEUTRAL_PERSONA = { defBias: 0.9, forkWeight: 0.4 };
+  const NEUTRAL_PERSONA = { defBias: 0.9, forkWeight: 0.4, centerWeight: 0 };
   let persona = NEUTRAL_PERSONA;
   function setPersona(p) { persona = p || NEUTRAL_PERSONA; }
 
@@ -1484,7 +2065,9 @@
       bd[r][c] = EMPTY;
       // 결정적인 자리는 성격과 무관하게 후보에 남아야 한다
       const w = def >= CRITICAL_SCORE ? Math.max(1, persona.defBias) : persona.defBias;
-      return { r, c, score: atk + def * w };
+      const centerDistance = Math.abs(r - 7) + Math.abs(c - 7);
+      const centerBonus = Math.max(0, 14 - centerDistance) * (persona.centerWeight || 0);
+      return { r, c, score: atk + def * w + centerBonus };
     });
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, limit).map((o) => [o.r, o.c]);
@@ -1521,6 +2104,50 @@
     return { score: bestScore, move: bestMove };
   }
 
+  // 신계 전용 전술 탐색. 일반 미니맥스가 후보 수 제한으로 놓칠 수 있는
+  // 양수와 강제 수순을 먼저 검사해 10단계와 분명한 난이도 차이를 만든다.
+  function immediateWinningMoves(bd, player) {
+    const wins = [];
+    for (const [r, c] of generateCandidateCells(bd)) {
+      bd[r][c] = player;
+      const win = findWinningLine(bd, r, c, player);
+      bd[r][c] = EMPTY;
+      if (win) wins.push([r, c]);
+    }
+    return wins;
+  }
+
+  function findForkMove(bd, player, limit) {
+    const candidates = orderedCandidates(bd, player, limit);
+    for (const [r, c] of candidates) {
+      bd[r][c] = player;
+      const wins = immediateWinningMoves(bd, player);
+      bd[r][c] = EMPTY;
+      if (wins.length >= 2) return [r, c];
+    }
+    return null;
+  }
+
+  function findForcingMove(bd, player, limit) {
+    const opponent = player === BLACK ? WHITE : BLACK;
+    const candidates = orderedCandidates(bd, player, limit);
+    for (const [r, c] of candidates) {
+      bd[r][c] = player;
+      const forcedBlocks = immediateWinningMoves(bd, player);
+      if (forcedBlocks.length === 1) {
+        const [br, bc] = forcedBlocks[0];
+        bd[br][bc] = opponent;
+        const followUp = findForkMove(bd, player, Math.min(limit, 10));
+        bd[br][bc] = EMPTY;
+        bd[r][c] = EMPTY;
+        if (followUp) return [r, c];
+      } else {
+        bd[r][c] = EMPTY;
+      }
+    }
+    return null;
+  }
+
   function chooseAiMove(level) {
     const cfg = LEVELS[level - 1];
     setPersona(cfg.persona);
@@ -1544,6 +2171,35 @@
       return blockingMoves[0];
     }
 
+    if (cfg.divine) {
+      const tacticalLimit = cfg.divine.tacticalCand;
+      let tacticalMove = null;
+
+      if (cfg.divine.forkAttack) {
+        tacticalMove = findForkMove(board, WHITE, tacticalLimit);
+        if (tacticalMove) return tacticalMove;
+      }
+      if (cfg.divine.forkDefense) {
+        tacticalMove = findForkMove(board, BLACK, tacticalLimit);
+        if (tacticalMove) return tacticalMove;
+      }
+      if (cfg.divine.forcingAttack) {
+        tacticalMove = findForcingMove(board, WHITE, tacticalLimit);
+        if (tacticalMove) return tacticalMove;
+      }
+      if (cfg.divine.forcingDefense) {
+        tacticalMove = findForcingMove(board, BLACK, tacticalLimit);
+        if (tacticalMove) return tacticalMove;
+      }
+
+      if (cfg.divine.opening && history.length <= 3) {
+        const opening = orderedCandidates(board, WHITE, tacticalLimit).find(([r, c]) =>
+          Math.abs(r - 7) + Math.abs(c - 7) <= 5
+        );
+        if (opening) return opening;
+      }
+    }
+
     const ordered = orderedCandidates(board, WHITE, cfg.cand);
     const result = minimax(board, cfg.depth, -Infinity, Infinity, WHITE, WHITE, cfg.cand, 0);
     let move = result.move || ordered[0];
@@ -1555,7 +2211,7 @@
     return move;
   }
 
-  function placeStone(r, c, player) {
+  function placeStone(r, c, player, silent) {
     board[r][c] = player;
     const el = cellEls[r][c];
     el.classList.add("has-stone");
@@ -1568,12 +2224,27 @@
     history.push({ r: r, c: c, player: player });
     moveCount++;
     liveMovesEl.textContent = moveCount;
+    if (!silent) { playEffect(player === BLACK ? "black" : "white"); vibrate(18); }
   }
 
   /* ---------- 아이템 ---------- */
   function clearSuggestions() {
-    boardEl.querySelectorAll(".cell.suggest").forEach((el) => el.classList.remove("suggest"));
+    boardEl.querySelectorAll(".cell.suggest,.cell.danger,.cell.future-ai,.cell.future-player").forEach((el) => el.classList.remove("suggest", "danger", "future-ai", "future-player"));
   }
+
+  const itemCounts = () => ({ hint: hintsLeft, undo: undosLeft, danger: dangersLeft, future: futuresLeft });
+  function requestRewardedRefill(type) {
+    itemNoteEl.textContent = "안드로이드 배포판에서는 보상형 광고 완료 후 선택한 아이템이 1회 충전됩니다.";
+    if (window.OmokAds && typeof window.OmokAds.showRewarded === "function") window.OmokAds.showRewarded(type);
+  }
+  window.grantOmokItemReward = function (type) {
+    if (type === "hint") hintsLeft++; else if (type === "undo") undosLeft++;
+    else if (type === "danger") dangersLeft++; else if (type === "future") futuresLeft++; else return;
+    adRefills++; updateItemButtons(); itemNoteEl.textContent = "광고 보상으로 아이템 1회를 충전했습니다.";
+  };
+  window.setOmokAdMessage = function (message) {
+    if (typeof message === "string" && message) itemNoteEl.textContent = message;
+  };
 
   // 착수 기록으로 보드를 다시 그린다. 되돌리기가 DOM을 직접 손대지 않도록.
   function rebuildFromHistory() {
@@ -1583,20 +2254,34 @@
     lastMoveEl = null;
     moveCount = 0;
     history = [];
-    for (const mv of moves) placeStone(mv.r, mv.c, mv.player);
+    for (const mv of moves) placeStone(mv.r, mv.c, mv.player, true);
     liveMovesEl.textContent = moveCount;   // 전부 되돌려 착수가 0이 되는 경우까지 반영
   }
 
   function updateItemButtons() {
     hintCountEl.textContent = hintsLeft;
     undoCountEl.textContent = undosLeft;
+    dangerCountEl.textContent = dangersLeft;
+    futureCountEl.textContent = futuresLeft;
     const playable = !gameOver && !aiThinking && currentTurn === BLACK;
-    hintBtn.disabled = !playable || hintsLeft <= 0;
-    undoBtn.disabled = !playable || undosLeft <= 0 || history.length < 2;
+    [
+      [hintBtn, hintsLeft, "유리한 수가 있는 위치를 표시합니다"],
+      [undoBtn, undosLeft, "당신과 AI의 마지막 수를 함께 되돌립니다"],
+      [dangerBtn, dangersLeft, "AI의 가장 위험한 다음 수를 표시합니다"],
+      [futureBtn, futuresLeft, "AI 예상 수와 추천 대응 수를 표시합니다"]
+    ].forEach(([button, count, normalTitle]) => {
+      button.classList.toggle("ad-refill", count <= 0);
+      button.title = count <= 0 ? "보상형 광고를 보고 아이템을 1회 충전합니다" : normalTitle;
+    });
+    hintBtn.disabled = !playable;
+    undoBtn.disabled = !playable || (undosLeft > 0 && history.length < 2);
+    dangerBtn.disabled = !playable;
+    futureBtn.disabled = !playable;
   }
 
   function useHint() {
-    if (gameOver || aiThinking || currentTurn !== BLACK || hintsLeft <= 0) return;
+    if (hintsLeft <= 0) { requestRewardedRefill("hint"); return; }
+    if (gameOver || aiThinking || currentTurn !== BLACK) return;
     setPersona(NEUTRAL_PERSONA);   // 힌트는 상대 성격에 물들지 않게 중립으로 본다
     const picks = orderedCandidates(board, BLACK, 3);
     if (!picks.length) return;
@@ -1610,7 +2295,8 @@
   }
 
   function useUndo() {
-    if (gameOver || aiThinking || currentTurn !== BLACK || undosLeft <= 0) return;
+    if (undosLeft <= 0) { requestRewardedRefill("undo"); return; }
+    if (gameOver || aiThinking || currentTurn !== BLACK) return;
     if (history.length < 2) return;   // 내 수와 AI의 응수가 둘 다 있어야 되돌릴 수 있다
     history.pop();                    // AI의 응수
     history.pop();                    // 나의 마지막 수
@@ -1672,11 +2358,13 @@
       scores.draw++;
     } else if (winner === BLACK) {
       result = "win";
+      playEffect("win"); vibrate([30, 50, 70]);
       highlightWin(winLine);
       statusEl.textContent = "🎉 " + lv.winLine;
       statusEl.className = "status win";
       scores.win++;
     } else {
+      playEffect("lose"); vibrate([80, 40, 80]);
       result = "lose";
       highlightWin(winLine);
       statusEl.textContent = "패배 · " + lv.name + "이(가) 먼저 다섯 개를 이었습니다.";
@@ -1693,11 +2381,46 @@
     if (summary.unlockedLevel) renderBossGrid();
     renderRecords();
 
-    // 승리 라인을 잠깐 보여준 뒤 결과 화면을 띄운다.
-    setTimeout(() => showResult(result, summary, seconds, noItem), result === "draw" ? 500 : 1100);
+    // 인간계 최종보스를 처음 꺾으면 결과 화면 전에 신계 개방을 보여준다.
+    const showResultScreen = () => showResult(result, summary, seconds, noItem);
+    setTimeout(() => {
+      if (summary.unlockedLevel === 11) showRealmGate(showResultScreen);
+      else showResultScreen();
+    }, result === "draw" ? 500 : 1100);
+  }
+
+  function useDanger() {
+    if (dangersLeft <= 0) { requestRewardedRefill("danger"); return; }
+    if (gameOver || aiThinking || currentTurn !== BLACK) return;
+    setPersona(LEVELS[currentLevel - 1].persona); const move = chooseAiMove(currentLevel); if (!move) return;
+    dangersLeft--; itemsUsed++; clearSuggestions(); cellEls[move[0]][move[1]].classList.add("danger"); updateItemButtons();
+    itemNoteEl.textContent = "AI가 노리는 가장 위험한 지점을 표시했습니다.";
+  }
+
+  function useFuture() {
+    if (futuresLeft <= 0) { requestRewardedRefill("future"); return; }
+    if (gameOver || aiThinking || currentTurn !== BLACK) return;
+    const aiMove = chooseAiMove(currentLevel); if (!aiMove) return; board[aiMove[0]][aiMove[1]] = WHITE;
+    setPersona(NEUTRAL_PERSONA); const reply = orderedCandidates(board, BLACK, 1)[0]; board[aiMove[0]][aiMove[1]] = EMPTY;
+    futuresLeft--; itemsUsed++; clearSuggestions(); cellEls[aiMove[0]][aiMove[1]].classList.add("future-ai");
+    if (reply) cellEls[reply[0]][reply[1]].classList.add("future-player"); updateItemButtons(); itemNoteEl.textContent = "보라색은 AI 예상 수, 파란색은 추천 대응 수입니다.";
   }
 
   /* ---------- 결과 오버레이 ---------- */
+  function showRealmGate(done) {
+    realmGateEl.hidden = false;
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      realmGateEl.hidden = true;
+      realmGateEl.removeEventListener("click", finish);
+      done();
+    };
+    realmGateEl.addEventListener("click", finish);
+    setTimeout(finish, 2300);
+  }
+
   function makeButton(label, primary, onClick) {
     const b = document.createElement("button");
     b.className = "btn" + (primary ? "" : " btn-ghost");
@@ -1784,17 +2507,20 @@
 
       if (summary.unlockedLevel) {
         const next = LEVELS[summary.unlockedLevel - 1];
-        if (next.final) {
+        if (summary.unlockedLevel === 11) {
+          addBadge(badges, "unlock", "신계의 문 개방",
+            "11단계 문지기부터는 양수와 강제 수순을 읽는 신계 AI가 등장합니다.");
+        } else if (next.final) {
           addBadge(badges, "unlock", "최종보스 해금",
-            "10단계 오목왕이 당신을 기다립니다.");
+            summary.unlockedLevel + "단계 " + next.name + "이(가) 당신을 기다립니다.");
         } else {
           addBadge(badges, "unlock", "새로운 상대 등장",
             summary.unlockedLevel + "단계 " + next.name + "이(가) 해금되었습니다.");
         }
       }
       if (currentLevel === LEVELS.length) {
-        addBadge(badges, "record", "오목왕 정복자",
-          "10개의 관문을 모두 통과했습니다. 이제 당신이 새로운 오목왕입니다.");
+        addBadge(badges, "record", "신을 넘어선 자",
+          LEVELS.length + "개의 관문을 모두 통과했습니다. 인간의 수가 신의 계산을 넘어섰습니다.");
       }
     } else if (result === "lose") {
       if (summary.attempts >= 3 && summary.totalWins === 0) {
@@ -1895,7 +2621,7 @@
 
   function shareTitle(level) {
     const lv = LEVELS[level - 1];
-    return lv.final ? "오목왕 격파" : level + "단계 " + lv.name + " 격파";
+    return lv.final ? lv.name + " 격파" : level + "단계 " + lv.name + " 격파";
   }
 
   function drawShareCard(level, moves, seconds, noItem, summary) {
@@ -1976,13 +2702,13 @@
     g.fillStyle = "#e6edf7";
     g.font = "800 36px " + FONT;
     g.fillText(
-      lv.final ? "다음 오목왕은 누구인가?" : "이 기록을 깰 수 있나요?",
+      level === LEVELS.length ? "신의 계산을 넘어설 수 있는가?" : "이 기록을 깰 수 있나요?",
       W / 2, 668
     );
 
     g.fillStyle = "#5b6b85";
     g.font = "500 22px " + FONT;
-    g.fillText("10명의 AI를 꺾고 오목왕에 도전하라", W / 2, 716);
+    g.fillText(LEVELS.length + "명의 AI를 꺾고 오목신에 도전하라", W / 2, 716);
 
     return cv;
   }
@@ -2017,7 +2743,7 @@
     if (summary && summary.totalWins > 1) {
       lines.push("내 " + level + "단계 기록 중 " + summary.rank + "위 / " + summary.totalWins + "승");
     }
-    lines.push(LEVELS[level - 1].final ? "다음 오목왕은 누구인가?" : "이 기록을 깰 수 있나요?");
+    lines.push(level === LEVELS.length ? "신의 계산을 넘어설 수 있는가?" : "이 기록을 깰 수 있나요?");
     return lines.join("\n");
   }
 
@@ -2061,6 +2787,7 @@
     cards.push(["클리어한 보스", cleared + "명", cleared === LEVELS.length]);
     cards.push(["무아이템 클리어", noItemClears + "명", noItemClears > 0]);
     cards.push(["총 전적", totalWins + "승 / " + totalGames + "판", false]);
+    renderHallOfFame(cleared, totalWins, noItemClears);
 
     summaryGridEl.innerHTML = "";
     for (const [k, v, gold] of cards) {
@@ -2114,6 +2841,24 @@
         tr.appendChild(td);
       });
       recordsBodyEl.appendChild(tr);
+    });
+  }
+
+  function renderHallOfFame(cleared, totalWins, noItemClears) {
+    const titles = [
+      ["도전자", true, "첫 돌을 놓은 모든 사람"],
+      ["인간계 정복자", LEVELS.slice(0, 10).every((_, i) => getStats(i + 1).wins.length), "인간계 10명 격파"],
+      ["신계 입문자", getStats(11).wins.length > 0, "문지기 격파"],
+      ["신을 넘어선 자", getStats(15).wins.length > 0, "오목신 격파"],
+      ["순수 실력", noItemClears >= 10, "무아이템 10단계 클리어"],
+      ["불패의 수읽기", (store.bestStreak || 0) >= 5, "최고 5연승 달성"],
+    ];
+    hallGridEl.innerHTML = "";
+    titles.forEach(([name, unlocked, desc]) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "hall-card" + (unlocked ? " unlocked" : "") + (store.title === name ? " selected" : "");
+      b.disabled = !unlocked; b.innerHTML = "<b>" + (unlocked ? "🏅 " : "🔒 ") + name + "</b><span>" + desc + "</span>";
+      if (unlocked) b.addEventListener("click", () => { store.title = name; persist(store); renderHallOfFame(cleared, totalWins, noItemClears); });
+      hallGridEl.appendChild(b);
     });
   }
 
@@ -2171,7 +2916,11 @@
     history = [];
     hintsLeft = ITEM_LIMIT;
     undosLeft = ITEM_LIMIT;
+    dangersLeft = ITEM_LIMIT;
+    futuresLeft = ITEM_LIMIT;
     itemsUsed = 0;
+    adRefills = 0;
+    itemNoteEl.textContent = "각 아이템은 판마다 1회 무료입니다.";
     liveMovesEl.textContent = "0";
     liveTimeEl.textContent = "0초";
     boardShellEl.classList.remove("shake");
@@ -2200,6 +2949,7 @@
 
   function backToSelect() {
     stopTimer();
+    selectedRealm = currentLevel > 10 ? "divine" : "human";
     renderBossGrid();
     battleView.classList.remove("active");
     selectView.classList.add("active");
@@ -2222,6 +2972,12 @@
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
+  realmButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      selectedRealm = btn.dataset.realm;
+      renderBossGrid();
+    });
+  });
   goToGameBtn.addEventListener("click", () => switchTab("game"));
 
   boardEl.addEventListener("click", onBoardClick);
@@ -2229,6 +2985,29 @@
   backBtn.addEventListener("click", () => { hideResult(); backToSelect(); });
   hintBtn.addEventListener("click", useHint);
   undoBtn.addEventListener("click", useUndo);
+  dangerBtn.addEventListener("click", useDanger);
+  futureBtn.addEventListener("click", useFuture);
+  settingsBtn.addEventListener("click", () => { syncSettingsUI(); settingsOverlayEl.hidden = false; });
+  settingsCloseBtn.addEventListener("click", () => { settingsOverlayEl.hidden = true; settingsBtn.focus(); });
+  soundSettingEl.addEventListener("change", () => { settings.sound = soundSettingEl.checked; saveSettings(); if (settings.sound) playEffect("item"); });
+  vibrationSettingEl.addEventListener("change", () => { settings.vibration = vibrationSettingEl.checked; saveSettings(); if (settings.vibration) vibrate(25); });
+  motionSettingEl.addEventListener("change", () => { settings.motion = motionSettingEl.checked; saveSettings(); });
+  settingsOverlayEl.addEventListener("click", (e) => { if (e.target === settingsOverlayEl) settingsOverlayEl.hidden = true; });
+  googleSignInBtn.addEventListener("click", () => {
+    window.setOmokAccountMessage("Google 계정 선택 창을 여는 중입니다…");
+    if (window.OmokAccount) window.OmokAccount.signInWithGoogle();
+  });
+  syncRecordsBtn.addEventListener("click", () => {
+    window.setOmokAccountMessage("기록을 동기화하는 중입니다…");
+    if (window.OmokAccount) window.OmokAccount.syncNow();
+  });
+  accountSignOutBtn.addEventListener("click", () => {
+    if (window.OmokAccount) window.OmokAccount.signOut();
+  });
+  deleteAccountBtn.addEventListener("click", () => {
+    const ok = window.confirm("Google 계정 연결과 클라우드 기록을 모두 삭제할까요? 이 작업은 되돌릴 수 없습니다.");
+    if (ok && window.OmokAccount) window.OmokAccount.deleteAccount();
+  });
 
   wipeBtn.addEventListener("click", () => {
     const ok = window.confirm(
@@ -2237,6 +3016,7 @@
     if (!ok) return;
     wipeStore();
     scores = { win: 0, draw: 0, lose: 0 };
+    selectedRealm = "human";
     updateScoreDisplay();
     renderBossGrid();
     renderRecords();
@@ -2250,13 +3030,20 @@
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !overlayEl.hidden) hideResult();
+    if (e.key === "Escape" && !settingsOverlayEl.hidden) settingsOverlayEl.hidden = true;
   });
 
+  syncSettingsUI();
+  renderAccountUI();
+  if (window.OmokAccount && window.OmokAccount.getStatus) window.OmokAccount.getStatus();
+  setupPwa();
+  renderChallengeCopy();
   renderBossGrid();
   renderGuideLevels();
   renderRecords();
   updateScoreDisplay();
   updateItemButtons();
+  requestAnimationFrame(() => appLoaderEl.classList.add("hidden"));
 })();
 </script>
 

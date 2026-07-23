@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1023403348302",
+    "project_id": "omok-challenge",
+    "storage_bucket": "omok-challenge.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1023403348302:android:2b78c652f89e4e8fb84e1f",
+        "android_client_info": {
+          "package_name": "com.broodsky85.omokchallenge"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1023403348302-vkftf2un6gebkgkik5u3fj68n2svnq0o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.broodsky85.omokchallenge",
+            "certificate_hash": "fd4ad95d2939f5f0cbc4cfe56c74bad3b01decbb"
+          }
+        },
+        {
+          "client_id": "1023403348302-p9ib4ovfvp60kapj95e6pshjped5btvt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkUvDiTZVEece_j5ej_yVsD8aU8MctGcg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1023403348302-p9ib4ovfvp60kapj95e6pshjped5btvt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
