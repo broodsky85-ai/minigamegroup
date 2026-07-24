@@ -47,6 +47,18 @@
     position: relative;
     overflow: hidden;
   }
+  /* 날이 갈수록 왕좌를 붉은 어스름이 조여온다. --dusk 0→1 을 renderHud가 올린다. */
+  #app::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(120% 80% at 50% 120%, rgba(150,20,10,0.5), transparent 60%);
+    opacity: var(--dusk, 0);
+    transition: opacity 1.2s ease;
+  }
+  #app > .screen { position: relative; z-index: 1; }
   .screen { display: none; flex: 1; flex-direction: column; padding: 18px; }
   .screen.on { display: flex; }
 
@@ -116,6 +128,18 @@
     letter-spacing: 0.02em;
   }
   .day-row .left { font-size: 12px; color: var(--muted); }
+  .hud-right { display: flex; align-items: center; gap: 8px; }
+  .mute {
+    background: transparent;
+    border: none;
+    font-size: 15px;
+    line-height: 1;
+    padding: 2px;
+    opacity: 1;
+    filter: none;
+    transition: opacity 0.15s, filter 0.15s;
+  }
+  .mute.off { opacity: 0.35; filter: grayscale(1); }
   .gauges { display: flex; gap: 8px; }
   .gauge { flex: 1; text-align: center; }
   .gauge .ico {
@@ -139,7 +163,17 @@
   .gauge.g-people .fill { background: var(--people); }
   .gauge.g-gold .fill { background: var(--gold-res); }
   .gauge.warn .bar { box-shadow: 0 0 0 1px var(--danger), 0 0 10px rgba(224,92,75,0.55); }
-  .gauge .num { font-size: 10px; color: var(--muted); margin-top: 3px; display: block; }
+  .gauge.warn .ico { animation: gaugePulse 0.9s ease-in-out infinite; }
+  @keyframes gaugePulse { 0%,100% { transform: none; } 50% { transform: scale(1.14); } }
+  .gauge .num { font-size: 10px; color: var(--muted); margin-top: 3px; display: block; transition: color 0.2s; }
+  /* 선택 직후, 오른 자원은 초록으로 내린 자원은 붉게 순간 튀어오른다 — 이때 방향이 드러난다 */
+  .gauge.up .num, .gauge.down .num { font-weight: 800; }
+  .gauge.up .ico   { animation: popUp 0.55s ease; }
+  .gauge.down .ico { animation: popDown 0.55s ease; }
+  .gauge.up .num   { color: var(--food); }
+  .gauge.down .num { color: var(--danger); }
+  @keyframes popUp   { 0% { transform: none; } 35% { transform: translateY(-7px) scale(1.3); } 100% { transform: none; } }
+  @keyframes popDown { 0% { transform: none; } 35% { transform: translateY(5px) scale(0.82); }  100% { transform: none; } }
 
   /* ---------- 카드 ---------- */
   #board { flex: 1; display: flex; flex-direction: column; padding: 8px 18px 18px; }
@@ -225,6 +259,45 @@
   }
   #result.on { opacity: 1; transform: translateY(0); }
   #result .delta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  /* ---------- 되돌리기 제안 ---------- */
+  .choice.fatal {
+    border-color: var(--danger);
+    color: var(--danger);
+    opacity: 0.75;
+  }
+  .choice.fatal::before { content: "✕ "; }
+  #undoAsk {
+    position: absolute;
+    inset: 0;
+    background: rgba(12, 8, 5, 0.88);
+    backdrop-filter: blur(3px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 20;
+  }
+  #undoAsk.on { display: flex; }
+  .undo-card {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 14px;
+    padding: 22px 18px 18px;
+    text-align: center;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+  }
+  .undo-icon { font-size: 40px; line-height: 1; }
+  .undo-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-top: 6px;
+  }
+  .undo-why { font-size: 13px; color: var(--danger); margin-top: 6px; }
+  .undo-text { font-size: 14px; color: var(--muted); margin: 12px 0 16px; }
+  .undo-note { font-size: 12px; color: var(--gold-dim); margin-top: 10px; min-height: 16px; }
 
   /* ---------- 엔딩 ---------- */
   #ending { justify-content: flex-start; text-align: center; overflow-y: auto; }
@@ -360,7 +433,11 @@
     <div id="hud">
       <div class="day-row">
         <span class="day" id="dayLabel">즉위 1일차</span>
-        <span class="left" id="leftLabel">멸망까지 30일</span>
+        <span class="hud-right">
+          <span class="left" id="leftLabel">멸망까지 30일</span>
+          <button class="mute" id="btnSound" title="소리">🔊</button>
+          <button class="mute" id="btnVib" title="진동">📳</button>
+        </span>
       </div>
       <div class="gauges" id="gauges"></div>
     </div>
@@ -381,6 +458,19 @@
         <button class="choice" id="cR"></button>
       </div>
       <div id="result"></div>
+
+      <!-- 죽은 순간에만, 판당 한 번 뜨는 되돌리기 제안 -->
+      <div id="undoAsk">
+        <div class="undo-card">
+          <div class="undo-icon">🕰️</div>
+          <div class="undo-title">사관이 붓을 멈췄다</div>
+          <div class="undo-why" id="undoWhy"></div>
+          <p class="undo-text">그 하루를 다시 쓰겠는가.<br>기회는 한 번뿐이다.</p>
+          <button class="btn" id="btnUndo">그 하루를 다시 쓴다</button>
+          <button class="btn ghost" id="btnAccept">그대로 사서에 남긴다</button>
+          <div class="undo-note" id="undoNote"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2213,14 +2303,68 @@ const KINGDOM_EVENTS = [
 /* ---------- 사건 카드 데이터 끝 ---------- */
 
 /* ---------- 시드 난수 (같은 시드 = 같은 판) ---------- */
+/* state()/seek()이 붙어 있는 것은 "되돌리기" 때문이다. 한 수 전으로 돌아가려면
+   자원과 플래그만으로는 모자라고 난수가 어디까지 갔는지도 함께 되감아야,
+   되돌린 뒤에 나오는 카드가 원래 나왔을 카드와 같아진다. */
 function mulberry32(a) {
-  return function () {
+  const f = function () {
     a |= 0; a = a + 0x6D2B79F5 | 0;
     let t = Math.imul(a ^ a >>> 15, 1 | a);
     t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
+  f.state = function () { return a; };
+  f.seek = function (v) { a = v | 0; };
+  return f;
 }
+
+/* ---------- 소리 · 진동 ----------
+   오디오 파일은 하나도 싣지 않는다(파일 하나로 도는 원칙). 대신 오실레이터를
+   즉석에서 합성한다. 사극 톤이라 오목의 단음보다 배음을 얹어 종·북 같은 질감을 낸다.
+   설정은 localStorage에 남기고, 브라우저 자동재생 정책 때문에 첫 탭에서 컨텍스트를 깨운다. */
+const SND_KEY = "kingdom30-snd";
+let sndOn = true, vibOn = true, audioCtx = null;
+try {
+  const raw = JSON.parse(localStorage.getItem(SND_KEY) || "{}");
+  if (raw.sound === false) sndOn = false;
+  if (raw.vib === false) vibOn = false;
+} catch (e) { /* 무시 */ }
+function saveSnd() {
+  try { localStorage.setItem(SND_KEY, JSON.stringify({ sound: sndOn, vib: vibOn })); } catch (e) {}
+}
+function ac() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) { try { audioCtx = new AC(); } catch (e) { return null; } }
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+/* 한 음: 주파수·길이·파형·시작시각·음량 */
+function tone(freq, dur, type, when, vol) {
+  const c = ac(); if (!c) return;
+  const t0 = c.currentTime + (when || 0);
+  const osc = c.createOscillator(), g = c.createGain();
+  osc.type = type || "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g); g.connect(c.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+/* 사건별 소리. good=이득 큰 선택, bad=손해 큰 선택, 죽음/생존/되돌리기는 전용. */
+const SFX = {
+  deal:  () => { tone(320, 0.08, "triangle", 0, 0.04); tone(480, 0.06, "sine", 0.03, 0.03); }, // 카드 놓는 소리
+  pick:  () => { tone(300, 0.05, "square", 0, 0.03); },
+  good:  () => { tone(523, 0.12, "sine", 0, 0.05); tone(784, 0.16, "sine", 0.06, 0.04); },      // 맑게 오름
+  bad:   () => { tone(196, 0.16, "sawtooth", 0, 0.045); tone(147, 0.22, "sine", 0.05, 0.04); }, // 무겁게 내림
+  warn:  () => { tone(880, 0.07, "square", 0, 0.035); tone(880, 0.07, "square", 0.12, 0.035); },// 경고 두 번
+  death: () => { tone(160, 0.5, "sawtooth", 0, 0.06); tone(96, 0.9, "sine", 0.08, 0.05); tone(72, 1.1, "sine", 0.2, 0.04); }, // 종이 무너지듯
+  undo:  () => { tone(400, 0.1, "sine", 0, 0.04); tone(600, 0.1, "sine", 0.08, 0.04); tone(900, 0.14, "sine", 0.16, 0.045); }, // 시간 되감기
+  win:   () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, "sine", i * 0.11, 0.05)); } // 승전 팡파르
+};
+function sfx(name) { if (sndOn && SFX[name]) { try { SFX[name](); } catch (e) {} } }
+function buzz(pattern) { if (vibOn && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
 
 /* ---------- 저장 ---------- */
 function loadSave() {
@@ -2257,8 +2401,12 @@ function newGame(useSeed) {
     used: new Set(),
     rand: mulberry32(seed),
     log: [],
-    over: null
+    over: null,
+    snap: null,       // 직전 선택 바로 앞의 상태
+    undoUsed: false,  // 되돌리기는 한 판에 한 번뿐
+    fatalIdx: null    // 되돌린 판에서 "그 선택"을 표시하기 위한 것
   };
+  $("undoAsk").classList.remove("on");
   drawEvent();
   renderHud();
   show("game");
@@ -2288,6 +2436,7 @@ function drawEvent() {
   S.used.add(ev.id);
   S.cur = ev;
   renderCard(ev);
+  sfx("pick");   // 새 사건 카드가 탁상에 놓이는 소리
 }
 
 /* ---------- 화면 ---------- */
@@ -2313,16 +2462,33 @@ function buildGauges() {
     </div>`).join("");
 }
 
-function renderHud() {
+function renderHud(before) {
   $("dayLabel").textContent = `즉위 ${S.day}일차`;
   $("leftLabel").textContent = `멸망까지 ${Math.max(0, MAX_DAY - S.day + 1)}일`;
+  // 20일차부터 서서히, 그리고 자원이 벼랑에 가까울수록 어스름을 짙게
+  const dayDusk = Math.max(0, (S.day - 20) / 12);
+  const lowest = Math.min(S.food, S.army, S.people, S.gold);
+  const resDusk = lowest <= 25 ? (25 - lowest) / 25 * 0.6 : 0;
+  document.getElementById("app").style.setProperty("--dusk", Math.min(1, dayDusk + resDusk).toFixed(2));
+  let anyDanger = false;
   RES.forEach(r => {
     const g = $("gauges").querySelector(`[data-res="${r.key}"]`);
     const v = S[r.key];
+    const d = before ? v - before[r.key] : 0;
     g.querySelector(".fill").style.width = v + "%";
     g.querySelector(".num").textContent = v;
-    g.classList.toggle("warn", v <= 15 || v >= 85);
+    const danger = v <= 15 || v >= 85;
+    g.classList.toggle("warn", danger);
+    if (danger && d) anyDanger = true;
+    if (d) {
+      // 오른 자원/내린 자원을 순간 색으로 알린다. 이때 비로소 방향이 드러난다.
+      g.classList.remove("up", "down");
+      void g.offsetWidth;                 // 리플로우로 애니메이션 재시작
+      g.classList.add(d > 0 ? "up" : "down");
+      setTimeout(() => g.classList.remove("up", "down"), 600);
+    }
   });
+  if (anyDanger) sfx("warn");
 }
 
 function renderCard(ev) {
@@ -2331,6 +2497,8 @@ function renderCard(ev) {
   $("say").textContent = ev.text;
   $("cL").textContent = ev.choices[0].label;
   $("cR").textContent = ev.choices[1].label;
+  $("cL").classList.remove("fatal");
+  $("cR").classList.remove("fatal");
   $("vL").textContent = ev.choices[0].label;
   $("vR").textContent = ev.choices[1].label;
   const c = $("card");
@@ -2355,13 +2523,25 @@ function hintRes(idx) {
 
 /* ---------- 선택 ---------- */
 function choose(idx) {
-  if (busy || !S || S.over) return;
+  if (busy || !S || S.over || S.asking) return;
   busy = true;
   hintRes(null);
 
   const ev = S.cur;
   const ch = ev.choices[idx];
   const before = { food: S.food, army: S.army, people: S.people, gold: S.gold };
+
+  // 이 선택 직전의 상태를 통째로 떠 둔다. 난수 위치까지 함께 담아야 되돌린 뒤가 어긋나지 않는다.
+  S.snap = {
+    day: S.day,
+    res: before,
+    flags: new Set(S.flags),
+    used: new Set(S.used),
+    rng: S.rand.state(),
+    logLen: S.log.length,
+    ev: ev,
+    idx: idx
+  };
 
   RES.forEach(r => {
     S[r.key] = Math.max(0, Math.min(100, S[r.key] + (ch.effects[r.key] || 0)));
@@ -2375,13 +2555,27 @@ function choose(idx) {
   const dir = idx === 0 ? -1 : 1;
   c.style.transform = `translateX(${dir * 420}px) rotate(${dir * 18}deg)`;
   c.style.opacity = "0";
+  sfx("deal");
 
-  renderHud();
+  renderHud(before);
   showResult(ch, before);
+
+  // 이 선택이 전체적으로 이득인지 손해인지에 따라 소리와 진동의 무게를 다르게.
+  const net = RES.reduce((a, r) => a + (S[r.key] - before[r.key]), 0);
+  setTimeout(() => {
+    if (net >= 6) { sfx("good"); buzz(15); }
+    else if (net <= -6) { sfx("bad"); buzz([20, 40, 20]); }
+    else buzz(12);
+  }, 180);
 
   const dead = deathCheck();
   setTimeout(() => {
-    if (dead) { finish(dead); busy = false; return; }
+    if (dead) {
+      sfx("death"); buzz([90, 50, 90]);
+      // 판당 한 번은 그 하루를 무를 기회를 준다. 이미 썼으면 그대로 끝.
+      if (!S.undoUsed) { offerUndo(dead); busy = false; return; }
+      finish(dead); busy = false; return;
+    }
     if (S.day >= MAX_DAY) { finish(survivalEnding()); busy = false; return; }
     S.day++;
     renderHud();
@@ -2437,6 +2631,81 @@ function survivalEnding() {
   return "survive";
 }
 
+/* ---------- 되돌리기 ----------
+   죽은 순간에만, 한 판에 한 번. 아무 때나 무를 수 있으면 숨긴 정보로 만든 긴장이
+   통째로 사라진다. 이미 죽어 본 뒤에야 주기 때문에 "그 하루만 다시"가 성립한다.
+
+   광고는 안드로이드 배포판에만 있다(웹에는 보상형 광고를 붙일 수단이 없다).
+   그래서 브릿지가 있으면 광고를 보고, 없으면 그냥 준다 — 규칙 자체는 양쪽이 같다. */
+function adBridgeReady() {
+  return !!(window.OmokAds && typeof window.OmokAds.showRewarded === "function");
+}
+
+function offerUndo(deathId) {
+  const end = END_BY_ID[deathId];
+  S.asking = true;
+  S.pendingDeath = deathId;
+  $("undoWhy").textContent = `${end.icon} ${end.name} — ${end.kind}`;
+  $("btnUndo").textContent = adBridgeReady()
+    ? "광고를 보고 그 하루를 다시 쓴다"
+    : "그 하루를 다시 쓴다 (판당 1회)";
+  $("undoAsk").classList.add("on");
+}
+
+function requestUndo() {
+  if (!S || !S.asking) return;
+  if (adBridgeReady()) {
+    $("undoNote").textContent = "광고를 불러오는 중…";
+    window.OmokAds.showRewarded("kingdom_undo");   // 보상이 확정되면 앱이 grantOmokItemReward를 부른다
+    return;
+  }
+  doUndo();
+}
+
+function doUndo() {
+  if (!S || !S.snap || S.undoUsed) return;
+  const snap = S.snap;
+  S.day = snap.day;
+  RES.forEach(r => { S[r.key] = snap.res[r.key]; });
+  S.flags = new Set(snap.flags);
+  S.used = new Set(snap.used);
+  S.rand.seek(snap.rng);
+  S.log.length = snap.logLen;
+  S.cur = snap.ev;
+  S.undoUsed = true;
+  S.asking = false;
+  S.pendingDeath = null;
+  sfx("undo"); buzz([15, 30, 15, 30, 40]);
+
+  $("undoAsk").classList.remove("on");
+  $("undoNote").textContent = "";
+  $("result").classList.remove("on");
+  renderHud();
+  renderCard(snap.ev);
+  (snap.idx === 0 ? $("cL") : $("cR")).classList.add("fatal");
+  toast("사관이 그 하루를 지웠다");
+}
+
+function declineUndo() {
+  if (!S || !S.asking) return;
+  const deathId = S.pendingDeath;
+  S.asking = false;
+  S.pendingDeath = null;
+  $("undoAsk").classList.remove("on");
+  finish(deathId);
+}
+
+/* 앱(WebView)에서 보상형 광고가 끝나면 이 두 함수를 부른다. 오목과 같은 규약이다. */
+window.grantOmokItemReward = function (type) {
+  if (type === "kingdom_undo") doUndo();
+};
+window.setOmokAdMessage = function (message) {
+  if (typeof message === "string" && message) {
+    $("undoNote").textContent = message;
+    toast(message);
+  }
+};
+
 /* ---------- 엔딩 ---------- */
 function finish(endId) {
   S.over = endId;
@@ -2466,6 +2735,9 @@ function finish(endId) {
     `<p>${l.day}일 · ${l.who} — <b>${l.label}</b></p>`).join("");
   $("journal").innerHTML = `<h4>왕의 일지</h4>${rows}`;
 
+  // 30일을 넘겨 살아남았으면 승전 소리, 도중에 죽었으면 침묵(죽는 소리는 이미 offerUndo에서 났다)
+  const survived = S.day >= MAX_DAY;
+  if (survived) { sfx("win"); buzz([30, 40, 30, 40, 60]); }
   setTimeout(() => show("ending"), 700);
 }
 
@@ -2519,7 +2791,7 @@ function bindSwipe() {
   let x0 = null, dx = 0, dragging = false;
 
   const start = e => {
-    if (busy || !S || S.over) return;
+    if (busy || !S || S.over || S.asking) return;
     dragging = true;
     x0 = (e.touches ? e.touches[0].clientX : e.clientX);
     dx = 0;
@@ -2577,6 +2849,19 @@ function init() {
   $("btnCodex2").onclick = renderCodex;
   $("btnBack").onclick = () => show(S && S.over ? "ending" : "title");
   $("btnShare").onclick = shareLink;
+
+  $("btnUndo").onclick = requestUndo;
+  $("btnAccept").onclick = declineUndo;
+
+  // 소리·진동 토글. 첫 탭에서 오디오 컨텍스트도 깨운다(자동재생 정책).
+  function paintToggles() {
+    $("btnSound").classList.toggle("off", !sndOn);
+    $("btnSound").textContent = sndOn ? "🔊" : "🔇";
+    $("btnVib").classList.toggle("off", !vibOn);
+  }
+  $("btnSound").onclick = () => { sndOn = !sndOn; saveSnd(); paintToggles(); if (sndOn) sfx("good"); };
+  $("btnVib").onclick = () => { vibOn = !vibOn; saveSnd(); paintToggles(); if (vibOn) buzz(25); };
+  paintToggles();
 
   $("cL").onclick = () => choose(0);
   $("cR").onclick = () => choose(1);

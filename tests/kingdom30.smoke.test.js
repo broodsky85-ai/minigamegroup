@@ -70,7 +70,43 @@ const wait = ms => new Promise(r => window.setTimeout(r, ms));
   check(window.eval("S.food=10; survivalEnding()") === "fragile",
     "자원 하나가 바닥이면 위태로운 왕좌");
 
-  console.log("[6] 엔딩 저장/도감");
+  console.log("[6] 되돌리기 — 죽은 순간에만, 판당 한 번");
+  // 죽을 수밖에 없는 상황을 만들고 실제로 선택을 눌러 죽인다
+  window.eval("S.flags.clear(); S.undoUsed = false; S.day = 12; S.food = 50; S.army = 50; S.people = 50; S.gold = 50");
+  const dayBefore = window.eval("S.day");
+  const cardBefore = $("say").textContent;
+  const goldBefore = window.eval("S.gold");
+  // 어느 쪽을 고르든 죽도록 자원 하나를 벼랑 끝에 둔다
+  window.eval("S.food = 1");
+  const killIdx = window.eval("S.cur.choices[0].effects.food < 0 ? 0 : 1");
+  window.eval(`S.cur.choices[${killIdx}].effects.food = -18`);
+  (killIdx === 0 ? $("cL") : $("cR")).click();
+  await wait(1500);
+  check($("undoAsk").classList.contains("on"), "죽으면 되돌리기 제안이 뜬다");
+  check(!$("ending").classList.contains("on"), "제안 중에는 엔딩으로 넘어가지 않는다");
+  check(/굶주린 왕국/.test($("undoWhy").textContent), "무엇 때문에 죽었는지 보여준다");
+  check(window.eval("choose(0); S.asking === true"), "제안이 떠 있는 동안에는 선택이 먹지 않는다");
+
+  $("btnUndo").click();
+  check(!$("undoAsk").classList.contains("on"), "되돌리면 제안이 닫힌다");
+  check(window.eval("S.day") === dayBefore, "그날로 돌아간다");
+  check($("say").textContent === cardBefore, "같은 사건 카드가 다시 나온다");
+  check(window.eval("S.gold") === goldBefore, "자원이 선택 직전으로 복구된다");
+  check(window.eval("S.undoUsed") === true, "되돌리기는 한 판에 한 번만");
+  const marked = doc.querySelectorAll(".choice.fatal");
+  check(marked.length === 1 && marked[0].id === (killIdx === 0 ? "cL" : "cR"),
+    "죽음을 부른 선택지에 표시가 남는다");
+
+  // 두 번째 죽음은 제안 없이 그대로 끝난다
+  window.eval("S.food = 1");
+  (killIdx === 0 ? $("cL") : $("cR")).click();
+  await wait(1500);
+  check(!$("undoAsk").classList.contains("on"), "두 번째 죽음에는 제안이 없다");
+  await wait(900);   // 사망 연출 1250ms + 엔딩 전환 700ms
+  check($("ending").classList.contains("on"), "두 번째 죽음은 바로 엔딩으로 간다");
+  check(/굶주린 왕국/.test($("endName").textContent), "되돌린 뒤 두 번째 죽음이 엔딩으로 남는다");
+
+  console.log("[7] 엔딩 저장/도감");
   window.eval("S.flags.clear(); S.flags.add('shrine_built'); S.flags.add('spy_refused')");
   window.eval("finish('survive')");
   await wait(900);
@@ -85,7 +121,9 @@ const wait = ms => new Promise(r => window.setTimeout(r, ms));
   check($("codex").classList.contains("on"), "도감으로 이동한다");
   const cells = [...doc.querySelectorAll("#codexGrid .cx")];
   const unlocked = cells.filter(c => !c.classList.contains("locked"));
-  check(unlocked.length === 1, "해금된 엔딩만 공개된다 (" + unlocked.length + "종)");
+  check(unlocked.length === saved.endings.length,
+    "본 엔딩만 공개된다 (" + unlocked.length + "종 / 저장 " + saved.endings.length + "종)");
+  check(cells.length - unlocked.length > 0, "못 본 엔딩은 ??? 로 잠겨 있다");
   check(cells.length === window.eval("ENDINGS.length"),
     "도감에 엔딩 " + cells.length + "종이 모두 자리한다");
 
