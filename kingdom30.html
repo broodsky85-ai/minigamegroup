@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#120d08">
+<title>멸망까지 30일</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #120d08;
+    --bg-2: #1c140c;
+    --panel: #241a10;
+    --border: #4a3722;
+    --gold: #d9b45c;
+    --gold-dim: #8d7239;
+    --text: #ede3d0;
+    --muted: #a8977c;
+    --paper: #f2e8d2;
+    --ink: #2a2118;
+    --food: #7bc47f;
+    --army: #d97b6c;
+    --people: #d9b45c;
+    --gold-res: #6fa8dc;
+    --danger: #e05c4b;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(900px 500px at 50% -10%, #2a1d10 0%, transparent 70%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Pretendard, "Malgun Gothic", sans-serif;
+    line-height: 1.65;
+    word-break: keep-all;
+    display: flex;
+    justify-content: center;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  #app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .screen { display: none; flex: 1; flex-direction: column; padding: 18px; }
+  .screen.on { display: flex; }
+
+  button { font-family: inherit; cursor: pointer; border: none; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: clamp(15px, 4vw, 16px);
+    font-weight: 700;
+    background: linear-gradient(180deg, #e2c273, #b8913f);
+    color: #241a10;
+    border: 1px solid #f0d795;
+  }
+  .btn:active { filter: brightness(0.92); }
+  .btn.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn + .btn { margin-top: 10px; }
+
+  /* ---------- 타이틀 ---------- */
+  #title { justify-content: center; text-align: center; gap: 4px; }
+  .crown { font-size: 54px; line-height: 1; margin-bottom: 6px; }
+  #title h1 {
+    font-size: clamp(30px, 9vw, 40px);
+    margin: 0;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    text-shadow: 0 0 22px rgba(217,180,92,0.25);
+  }
+  #title .sub { color: var(--muted); font-size: 14px; margin: 2px 0 22px; }
+  .rule-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 13.5px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .rule-box b { color: var(--text); font-weight: 600; }
+  .rule-box .res-row { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
+  .rule-box .res-row span { font-size: 13px; }
+  .seed-note {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--gold-dim);
+    min-height: 18px;
+  }
+
+  /* ---------- 상단 자원 ---------- */
+  #hud { padding: 14px 18px 6px; }
+  .day-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .day-row .day {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+  }
+  .day-row .left { font-size: 12px; color: var(--muted); }
+  .gauges { display: flex; gap: 8px; }
+  .gauge { flex: 1; text-align: center; }
+  .gauge .ico {
+    font-size: 19px;
+    line-height: 1;
+    display: block;
+    filter: grayscale(0.15);
+    transition: transform 0.2s, filter 0.2s;
+  }
+  .gauge.hint .ico { transform: translateY(-3px) scale(1.18); filter: none; }
+  .gauge .bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #33261a;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .gauge .fill { height: 100%; width: 50%; transition: width 0.45s cubic-bezier(.3,1.2,.5,1); }
+  .gauge.g-food .fill { background: var(--food); }
+  .gauge.g-army .fill { background: var(--army); }
+  .gauge.g-people .fill { background: var(--people); }
+  .gauge.g-gold .fill { background: var(--gold-res); }
+  .gauge.warn .bar { box-shadow: 0 0 0 1px var(--danger), 0 0 10px rgba(224,92,75,0.55); }
+  .gauge .num { font-size: 10px; color: var(--muted); margin-top: 3px; display: block; }
+
+  /* ---------- 카드 ---------- */
+  #board { flex: 1; display: flex; flex-direction: column; padding: 8px 18px 18px; }
+  .card-wrap { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 300px; }
+  .card {
+    width: 100%;
+    background: linear-gradient(170deg, #f7efdc, #e6d8ba);
+    color: var(--ink);
+    border-radius: 14px;
+    padding: 22px 20px 24px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.5);
+    text-align: center;
+    touch-action: pan-y;
+    user-select: none;
+    will-change: transform;
+    position: relative;
+  }
+  .card .face { font-size: 46px; line-height: 1; }
+  .card .who {
+    font-size: 13px;
+    font-weight: 700;
+    color: #8a6b30;
+    letter-spacing: 0.06em;
+    margin: 8px 0 12px;
+  }
+  .card .say {
+    font-size: clamp(15px, 4.3vw, 17px);
+    line-height: 1.75;
+    margin: 0;
+    min-height: 5.2em;
+  }
+  .card .swipe-tip {
+    margin-top: 16px;
+    font-size: 11.5px;
+    color: #a08b5e;
+    letter-spacing: 0.04em;
+  }
+  .card .verdict {
+    position: absolute;
+    top: 16px;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    max-width: 45%;
+    line-height: 1.35;
+  }
+  .card .verdict.l { left: 14px; background: rgba(224,92,75,0.92); color: #fff; transform: rotate(-7deg); }
+  .card .verdict.r { right: 14px; background: rgba(96,140,90,0.92); color: #fff; transform: rotate(7deg); }
+
+  .choices { margin-top: 14px; display: flex; gap: 10px; }
+  .choice {
+    flex: 1;
+    padding: 13px 10px;
+    border-radius: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: clamp(13px, 3.7vw, 14.5px);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .choice:active { background: #33261a; }
+
+  /* 결과 자막 */
+  #result {
+    position: absolute;
+    left: 18px; right: 18px; bottom: 92px;
+    background: rgba(18,13,8,0.94);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #result.on { opacity: 1; transform: translateY(0); }
+  #result .delta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  /* ---------- 엔딩 ---------- */
+  #ending { justify-content: flex-start; text-align: center; overflow-y: auto; }
+  .end-icon { font-size: 60px; line-height: 1; margin: 18px 0 4px; }
+  .end-name { font-size: clamp(24px, 7vw, 30px); margin: 0; color: var(--gold); }
+  .end-kind { font-size: 12px; color: var(--muted); letter-spacing: 0.14em; margin-bottom: 14px; }
+  .end-line {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14.5px;
+    text-align: left;
+    margin-bottom: 14px;
+  }
+  .epilogue {
+    text-align: left;
+    border-left: 2px solid var(--gold-dim);
+    padding: 2px 0 2px 12px;
+    margin: 0 2px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .epilogue:empty { display: none; }
+  .epilogue h4 {
+    margin: 0 0 6px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--gold-dim);
+    font-style: normal;
+  }
+  .epilogue p { margin: 0 0 6px; }
+  .end-stat {
+    display: flex;
+    justify-content: space-around;
+    background: var(--bg-2);
+    border-radius: 10px;
+    padding: 12px 8px;
+    margin-bottom: 14px;
+  }
+  .end-stat div { font-size: 11px; color: var(--muted); }
+  .end-stat b { display: block; font-size: 20px; color: var(--gold); font-weight: 700; }
+  .journal {
+    text-align: left;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    max-height: 190px;
+    overflow-y: auto;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .journal h4 { margin: 2px 0 8px; font-size: 12px; color: var(--gold-dim); letter-spacing: 0.1em; }
+  .journal p { margin: 0 0 5px; }
+  .journal p b { color: var(--text); font-weight: 600; }
+
+  /* ---------- 도감 ---------- */
+  #codex { overflow-y: auto; }
+  .codex-head { text-align: center; margin-bottom: 4px; }
+  .codex-head h2 { color: var(--gold); margin: 6px 0 2px; font-size: 24px; }
+  .codex-head p { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+  .codex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .cx {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .cx.locked { opacity: 0.45; }
+  .cx .i { font-size: 26px; line-height: 1; }
+  .cx .n { font-size: 13px; font-weight: 700; margin-top: 4px; }
+  .cx .d { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+
+  .back-home {
+    text-align: center;
+    padding: 12px 0 4px;
+    font-size: 12px;
+    color: var(--gold-dim);
+  }
+  .back-home a { color: inherit; }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translate(-50%, 12px);
+    background: var(--gold);
+    color: #241a10;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 타이틀 ===== -->
+  <div class="screen on" id="title">
+    <div class="crown">👑</div>
+    <h1>멸망까지 30일</h1>
+    <p class="sub">선왕이 죽었다. 왕관은 당신의 것이 되었다.</p>
+
+    <div class="rule-box">
+      하루에 한 번, 신하가 찾아와 결정을 청한다. <b>선택은 언제나 둘뿐이다.</b>
+      어느 쪽을 고르든 무언가는 잃는다.
+      <div class="res-row">
+        <span>🌾 식량</span><span>⚔️ 군사</span><span>👑 민심</span><span>💰 국고</span>
+      </div>
+      <div style="margin-top:8px">넷 중 하나라도 <b>바닥나거나 넘치면</b> 그날로 끝이다. <b>30일</b>을 버텨라.</div>
+    </div>
+
+    <button class="btn" id="btnStart">즉위한다</button>
+    <button class="btn ghost" id="btnCodex">엔딩 도감</button>
+    <div class="seed-note" id="seedNote"></div>
+    <div class="back-home"><a href="index.html">← 미니게임 모음</a></div>
+  </div>
+
+  <!-- ===== 게임 ===== -->
+  <div class="screen" id="game">
+    <div id="hud">
+      <div class="day-row">
+        <span class="day" id="dayLabel">즉위 1일차</span>
+        <span class="left" id="leftLabel">멸망까지 30일</span>
+      </div>
+      <div class="gauges" id="gauges"></div>
+    </div>
+
+    <div id="board">
+      <div class="card-wrap">
+        <div class="card" id="card">
+          <div class="verdict l" id="vL"></div>
+          <div class="verdict r" id="vR"></div>
+          <div class="face" id="face">👑</div>
+          <div class="who" id="who">재상 백윤</div>
+          <p class="say" id="say"></p>
+          <div class="swipe-tip">카드를 좌우로 밀거나 아래 버튼을 누르시오</div>
+        </div>
+      </div>
+      <div class="choices">
+        <button class="choice" id="cL"></button>
+        <button class="choice" id="cR"></button>
+      </div>
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <!-- ===== 엔딩 ===== -->
+  <div class="screen" id="ending">
+    <div class="end-icon" id="endIcon">🏰</div>
+    <h2 class="end-name" id="endName"></h2>
+    <div class="end-kind" id="endKind"></div>
+    <div class="end-line" id="endLine"></div>
+    <div class="epilogue" id="epilogue"></div>
+    <div class="end-stat">
+      <div>버틴 날<b id="stDay">0</b></div>
+      <div>내 최장 기록<b id="stBest">0</b></div>
+      <div>모은 엔딩<b id="stCodex">0</b></div>
+    </div>
+    <div class="journal" id="journal"></div>
+    <button class="btn" id="btnAgain">다시 즉위한다</button>
+    <button class="btn ghost" id="btnShare">🔗 같은 운명으로 친구에게 도전장</button>
+    <button class="btn ghost" id="btnCodex2">엔딩 도감</button>
+    <div class="back-home"><a href="index.html">← 미니게임 모음</a></div>
+  </div>
+
+  <!-- ===== 도감 ===== -->
+  <div class="screen" id="codex">
+    <div class="codex-head">
+      <h2>엔딩 도감</h2>
+      <p id="codexCount"></p>
+    </div>
+    <div class="codex-grid" id="codexGrid"></div>
+    <button class="btn" id="btnBack">돌아가기</button>
+    <div class="back-home"><a href="index.html">← 미니게임 모음</a></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* =====================================================================
+   멸망까지 30일 — 왕국 경영 생존
+   자원 4개(0~100)를 30일간 양 끝(0/100) 사이에 유지하는 선택 게임.
+   시드 기반이라 같은 URL이면 같은 순서의 사건이 나온다(친구 도전장).
+   ===================================================================== */
+
+/* ---------- 자원 정의 ---------- */
+const RES = [
+  { key: "food",   icon: "🌾", name: "식량", cls: "g-food"   },
+  { key: "army",   icon: "⚔️", name: "군사", cls: "g-army"   },
+  { key: "people", icon: "👑", name: "민심", cls: "g-people" },
+  { key: "gold",   icon: "💰", name: "국고", cls: "g-gold"   }
+];
+const MAX_DAY = 30;
+const STORE_KEY = "kingdom30-v1";
+
+/* ---------- 엔딩 정의 ----------
+   0/100으로 끝나는 파멸 엔딩 8종 + 30일 생존 엔딩 5종. */
+const ENDINGS = [
+  { id: "famine",   icon: "💀", name: "굶주린 왕국", kind: "식량 0",
+    line: "곳간에서 쥐조차 굶어 죽었다. 백성은 도성을 등졌고, 왕좌에는 먼지만 앉았다." },
+  { id: "gluttony", icon: "🍖", name: "나태의 궁전", kind: "식량 100",
+    line: "곳간은 넘치다 못해 썩어갔다. 배부른 왕국은 칼 쥐는 법을 잊었고, 이웃은 그것을 놓치지 않았다." },
+  { id: "invaded",  icon: "🏳️", name: "열린 국경", kind: "군사 0",
+    line: "성문을 지킬 자가 남지 않았다. 적은 싸우지도 않고 걸어 들어왔다." },
+  { id: "coup",     icon: "🪖", name: "군화 소리", kind: "군사 100",
+    line: "칼을 너무 많이 쥐여주었다. 그 칼끝이 어디를 향할지는 대장군이 정했다." },
+  { id: "revolt",   icon: "🔥", name: "성난 백성", kind: "민심 0",
+    line: "굶주림보다 무서운 것은 원한이었다. 횃불이 궁을 둘러쌌고, 아무도 왕을 부르지 않았다." },
+  { id: "beloved",  icon: "🎭", name: "더 사랑받는 자", kind: "민심 100",
+    line: "백성은 왕을 사랑했다. 다만 왕관이 아니라 사람을. 그들은 곧 다른 이에게 그 사랑을 옮겼다." },
+  { id: "bankrupt", icon: "🕳️", name: "텅 빈 국고", kind: "국고 0",
+    line: "녹봉이 끊기자 충성도 끊겼다. 마지막까지 남은 신하는 빚쟁이뿐이었다." },
+  { id: "corrupt",  icon: "🪙", name: "황금에 잠긴 왕좌", kind: "국고 100",
+    line: "금은 넘쳤고 그만큼 손이 더러워졌다. 부패한 조정은 안에서부터 무너졌다." },
+
+  { id: "puppet",    icon: "🎎", name: "속국의 왕", kind: "30일 생존 · 흑랑의 도장",
+    line: "왕국은 살아남았다. 다만 이제 결정은 흑랑의 궁에서 내려온다. 당신은 왕관을 쓴 채 고개를 숙였고, 사관은 그 장면을 적지 않았다." },
+  { id: "warlord",   icon: "🐺", name: "장군의 나라", kind: "30일 생존 · 무결의 전권",
+    line: "30일을 넘겼다. 조례는 여전히 열리고 왕좌도 그대로다. 다만 신하들의 눈이 향하는 곳이 대장군 무결의 자리로 옮겨갔을 뿐이다." },
+  { id: "theocracy", icon: "⛪", name: "신전의 나라", kind: "30일 생존 · 신전이 왕좌 위",
+    line: "국사 혜명이 왕의 어깨에 손을 얹었다. 백성은 왕이 아니라 하늘의 뜻을 따랐고, 그 뜻을 읽는 자는 따로 있었다." },
+  { id: "unify",     icon: "🏆", name: "정복왕", kind: "30일 생존 · 전쟁을 이겨냄",
+    line: "흑랑의 깃발이 국경에서 내려갔다. 전쟁을 피하지 않았고, 군대를 끝까지 잃지 않았다. 사서는 당신을 '무(武)의 왕'이라 적었다." },
+  { id: "alliance",  icon: "🕊️", name: "혼맥의 평화", kind: "30일 생존 · 흑랑과 혼인",
+    line: "칼 대신 혼서가 국경을 넘었다. 어떤 이는 굴욕이라 했고 어떤 이는 지혜라 했다. 확실한 것은 30일 동안 아무도 죽지 않았다는 것이다." },
+  { id: "merchant",  icon: "⚖️", name: "소금과 저울", kind: "30일 생존 · 전매와 국고",
+    line: "소금이 곧 세금이 되었다. 상단주 여씨는 왕을 '가장 좋은 동업자'라 불렀다. 칭찬인지 아닌지는 아무도 묻지 않았다." },
+  { id: "dynasty",   icon: "🌱", name: "후사를 남긴 왕", kind: "30일 생존 · 후계와 민심",
+    line: "왕좌 옆에 작은 자리가 하나 늘었다. 왕국이 하루 더 갈지는 몰라도, 다음 대까지 갈 것은 분명해졌다." },
+  { id: "golden",    icon: "🌅", name: "태평성대", kind: "30일 생존 · 모든 자원 안정",
+    line: "곳간은 차 있고 백성은 웃었다. 30일 동안 사서에 적을 만한 일이 없었다는 것 — 그것이 왕에게는 가장 어려운 업적이다." },
+  { id: "fragile",   icon: "🕯️", name: "위태로운 왕좌", kind: "30일 생존 · 바닥난 자원",
+    line: "버티긴 했다. 촛불 하나가 다 타들어 가듯이. 다음 달까지 갈 수 있을지는 아무도 장담하지 않았다." },
+  { id: "survive",   icon: "🏰", name: "살아남은 왕", kind: "30일 생존",
+    line: "30일. 선왕이 남긴 무게를 떨어뜨리지 않고 한 달을 넘겼다. 그것만으로 궁은 당신을 왕으로 인정했다." }
+];
+const END_BY_ID = {};
+ENDINGS.forEach(e => { END_BY_ID[e.id] = e; });
+
+/* 후일담 — 엔딩 뒤에 붙는 한 줄. 그 판에서 세운 플래그 중 위에서부터 최대 3개를 보여준다.
+   결말은 같아도 뒷이야기가 달라지므로, 도감을 다 채운 뒤에도 다시 할 이유가 된다.
+   위에 있을수록 우선 — 극적인 것을 먼저 둘 것. */
+const EPILOGUES = [
+  { flag: "baekyun_deceived",     text: "재상 백윤은 왕이 자신을 속였다는 것을 끝내 알지 못한 채 조정을 떠났다." },
+  { flag: "shrine_built",         text: "봉쇄되었던 마을 터에는 작은 사당이 남았다. 이름 없는 위패가 서른 개였다." },
+  { flag: "survivors_freed",      text: "문을 열고 나온 이들은 왕의 이름을 부르지 않았다. 다만 살아 있었다." },
+  { flag: "merchants_crushed",    text: "몰수당한 상단은 국경 너머에 다시 자리를 폈다. 그해 흑랑의 시장이 유난히 붐볐다." },
+  { flag: "king_bowed_temple",    text: "왕이 신전 앞에 무릎을 꿇던 날을, 사관은 '예를 갖추었다'라고만 적었다." },
+  { flag: "nobles_offended",      text: "왕비를 비웃던 문벌들은 벌을 받았고, 그 원한은 벌보다 오래 남았다." },
+  { flag: "hyeon_in_court",       text: "종친부를 맡은 아우 이현은 형의 이름으로 도장을 찍기 시작했다." },
+  { flag: "vassal_defiance",      text: "응하지 않은 부역 명단은 흑랑의 서고에 지워지지 않은 채 남았다." },
+  { flag: "heukrang_snubbed",     text: "돌려보낸 혼서는 흑랑의 궁에서 오래도록 펼쳐진 채 놓여 있었다고 한다." },
+  { flag: "tribute_refused",      text: "물린 조공 수레는 국경에서 불탔다. 누가 불을 놓았는지는 밝혀지지 않았다." },
+  { flag: "spy_network_built",    text: "밀정 여울의 사람들은 왕이 떠난 뒤에도 궁에 남았다. 누구를 위해 듣는지는 아무도 몰랐다." },
+  { flag: "spy_refused",          text: "왕은 끝내 엿듣지 않았다. 그래서 모르고 지나간 일이 몇 있었다." },
+  { flag: "generals_appeased",    text: "대장군 무결의 자리는 조례에서 왕의 바로 옆이 되었다." },
+  { flag: "baekyun_checked",      text: "백윤의 문하는 셋으로 갈라졌고, 그 셋은 서로를 감시하느라 왕을 잊었다." },
+  { flag: "baekyun_curbed",       text: "재상은 그 뒤로 장부를 먼저 펴지 않았다. 왕이 직접 볼 것을 알았기 때문이다." },
+  { flag: "old_king_tomb_sealed", text: "선왕의 곳간은 능과 함께 봉해졌다. 그 열쇠를 찾는 자가 훗날 여럿 나왔다." },
+  { flag: "debt_denied",          text: "선왕의 빚문서는 관 속으로 들어갔고, 빚쟁이들은 관 앞에서 돌아섰다." },
+  { flag: "old_king_debt_known",  text: "선왕이 남긴 빚의 총액은 끝내 공개되지 않았다." },
+  { flag: "inlaws_powerful",      text: "왕비의 친정은 요직 셋을 차지했다. 왕은 그것을 평화라 불렀다." },
+  { flag: "inlaws_curbed",        text: "왕비의 친정은 빈손으로 돌아갔고, 왕비는 그날 이후 말수가 줄었다." },
+  { flag: "queen_educated",       text: "저잣거리에서 온 왕비는 예법을 익혔다. 그것을 써먹을 자리는 끝내 오지 않았다." },
+  { flag: "priests_bought",       text: "국사 혜명은 물러준 세금을 향값으로 돌렸다. 향은 아주 오래 탔다." },
+  { flag: "physicians_power",     text: "의약청은 왕국에서 가장 조용하고 가장 바쁜 관청이 되었다." },
+  { flag: "mercenaries_hired",    text: "용병대장 흑삭은 값을 받고 떠났다. 다음에 누구 편에 설지는 값이 정할 것이다." },
+  { flag: "hyeon_sidelined",      text: "봉지로 돌아간 아우는 편지를 보내지 않았다. 왕도 쓰지 않았다." },
+  { flag: "queen_commoner",       text: "저잣거리 출신 왕비의 이름은 훗날 사서보다 민담에 더 자주 남았다." },
+  { flag: "queen_noble",          text: "문벌에서 온 왕비는 조정을 잘 알았다. 왕보다 잘 알았다." }
+];
+
+/* ---------- 사건 카드 데이터 시작 (총 78장) ---------- */
+const KINGDOM_EVENTS = [
+  {
+    id: "tax_season",
+    phase: "any",
+    speaker: "재상 백윤",
+    icon: "💰",
+    text: "가을 세금을 거둘 때가 되었사옵니다. 창고도 비었고 백성의 곳간도 가볍습니다. 어느 쪽을 먼저 채우시겠습니까.",
+    choices: [
+      {
+        label: "세율을 올려라",
+        effects: { food: 8, army: 0, people: -13, gold: 13 },
+        result: "관리들이 마을마다 저울을 들고 나섰다. 곳간은 찼으나 원성이 담을 넘었다."
+      },
+      {
+        label: "반만 거두어라",
+        effects: { food: -5, army: 0, people: 12, gold: -5 },
+        result: "백성들은 왕의 이름을 부르며 절했다. 재상은 장부를 덮으며 한숨을 쉬었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "bad_harvest",
+    phase: "any",
+    speaker: "창고지기 돌쇠",
+    icon: "🌾",
+    text: "올해 벼가 반도 여물지 않았습니다. 종자로 남길 것까지 먹어치우면 내년이 없습니다. 어찌하오리까.",
+    choices: [
+      {
+        label: "종자까지 풀어라",
+        effects: { food: 13, army: 0, people: 8, gold: -11 },
+        result: "곳간 바닥까지 긁어 나누었다. 돌쇠는 빈 가마니를 세며 말이 없었다."
+      },
+      {
+        label: "종자는 지켜라",
+        effects: { food: -7, army: 0, people: -12, gold: 10 },
+        result: "굶주린 이들이 관아 앞에 앉았다. 그러나 봄에 뿌릴 씨앗만은 남았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "mountain_bandits",
+    phase: "any",
+    speaker: "대장군 무결",
+    icon: "🏹",
+    text: "산길에 도적이 들끓어 상단의 발길이 끊겼습니다. 병력을 내면 국경이 얇아지고, 두면 도성까지 넘봅니다.",
+    choices: [
+      {
+        label: "군을 풀어 소탕하라",
+        effects: { food: -5, army: -8, people: 12, gold: 7 },
+        result: "산채가 불탔다. 돌아온 병사의 수는 나갈 때보다 적었다."
+      },
+      {
+        label: "상단에 자경을 맡겨라",
+        effects: { food: 0, army: 5, people: -9, gold: -5 },
+        result: "상단이 제 칼을 찼다. 저잣거리에서는 누가 도적인지 분간이 어려워졌다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "moon_festival",
+    phase: "any",
+    speaker: "시녀장 소류",
+    icon: "🎎",
+    text: "달맞이 명절이 다가옵니다. 도성 백성들이 왕실의 등불을 기다리고 있사옵니다.",
+    choices: [
+      {
+        label: "성대히 열어라",
+        effects: { food: -8, army: 0, people: 14, gold: -7 },
+        result: "온 도성에 등이 걸렸다. 아이들이 왕의 이름을 노래로 불렀다."
+      },
+      {
+        label: "간소히 치르라",
+        effects: { food: 5, army: 0, people: -8, gold: 8 },
+        result: "등은 절반만 걸렸다. 사람들은 선왕 때의 밤을 그리워했다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "noble_trial",
+    phase: "any",
+    speaker: "재상 백윤",
+    icon: "⚖️",
+    text: "문벌의 자제가 저잣거리에서 사람을 상하게 하였습니다. 법대로 하면 가문들이 등을 돌리고, 덮으면 저잣거리가 들끓습니다.",
+    choices: [
+      {
+        label: "법대로 다스려라",
+        effects: { food: 0, army: -5, people: 13, gold: -5 },
+        result: "귀족의 아들이 옥에 갇혔다. 그날 밤 여러 대감 댁의 등불이 늦도록 꺼지지 않았다."
+      },
+      {
+        label: "가문에 맡겨라",
+        effects: { food: 0, army: 4, people: -12, gold: 9 },
+        result: "가문이 스스로 벌하겠다 하였다. 저잣거리 사람들은 그 말을 믿지 않았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "long_drought",
+    phase: "any",
+    speaker: "늙은 농부",
+    icon: "☀️",
+    text: "두 달째 비가 오지 않았습니다. 논이 갈라지고 우물마저 바닥을 보입니다. 왕께서 물길을 열어주십시오.",
+    choices: [
+      {
+        label: "수로를 파라",
+        effects: { food: 10, army: -5, people: 8, gold: -10 },
+        result: "병사들이 삽을 들고 흙을 팠다. 마른 논에 겨우 물이 스몄다."
+      },
+      {
+        label: "하늘에 맡겨라",
+        effects: { food: -10, army: 4, people: -9, gold: 7 },
+        result: "왕은 아무 말도 하지 않았다. 농부는 마른 흙을 손에 쥔 채 돌아섰다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "envoy_gift",
+    phase: "any",
+    speaker: "흑랑국 사신 갈로",
+    icon: "🎁",
+    text: "흑랑국에서 비단 수레와 명마를 보내왔습니다. 값 없는 선물은 없는 법이라 하였습니다.",
+    choices: [
+      {
+        label: "기꺼이 받으라",
+        effects: { food: 0, army: 8, people: -9, gold: 10 },
+        result: "명마가 마구간을 채웠다. 저잣거리에는 왕이 흑랑에 허리를 굽혔다는 말이 돌았다."
+      },
+      {
+        label: "정중히 돌려보내라",
+        effects: { food: 0, army: -7, people: 10, gold: -5 },
+        result: "수레는 왔던 길로 돌아갔다. 사신은 웃으며 떠났으나 눈은 웃지 않았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "wall_repair",
+    phase: "any",
+    speaker: "대장군 무결",
+    icon: "🧱",
+    text: "도성 성벽이 스무 해째 손을 못 보았습니다. 겨울이 오기 전에 무너진 자리를 메워야 합니다.",
+    choices: [
+      {
+        label: "부역을 내리라",
+        effects: { food: -5, army: 10, people: -12, gold: -2 },
+        result: "장정들이 돌을 날랐다. 논에 나갈 손이 성벽으로 갔다."
+      },
+      {
+        label: "삯을 주고 사라",
+        effects: { food: 0, army: 8, people: 5, gold: -11 },
+        result: "품삯이 저잣거리로 흘렀다. 국고 장부의 숫자가 눈에 띄게 줄었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "caravan_toll",
+    phase: "any",
+    speaker: "상단주 여씨",
+    icon: "🐫",
+    text: "동쪽 상단이 통행세를 낮춰달라 청합니다. 낮추면 물자가 흐르고, 지키면 국고가 지켜집니다.",
+    choices: [
+      {
+        label: "통행세를 낮추라",
+        effects: { food: 9, army: 0, people: 7, gold: -8 },
+        result: "저잣거리에 낯선 물건이 쌓였다. 세관 장부는 하루가 다르게 얇아졌다."
+      },
+      {
+        label: "세는 그대로 두라",
+        effects: { food: -7, army: 0, people: -7, gold: 13 },
+        result: "상단의 수레가 국경에서 발길을 돌렸다. 국고만은 든든했다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "orphan_children",
+    phase: "any",
+    speaker: "국사 혜명",
+    icon: "🕯️",
+    text: "전란과 병으로 부모를 잃은 아이들이 신전 앞에 모였습니다. 나라가 거두지 않으면 도적이 거둘 것입니다.",
+    choices: [
+      {
+        label: "관에서 기르라",
+        effects: { food: -9, army: 0, people: 13, gold: -5 },
+        result: "아이들이 관아 마당에 줄을 섰다. 곳간 문이 자주 열렸다."
+      },
+      {
+        label: "군영으로 보내라",
+        effects: { food: -4, army: 12, people: -8, gold: 0 },
+        result: "아이들은 창을 쥐기엔 아직 작았다. 그래도 군영의 밥은 따뜻했다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "winter_desertion",
+    phase: "any",
+    speaker: "대장군 무결",
+    icon: "🚩",
+    text: "겨울 군영에서 탈영이 잇따릅니다. 본보기를 세우지 않으면 봄까지 진영이 비고, 세우면 원망이 쌓입니다.",
+    choices: [
+      {
+        label: "군율로 다스려라",
+        effects: { food: 0, army: 10, people: -10, gold: -3 },
+        result: "군영 앞에 군율이 내걸렸다. 병사들은 도망치지 않았고, 웃지도 않았다."
+      },
+      {
+        label: "옷과 밥을 늘려라",
+        effects: { food: -10, army: 8, people: 5, gold: -5 },
+        result: "솥에서 김이 올랐다. 창고지기가 장부를 들고 달려왔다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "granary_rats",
+    phase: "any",
+    speaker: "창고지기 돌쇠",
+    icon: "🐀",
+    text: "곳간에 쥐가 들어 겨울 양식의 태반을 갉았습니다. 장부와 실물이 맞지 않습니다.",
+    choices: [
+      {
+        label: "몰래 사들여 메워라",
+        effects: { food: 9, army: 0, people: 4, gold: -10 },
+        result: "밤중에 곡식 수레가 곳간으로 들었다. 아무도 모르는 구멍이 장부에 남았다."
+      },
+      {
+        label: "알리고 배급을 줄여라",
+        effects: { food: 8, army: -5, people: -10, gold: 5 },
+        result: "됫박이 작아졌다. 백성은 왕의 정직함보다 줄어든 밥을 먼저 느꼈다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "river_flood",
+    phase: "any",
+    speaker: "궁정 서기 남실",
+    icon: "🌊",
+    text: "장맛비에 강둑이 터져 세 고을이 물에 잠겼습니다. 물이 빠지기 전에는 사람도 곡식도 셀 수 없습니다.",
+    choices: [
+      {
+        label: "사람부터 건지라",
+        effects: { food: -10, army: -8, people: 0, gold: -5 },
+        result: "병사들이 물속으로 뛰어들었다. 건져낸 것보다 잃은 것이 많았다."
+      },
+      {
+        label: "물이 빠지길 기다려라",
+        effects: { food: -8, army: 0, people: -16, gold: -2 },
+        result: "왕은 기다리라 했다. 물이 빠진 자리에 남은 것은 진흙과 침묵이었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "coin_debase",
+    phase: "any",
+    speaker: "재상 백윤",
+    icon: "🪙",
+    text: "주전소에서 은의 함량을 낮추자 청합니다. 같은 은으로 두 배의 돈을 찍을 수 있사옵니다.",
+    choices: [
+      {
+        label: "함량을 낮추라",
+        effects: { food: -7, army: 0, people: -9, gold: 16 },
+        result: "국고에 새 돈이 쌓였다. 저잣거리에서는 쌀값이 먼저 뛰었다."
+      },
+      {
+        label: "옛 법도를 지켜라",
+        effects: { food: 0, army: 0, people: 9, gold: -7 },
+        result: "주전소의 화로가 식었다. 상인들은 이 나라 돈을 여전히 믿었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "autumn_hunt",
+    phase: "any",
+    speaker: "왕의 아우 이현",
+    icon: "🦌",
+    text: "형님, 가을 사냥에 종친과 장수들을 부르시지요. 활을 나란히 쏘면 마음도 나란해지는 법입니다.",
+    choices: [
+      {
+        label: "성대히 열어라",
+        effects: { food: 7, army: 8, people: -8, gold: -7 },
+        result: "사슴이 스무 마리 넘게 실려 왔다. 백성은 그 수레를 길가에서 바라보았다."
+      },
+      {
+        label: "정사를 핑계로 물리라",
+        effects: { food: -4, army: -8, people: 8, gold: 7 },
+        result: "아우는 웃으며 물러났다. 그 웃음이 오래 남았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "royal_chronicle",
+    phase: "any",
+    speaker: "늙은 학사 조평",
+    icon: "📜",
+    text: "선왕 대의 기록이 흩어져 사라지고 있습니다. 지난 일을 적어두지 않으면 후대가 길을 잃습니다.",
+    choices: [
+      {
+        label: "사고를 세우라",
+        effects: { food: 0, army: -5, people: 10, gold: -7 },
+        result: "먹 냄새가 궁을 채웠다. 붓을 든 이들이 창을 든 이들보다 많은 밥을 먹었다."
+      },
+      {
+        label: "지금은 때가 아니다",
+        effects: { food: 5, army: 7, people: -8, gold: 4 },
+        result: "학사는 두루마리를 안고 물러났다. 창고 한구석에서 종이가 삭아갔다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "winter_wolves",
+    phase: "any",
+    speaker: "산지기",
+    icon: "🐺",
+    text: "겨울 산에서 늑대 떼가 내려와 가축을 물어갑니다. 마을 사람들이 밤마다 횃불을 들고 섭니다.",
+    choices: [
+      {
+        label: "몰이꾼을 사라",
+        effects: { food: 8, army: 0, people: 8, gold: -9 },
+        result: "늑대 가죽이 관아 마당에 널렸다. 삯은 고스란히 국고에서 나갔다."
+      },
+      {
+        label: "마을이 지키게 하라",
+        effects: { food: -8, army: 7, people: -7, gold: 4 },
+        result: "장정들이 창을 깎았다. 그 창이 늑대만 겨눌지는 알 수 없다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "salt_road",
+    phase: "any",
+    speaker: "상단주 여씨",
+    icon: "🧂",
+    text: "남쪽 소금길이 막혀 소금값이 세 배로 뛰었습니다. 소금이 없으면 겨울 양식을 절일 수 없습니다.",
+    choices: [
+      {
+        label: "군으로 길을 열라",
+        effects: { food: 10, army: -8, people: 7, gold: -5 },
+        result: "창을 앞세워 소금 수레가 지나갔다. 병사들은 눈밭에 오래 서 있었다."
+      },
+      {
+        label: "값을 묶어버려라",
+        effects: { food: -5, army: 0, people: 10, gold: -3 },
+        result: "소금값은 내렸으나 소금이 사라졌다. 상인들이 창고 문을 걸어 잠갔다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "prison_overflow",
+    phase: "any",
+    speaker: "옥사장 구달",
+    icon: "🔒",
+    text: "옥이 넘쳐 죄인들이 마당에 앉아 겨울을 납니다. 먹이는 것도 국고요, 풀어주는 것도 위험이옵니다.",
+    choices: [
+      {
+        label: "가벼운 죄는 풀라",
+        effects: { food: 5, army: -8, people: 9, gold: 3 },
+        result: "옥문이 열리자 사람들이 절하며 나갔다. 그중 몇은 다시 돌아올 것이다."
+      },
+      {
+        label: "노역장으로 보내라",
+        effects: { food: -4, army: 5, people: -9, gold: 10 },
+        result: "죄인들이 돌을 깨러 갔다. 그 돌로 성벽이 조금 높아졌다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "rain_prayer",
+    phase: "any",
+    speaker: "국사 혜명",
+    icon: "⛩️",
+    text: "하늘이 노하였습니다. 왕께서 친히 제단에 오르시면 백성의 마음이 하나로 모일 것이옵니다.",
+    choices: [
+      {
+        label: "친히 제를 올리겠다",
+        effects: { food: -7, army: 0, people: 13, gold: -6 },
+        result: "왕이 사흘을 굶고 제단에 섰다. 비는 오지 않았으나 사람들은 울었다."
+      },
+      {
+        label: "제사보다 곳간이다",
+        effects: { food: 8, army: 4, people: -12, gold: 3 },
+        result: "제단은 비어 있었다. 국사는 아무 말 없이 소매를 여몄다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "horse_trade",
+    phase: "any",
+    speaker: "대장군 무결",
+    icon: "🐎",
+    text: "북방에서 군마를 팔러 왔습니다. 값이 헐하지 않으나 우리 기병의 말은 이미 늙었습니다.",
+    choices: [
+      {
+        label: "값을 치르고 사라",
+        effects: { food: -5, army: 13, people: 0, gold: -8 },
+        result: "새 말들이 흙먼지를 일으켰다. 국고 장부에 붉은 줄이 그어졌다."
+      },
+      {
+        label: "늙은 말로 버티라",
+        effects: { food: 4, army: -9, people: 5, gold: 7 },
+        result: "늙은 말들이 다시 안장을 졌다. 장군은 오래 말을 쓰다듬었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "beggar_king",
+    phase: "any",
+    speaker: "유민 두목 삼봉",
+    icon: "🥣",
+    text: "도성 밖에 유민 수천이 움막을 지었습니다. 그들 사이에서 스스로 왕이라 칭하는 자가 밥을 나눠주고 있사옵니다.",
+    choices: [
+      {
+        label: "그자를 잡아들이라",
+        effects: { food: 5, army: -5, people: -12, gold: 4 },
+        result: "움막이 걷혔다. 밥을 나누던 손이 사라지자 굶주림만 남았다."
+      },
+      {
+        label: "그에게 죽을 맡겨라",
+        effects: { food: -10, army: 0, people: 12, gold: -5 },
+        result: "관에서 쌀이 나갔고 그자가 그것을 나눴다. 사람들은 왕이 아니라 그를 향해 절했다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "market_fire",
+    phase: "any",
+    speaker: "도성 관리 하윤",
+    icon: "🔥",
+    text: "저잣거리에 불이 나 밤새 번졌습니다. 곳간 셋과 집 수백 채가 재가 되었습니다.",
+    choices: [
+      {
+        label: "국고로 다시 세우라",
+        effects: { food: -5, army: 0, people: 0, gold: -12 },
+        result: "재를 치우고 기둥을 세웠다. 국고는 그 재보다 가벼워졌다."
+      },
+      {
+        label: "스스로 일어서게 두라",
+        effects: { food: -4, army: 0, people: -14, gold: 0 },
+        result: "왕은 저잣거리에 나가지 않았다. 사람들은 그것을 오래 기억했다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "border_refugees",
+    phase: "any",
+    speaker: "변경 수령 하윤",
+    icon: "🏕️",
+    text: "이웃의 전화를 피해 국경으로 사람들이 넘어옵니다. 받으면 입이 늘고, 막으면 소문이 험해집니다.",
+    choices: [
+      {
+        label: "받아 땅을 주라",
+        effects: { food: -12, army: 7, people: 8, gold: -4 },
+        result: "황무지에 새 마을이 섰다. 첫 겨울 양식은 우리 곳간에서 나갔다."
+      },
+      {
+        label: "국경을 닫으라",
+        effects: { food: 7, army: -4, people: -10, gold: 5 },
+        result: "국경에 창이 늘어섰다. 넘어오지 못한 이들의 불빛이 밤새 보였다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "courtier_bribe",
+    phase: "any",
+    speaker: "밀정 여울",
+    icon: "👁️",
+    text: "호조의 관리 여럿이 상단에서 뒷돈을 받았습니다. 명부를 올릴까요, 태울까요.",
+    choices: [
+      {
+        label: "모두 치죄하라",
+        effects: { food: 0, army: 0, people: 12, gold: -9 },
+        result: "관복 스무 벌이 벗겨졌다. 빈자리를 메울 사람이 없어 장부가 밀렸다."
+      },
+      {
+        label: "덮고 국고에 넣으라",
+        effects: { food: 0, army: 4, people: -12, gold: 14 },
+        result: "궤짝이 조용히 국고로 옮겨졌다. 그 관리들은 이제 왕의 약점을 안다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "royal_banquet",
+    phase: "any",
+    speaker: "시녀장 소류",
+    icon: "🍷",
+    text: "종친과 대신들이 왕의 잔치를 기다립니다. 술상 하나에 조정의 기색이 달라지곤 하옵니다.",
+    choices: [
+      {
+        label: "크게 베풀라",
+        effects: { food: -9, army: 7, people: -5, gold: -5 },
+        result: "밤새 풍악이 울렸다. 대신들의 얼굴이 붉어졌고 국고는 창백해졌다."
+      },
+      {
+        label: "물리고 정사를 보라",
+        effects: { food: 5, army: -7, people: 8, gold: 5 },
+        result: "연회장은 비었다. 몇몇 대감이 병을 핑계로 조회에 나오지 않았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "south_road",
+    phase: "any",
+    speaker: "재상 백윤",
+    icon: "🛤️",
+    text: "도성과 남쪽 항구를 잇는 길을 닦자는 상소가 올라왔습니다. 길은 물자를 부르고, 또한 적을 부릅니다.",
+    choices: [
+      {
+        label: "길을 닦으라",
+        effects: { food: 9, army: -8, people: 5, gold: -7 },
+        result: "사흘 걸리던 길을 하루에 갔다. 그 길은 누구에게나 열려 있다."
+      },
+      {
+        label: "옛길로 족하다",
+        effects: { food: -5, army: 7, people: -5, gold: 7 },
+        result: "산길은 여전히 좁았다. 좁은 길은 지키기에는 좋았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "mine_collapse",
+    phase: "any",
+    speaker: "광산 감독 태석",
+    icon: "⛏️",
+    text: "은광 갱도가 무너져 광부 수십이 갇혔습니다. 파내려면 달포가 걸리고 그동안 은은 나오지 않습니다.",
+    choices: [
+      {
+        label: "갱을 다시 파라",
+        effects: { food: 0, army: -5, people: 12, gold: -9 },
+        result: "삽질이 스무 날 이어졌다. 살아 나온 이들이 왕의 이름을 불렀다."
+      },
+      {
+        label: "메우고 새 굴을 뚫라",
+        effects: { food: 0, army: 0, people: -14, gold: 12 },
+        result: "새 굴에서 은이 나왔다. 옛 굴 앞에는 아직도 사람이 앉아 있다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "hire_mercenaries",
+    phase: "any",
+    speaker: "용병대장 흑삭",
+    icon: "🗡️",
+    text: "북방 용병대가 칼을 팔러 왔습니다. 값만 치르면 오늘부터 왕의 깃발 아래 서겠습니다.",
+    choices: [
+      {
+        label: "고용하라",
+        effects: { food: -7, army: 14, people: -5, gold: -7 },
+        flags: ["mercenaries_hired"],
+        result: "낯선 말씨의 병사들이 성문 안에 자리 잡았다. 그들의 충성은 자루에 담겨 있다."
+      },
+      {
+        label: "우리 백성이면 족하다",
+        effects: { food: 4, army: -9, people: 9, gold: 5 },
+        result: "용병대는 다른 나라로 떠났다. 장군은 병부 장부를 오래 들여다보았다."
+      }
+    ],
+    require: [],
+    forbid: ["mercenaries_hired"]
+  },
+  {
+    id: "comet_omen",
+    phase: "any",
+    speaker: "국사 혜명",
+    icon: "☄️",
+    text: "밤하늘에 꼬리 별이 나타나 이레째 지지 않습니다. 왕이 바뀔 징조라는 말이 저잣거리에 돕니다.",
+    choices: [
+      {
+        label: "헛소문을 잡아들이라",
+        effects: { food: 0, army: 7, people: -12, gold: -4 },
+        result: "저잣거리에서 말이 잦아들었다. 대신 사람들은 눈짓으로 말했다."
+      },
+      {
+        label: "하늘의 경고로 받들라",
+        effects: { food: -7, army: -5, people: 13, gold: -3 },
+        result: "왕이 소복을 입고 사흘을 근신했다. 백성은 그 겸손을 오래 이야기했다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "first_council",
+    phase: "early",
+    speaker: "재상 백윤",
+    icon: "🏛️",
+    text: "즉위 후 첫 조례이옵니다. 관리의 임면을 노신에게 맡겨주시면 조정이 하루 만에 정돈될 것이옵니다.",
+    choices: [
+      {
+        label: "재상에게 맡긴다",
+        effects: { food: 5, army: 0, people: -8, gold: 9 },
+        flags: ["baekyun_trusted"],
+        result: "조정은 사흘 만에 조용해졌다. 새 관복의 절반이 재상의 문하였다."
+      },
+      {
+        label: "짐이 직접 보겠다",
+        effects: { food: -5, army: 0, people: 10, gold: -5 },
+        flags: ["baekyun_curbed"],
+        result: "왕이 밤늦도록 명부를 넘겼다. 재상은 물러나며 허리를 깊이 숙였다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "old_king_vault",
+    phase: "early",
+    speaker: "시녀장 소류",
+    icon: "🗝️",
+    text: "선왕께서 손수 잠그신 밀실의 열쇠이옵니다. 안에 무엇이 있는지는 아무도 알지 못하옵니다.",
+    choices: [
+      {
+        label: "밀실을 열어라",
+        effects: { food: 0, army: 0, people: -9, gold: 17 },
+        flags: ["old_king_treasury_opened"],
+        result: "궤짝마다 금이 가득했다. 함께 나온 문서 뭉치는 아직 아무도 읽지 않았다."
+      },
+      {
+        label: "능과 함께 봉하라",
+        effects: { food: 0, army: 5, people: 10, gold: -8 },
+        flags: ["old_king_tomb_sealed"],
+        result: "열쇠는 선왕의 관 위에 놓였다. 늙은 신하들이 눈시울을 붉혔다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "brother_command",
+    phase: "early",
+    speaker: "왕의 아우 이현",
+    icon: "🛡️",
+    text: "형님, 남쪽 군영은 제가 맡겠습니다. 형제가 나누어 지키면 누가 이 나라를 넘보겠습니까.",
+    choices: [
+      {
+        label: "남군을 맡겨라",
+        effects: { food: 0, army: 12, people: 5, gold: -6 },
+        flags: ["hyeon_given_army"],
+        result: "아우가 절하고 남쪽으로 떠났다. 그의 깃발이 왕의 깃발보다 새것이었다."
+      },
+      {
+        label: "병권은 나눌 수 없다",
+        effects: { food: 0, army: -7, people: -8, gold: 9 },
+        flags: ["hyeon_sidelined"],
+        result: "아우는 웃으며 물러났다. 그날 이후 그는 조회에 늘 늦게 들어왔다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "army_back_pay",
+    phase: "early",
+    speaker: "대장군 무결",
+    icon: "⚔️",
+    text: "선왕께서 미루신 군의 봉급이 석 달치 밀렸습니다. 병사는 굶어도 참지만 잊지는 않습니다.",
+    choices: [
+      {
+        label: "모두 치르라",
+        effects: { food: 0, army: 13, people: -5, gold: -11 },
+        flags: ["mugyeol_favored"],
+        result: "군영에 환호가 울렸다. 국고 궤짝의 바닥이 드러났다."
+      },
+      {
+        label: "사정을 헤아리라 하라",
+        effects: { food: 5, army: -12, people: 7, gold: 8 },
+        flags: ["mugyeol_slighted"],
+        result: "장군은 고개를 숙였다. 그러나 오래도록 고개를 들지 않았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "queen_selection",
+    phase: "early",
+    speaker: "시녀장 소류",
+    icon: "💐",
+    text: "왕비 자리가 비어 조정이 하루도 조용하지 않사옵니다. 문벌의 여식과 저잣거리의 규수, 두 이름이 올라와 있사옵니다.",
+    choices: [
+      {
+        label: "문벌의 여식을 들여라",
+        effects: { food: 0, army: 7, people: -9, gold: 10 },
+        flags: ["queen_noble"],
+        result: "혼례 수레가 궁문을 들었다. 처가의 사람들이 함께 들어왔다."
+      },
+      {
+        label: "저잣거리 규수를 들여라",
+        effects: { food: 0, army: -7, people: 14, gold: -5 },
+        flags: ["queen_commoner"],
+        result: "백성들이 제 딸이 왕비가 된 듯 울었다. 대신들은 입을 다물었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "coronation_amnesty",
+    phase: "early",
+    speaker: "재상 백윤",
+    icon: "📿",
+    text: "즉위를 기려 대사면을 내리는 것이 선례이옵니다. 다만 옥에는 도적과 모반의 무리도 함께 있사옵니다.",
+    choices: [
+      {
+        label: "널리 사면하라",
+        effects: { food: -5, army: -7, people: 14, gold: 0 },
+        result: "옥문이 열리고 사람들이 울며 절했다. 그중 몇 얼굴은 병부의 명부에도 있었다."
+      },
+      {
+        label: "모반의 무리는 남겨라",
+        effects: { food: 0, army: 8, people: -7, gold: -4 },
+        result: "사면 명부에서 이름 여럿이 지워졌다. 옥사장은 안도했고 저잣거리는 수군거렸다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "temple_blessing",
+    phase: "early",
+    speaker: "국사 혜명",
+    icon: "🔔",
+    text: "즉위를 하늘에 고하는 축성이 남았사옵니다. 신전은 오래 낡았고, 그 낡음이 곧 왕의 정통성으로 읽힐 것이옵니다.",
+    choices: [
+      {
+        label: "신전을 증축하라",
+        effects: { food: 0, army: -5, people: 10, gold: -10 },
+        flags: ["temple_funded"],
+        result: "새 기둥에 금박이 입혀졌다. 국사는 왕을 하늘의 아들이라 불렀다."
+      },
+      {
+        label: "신전에도 세를 물려라",
+        effects: { food: 5, army: 5, people: -10, gold: 9 },
+        flags: ["temple_taxed"],
+        result: "사제들이 처음으로 세금을 냈다. 그날의 축성문은 유난히 짧았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "old_ministers_resign",
+    phase: "early",
+    speaker: "늙은 학사 조평",
+    icon: "🎩",
+    text: "선왕을 모시던 대신들이 물러나겠다는 상소를 올렸습니다. 만류하면 낡은 조정이요, 받아들이면 빈 조정이옵니다.",
+    choices: [
+      {
+        label: "모두 유임케 하라",
+        effects: { food: 7, army: 5, people: -9, gold: -3 },
+        result: "늙은 관복들이 다시 자리에 앉았다. 젊은 문사들이 뒷방에서 술을 마셨다."
+      },
+      {
+        label: "젊은 이로 갈아라",
+        effects: { food: -8, army: -7, people: 12, gold: 4 },
+        result: "조정이 하루아침에 젊어졌다. 장부를 읽을 줄 아는 이가 부쩍 줄었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "royal_seal_custody",
+    phase: "early",
+    speaker: "궁정 서기 남실",
+    icon: "🖋️",
+    text: "옥새를 어디에 둘지 정하셔야 하옵니다. 승정원에 맡기면 문서마다 절로 찍힐 것이요, 침전에 두시면 손수 찍으셔야 하옵니다.",
+    choices: [
+      {
+        label: "승정원에 맡겨라",
+        effects: { food: 5, army: 0, people: -7, gold: 8 },
+        result: "정사가 빨라졌다. 왕이 읽지 않은 문서에도 옥새가 찍혔다."
+      },
+      {
+        label: "짐의 곁에 두라",
+        effects: { food: -7, army: 0, people: 9, gold: -4 },
+        result: "문서가 침전 앞에 산처럼 쌓였다. 왕은 사흘 밤을 새웠다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "empty_border_posts",
+    phase: "early",
+    speaker: "변경 수령 하윤",
+    icon: "🗺️",
+    text: "국경 초소 절반이 비어 있사옵니다. 선왕 말년에 병사를 도성으로 불러들인 탓이옵니다.",
+    choices: [
+      {
+        label: "국경으로 돌려보내라",
+        effects: { food: -5, army: 10, people: -7, gold: -4 },
+        result: "성문의 창이 줄고 국경의 봉화가 늘었다. 도성 사람들이 그 빈자리를 눈치챘다."
+      },
+      {
+        label: "도성 방비가 먼저다",
+        effects: { food: 0, army: -8, people: 8, gold: 7 },
+        result: "도성은 든든해졌다. 변경 수령은 인사도 없이 말을 몰아 돌아갔다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "spy_offer",
+    phase: "early",
+    speaker: "밀정 여울",
+    icon: "👁️",
+    text: "소인에게 사람과 돈을 주시면 조정의 숨소리까지 들려드리겠습니다. 다만 듣게 되는 것을 감당하셔야 합니다.",
+    choices: [
+      {
+        label: "밀정을 두라",
+        effects: { food: 0, army: 5, people: -8, gold: -7 },
+        flags: ["spy_network_built"],
+        result: "궁의 담벼락마다 귀가 생겼다. 왕은 그 뒤로 밤에 잘 자지 못했다."
+      },
+      {
+        label: "왕은 엿듣지 않는다",
+        effects: { food: 0, army: -5, people: 10, gold: 5 },
+        flags: ["spy_refused"],
+        result: "여울은 절하고 사라졌다. 그가 알던 것들도 함께 사라졌다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "empty_granary",
+    phase: "early",
+    speaker: "창고지기 돌쇠",
+    icon: "🌾",
+    text: "선왕께서 전란에 곳간을 다 비우셨습니다. 지금 곳간에는 두 달치밖에 남지 않았사옵니다.",
+    choices: [
+      {
+        label: "국고로 곡식을 사라",
+        effects: { food: 14, army: 0, people: 4, gold: -12 },
+        result: "수레가 밤새 곳간으로 들어왔다. 국고 궤짝은 그만큼 가벼워졌다."
+      },
+      {
+        label: "군량에서 덜어라",
+        effects: { food: 10, army: -12, people: 3, gold: 0 },
+        result: "군영의 솥이 얕아졌다. 도성의 곳간은 그만큼 깊어졌다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "plague_omen",
+    phase: "early",
+    speaker: "궁정 의원 명서",
+    icon: "🩺",
+    text: "변방 마을에서 검은 반점이 돋은 시신이 나왔습니다. 소문이 도성까지 오기 전에 손을 쓰셔야 하옵니다.",
+    choices: [
+      {
+        label: "마을을 봉쇄하라",
+        effects: { food: -5, army: -7, people: -13, gold: 8 },
+        flags: ["village_sealed"],
+        result: "군사들이 길을 막았다. 갇힌 이들의 울음이 성벽 너머까지 들렸다."
+      },
+      {
+        label: "의원을 보내라",
+        effects: { food: 0, army: 0, people: 10, gold: -11 },
+        flags: ["plague_treated"],
+        result: "의원들이 밤을 새워 약을 달였다. 국고가 빠르게 말라갔다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "tribute_demand",
+    phase: "mid",
+    speaker: "흑랑국 사신 갈로",
+    icon: "📜",
+    text: "흑랑의 대왕께서 해마다 금 삼백 근과 곡식 이천 섬을 청하십니다. 청을 물리시면 다음에 오는 것은 사신이 아닐 것입니다.",
+    choices: [
+      {
+        label: "조공을 보내라",
+        effects: { food: -10, army: 7, people: -10, gold: -8 },
+        flags: ["tribute_paid"],
+        result: "수레가 북으로 떠났다. 국경의 봉화대는 그해 겨울 한 번도 오르지 않았다."
+      },
+      {
+        label: "사신을 물리쳐라",
+        effects: { food: 0, army: -8, people: 14, gold: 9 },
+        flags: ["tribute_refused"],
+        result: "사신은 잔을 비우지 않고 떠났다. 도성 백성들은 왕을 우러러보았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "generals_gathering",
+    phase: "mid",
+    speaker: "밀정 여울",
+    icon: "🍶",
+    text: "군영의 장수들이 밤마다 모여 술을 마신다 하옵니다. 술상에 오르는 안주가 늘 나라 이야기라 합니다.",
+    choices: [
+      {
+        label: "무결을 더 높여라",
+        effects: { food: -5, army: 12, people: -7, gold: -5 },
+        flags: ["generals_appeased"],
+        result: "장군의 잔이 다시 왕을 향했다. 병부의 인장 하나가 그의 손으로 넘어갔다."
+      },
+      {
+        label: "밀회의 무리를 갈아라",
+        effects: { food: 0, army: -12, people: 8, gold: 7 },
+        flags: ["generals_conspiracy"],
+        result: "몇 자리가 비었고 몇 얼굴이 사라졌다. 남은 자들은 이제 더 은밀히 모인다."
+      }
+    ],
+    require: ["mugyeol_slighted"],
+    forbid: []
+  },
+  {
+    id: "temple_curse",
+    phase: "mid",
+    speaker: "국사 혜명",
+    icon: "🕯️",
+    text: "사제들이 제단에 왕의 이름을 올리지 않았습니다. 하늘이 이 나라를 버렸다는 말이 마을마다 퍼지고 있사옵니다.",
+    choices: [
+      {
+        label: "세를 물리고 사죄하라",
+        effects: { food: 0, army: 0, people: 10, gold: -10 },
+        flags: ["priests_bought"],
+        result: "세금 문서가 제단 앞에서 불탔다. 국사는 다시 왕의 이름을 불렀다."
+      },
+      {
+        label: "사제들을 내쳐라",
+        effects: { food: 5, army: 7, people: -13, gold: 5 },
+        flags: ["priests_hostile"],
+        result: "신전 문이 닫혔다. 닫힌 문 앞에 사람들이 하나둘 모여 앉기 시작했다."
+      }
+    ],
+    require: ["temple_taxed"],
+    forbid: []
+  },
+  {
+    id: "great_famine",
+    phase: "mid",
+    speaker: "창고지기 돌쇠",
+    icon: "🥣",
+    text: "봄에 뿌릴 것도 여름에 거둘 것도 없습니다. 고을마다 나무껍질을 벗기고 있사옵니다.",
+    choices: [
+      {
+        label: "군량을 헐어 나눠라",
+        effects: { food: -8, army: -13, people: 12, gold: 0 },
+        result: "군영의 솥이 비었고 마을의 솥에서 김이 올랐다. 장군은 아무 말도 하지 않았다."
+      },
+      {
+        label: "이웃의 곡식을 사라",
+        effects: { food: 12, army: 0, people: 4, gold: -13 },
+        result: "낯선 배가 곡식을 부렸다. 국고의 바닥이 처음으로 눈에 보였다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "brother_army_grows",
+    phase: "mid",
+    speaker: "밀정 여울",
+    icon: "🐎",
+    text: "남군의 장부와 실제 병력이 맞지 않습니다. 아우님께서 사사로이 병사를 더 기르고 계시옵니다.",
+    choices: [
+      {
+        label: "지금은 모른 척하라",
+        effects: { food: 0, army: 10, people: 4, gold: -6 },
+        flags: ["hyeon_army_grown"],
+        result: "남쪽 군세가 나날이 두터워졌다. 그 창끝이 어디를 향할지는 아직 아무도 모른다."
+      },
+      {
+        label: "남군을 반으로 줄여라",
+        effects: { food: 5, army: -12, people: -7, gold: 8 },
+        flags: ["hyeon_army_cut"],
+        result: "아우는 명을 받들었다. 돌려보낸 병사들은 그의 이름을 부르며 떠났다."
+      }
+    ],
+    require: ["hyeon_given_army"],
+    forbid: []
+  },
+  {
+    id: "baekyun_faction",
+    phase: "mid",
+    speaker: "밀정 여울",
+    icon: "🕸️",
+    text: "조정 관직의 태반이 재상의 문하이옵니다. 왕의 명이 재상을 거쳐야 아래로 내려가고 있사옵니다.",
+    choices: [
+      {
+        label: "그 문하를 갈라놓아라",
+        effects: { food: -7, army: 0, people: 9, gold: -5 },
+        flags: ["baekyun_checked"],
+        result: "몇 자리가 새 사람으로 채워졌다. 재상은 웃으며 축하 인사를 올렸다."
+      },
+      {
+        label: "재상에게 더 맡겨라",
+        effects: { food: 7, army: 0, people: -12, gold: 9 },
+        flags: ["baekyun_faction"],
+        result: "정사가 물 흐르듯 처리되었다. 왕의 이름은 문서의 끝에만 남았다."
+      }
+    ],
+    require: ["baekyun_trusted"],
+    forbid: []
+  },
+  {
+    id: "queen_relatives",
+    phase: "mid",
+    speaker: "재상 백윤",
+    icon: "🏯",
+    text: "왕비의 친정에서 다섯 사람이 요직을 청하옵니다. 거절하시면 문벌 전체가 등을 돌릴 것이옵니다.",
+    choices: [
+      {
+        label: "청을 들어주라",
+        effects: { food: 5, army: 7, people: -12, gold: 5 },
+        flags: ["inlaws_powerful"],
+        result: "처가의 사람들이 조정에 앉았다. 왕비는 웃었고 백성은 웃지 않았다."
+      },
+      {
+        label: "한 자리도 못 준다",
+        effects: { food: -5, army: -8, people: 12, gold: -3 },
+        flags: ["inlaws_curbed"],
+        result: "왕비가 사흘을 침전에서 나오지 않았다. 저잣거리에서는 왕이 사사롭지 않다 하였다."
+      }
+    ],
+    require: ["queen_noble"],
+    forbid: []
+  },
+  {
+    id: "commoner_queen_mocked",
+    phase: "mid",
+    speaker: "시녀장 소류",
+    icon: "🌾",
+    text: "대신들이 왕비마마의 말씨와 걸음을 두고 수군거립니다. 마마께서는 밤마다 홀로 글을 익히고 계시옵니다.",
+    choices: [
+      {
+        label: "예법을 익히게 하라",
+        effects: { food: 0, army: 5, people: -9, gold: 5 },
+        flags: ["queen_educated"],
+        result: "왕비는 곧 대신들보다 예법에 밝아졌다. 저잣거리 사람들은 그 소식을 조금 서운해했다."
+      },
+      {
+        label: "수군댄 자를 벌하라",
+        effects: { food: 0, army: -8, people: 12, gold: -4 },
+        flags: ["nobles_offended"],
+        result: "대감 셋이 관직을 잃었다. 문벌의 사랑방마다 불이 늦도록 꺼지지 않았다."
+      }
+    ],
+    require: ["queen_commoner"],
+    forbid: []
+  },
+  {
+    id: "old_king_debt",
+    phase: "mid",
+    speaker: "재상 백윤",
+    icon: "📄",
+    text: "밀실에서 나온 문서는 선왕께서 상단에 지신 빚 증서였사옵니다. 기한이 이번 겨울이옵니다.",
+    choices: [
+      {
+        label: "빚을 갚아나가라",
+        effects: { food: 0, army: 0, people: 8, gold: -11 },
+        flags: ["old_king_debt_known"],
+        result: "첫 상환분이 상단으로 실려 갔다. 증서는 아직 열 장이 더 남아 있다."
+      },
+      {
+        label: "선왕과 함께 묻어라",
+        effects: { food: 7, army: 5, people: -10, gold: 8 },
+        flags: ["old_king_debt_known", "debt_denied"],
+        result: "증서는 화로에 들어갔다. 상단주들은 조용히 서로에게 소식을 전했다."
+      }
+    ],
+    require: ["old_king_treasury_opened"],
+    forbid: []
+  },
+  {
+    id: "sealed_village_silence",
+    phase: "mid",
+    speaker: "궁정 의원 명서",
+    icon: "⚰️",
+    text: "봉쇄한 마을에서 사흘째 연기가 오르지 않습니다. 문을 열지, 그대로 둘지 정하셔야 하옵니다.",
+    choices: [
+      {
+        label: "문을 열고 거두어라",
+        effects: { food: -8, army: -5, people: 12, gold: -4 },
+        flags: ["survivors_freed"],
+        result: "문이 열렸을 때 걸어 나온 이는 스물이 되지 않았다. 그들은 왕의 이름을 부르며 절했다."
+      },
+      {
+        label: "봉쇄를 유지하라",
+        effects: { food: 7, army: 5, people: -14, gold: 4 },
+        flags: ["sealed_village_dead"],
+        result: "연기는 끝내 오르지 않았다. 그 마을 이름은 지도에서 지워졌다."
+      }
+    ],
+    require: ["village_sealed"],
+    forbid: []
+  },
+  {
+    id: "physicians_guild",
+    phase: "mid",
+    speaker: "궁정 의원 명서",
+    icon: "🩺",
+    text: "역병을 잡은 의원들이 의약청을 세워달라 청합니다. 나라의 병을 다스리는 권한을 함께 청하고 있사옵니다.",
+    choices: [
+      {
+        label: "의약청을 세워라",
+        effects: { food: 0, army: 0, people: 12, gold: -9 },
+        flags: ["physicians_power"],
+        result: "고을마다 약재가 돌았다. 의원들의 말은 이제 어사보다 무겁게 들린다."
+      },
+      {
+        label: "제 자리를 지켜라",
+        effects: { food: 4, army: 5, people: -9, gold: 7 },
+        result: "의원들은 다시 약탕기 앞으로 돌아갔다. 그들의 인사가 전보다 짧아졌다."
+      }
+    ],
+    require: ["plague_treated"],
+    forbid: []
+  },
+  {
+    id: "mercenary_bidding",
+    phase: "mid",
+    speaker: "용병대장 흑삭",
+    icon: "🗡️",
+    text: "이웃 나라가 우리 용병대에 두 배의 삯을 제시했다 합니다. 대장은 지금 왕의 답을 기다리고 있습니다.",
+    choices: [
+      {
+        label: "삯을 올려 붙들어라",
+        effects: { food: 0, army: 12, people: -7, gold: -11 },
+        result: "용병들의 깃발이 그대로 남았다. 그들의 값은 이제 왕도 알고 있다."
+      },
+      {
+        label: "떠날 자는 떠나라",
+        effects: { food: 5, army: -14, people: 9, gold: 7 },
+        result: "낯선 병사들이 성문을 나갔다. 그들이 우리 성벽의 약한 곳을 안다는 것이 마음에 걸렸다."
+      }
+    ],
+    require: ["mercenaries_hired"],
+    forbid: []
+  },
+  {
+    id: "marriage_alliance",
+    phase: "mid",
+    speaker: "흑랑국 사신 갈로",
+    icon: "💍",
+    text: "흑랑의 공주를 후궁으로 들이시면 두 나라가 한집안이 됩니다. 다만 그 집의 어른은 우리 대왕이십니다.",
+    choices: [
+      {
+        label: "혼사를 받아들여라",
+        effects: { food: 8, army: 8, people: -12, gold: 5 },
+        flags: ["heukrang_marriage"],
+        result: "가마가 국경을 넘어왔다. 궁 안에 흑랑의 말씨가 부쩍 늘었다."
+      },
+      {
+        label: "정중히 사절하라",
+        effects: { food: 0, army: -9, people: 12, gold: -5 },
+        flags: ["heukrang_snubbed"],
+        result: "사신은 예를 갖추어 물러났다. 그날 밤 국경 초소에서 봉화가 하나 올랐다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "salt_monopoly",
+    phase: "mid",
+    speaker: "상단주 여씨",
+    icon: "🧂",
+    text: "소금을 나라가 독점하면 국고가 든든해집니다. 다만 소금은 백성의 밥상에 매일 오르는 것이옵니다.",
+    choices: [
+      {
+        label: "전매로 삼아라",
+        effects: { food: -5, army: 0, people: -12, gold: 16 },
+        flags: ["salt_monopoly"],
+        result: "소금 창고마다 관인이 붙었다. 국고는 찼고 밥상은 싱거워졌다."
+      },
+      {
+        label: "상단에 맡겨두라",
+        effects: { food: 7, army: 0, people: 8, gold: -7 },
+        result: "소금값이 안정되었다. 상단주들이 왕보다 먼저 소식을 아는 날이 늘었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "conscription_order",
+    phase: "mid",
+    speaker: "대장군 무결",
+    icon: "📯",
+    text: "이웃의 군세가 두 배로 늘었다는 첩보가 들어왔습니다. 지금 징병하지 않으면 봄에는 늦습니다.",
+    choices: [
+      {
+        label: "장정을 징집하라",
+        effects: { food: -10, army: 14, people: -9, gold: -3 },
+        result: "논에서 사람이 사라지고 군영이 가득 찼다. 어미들이 성문 앞에서 울었다."
+      },
+      {
+        label: "사람은 논에 두라",
+        effects: { food: 10, army: -10, people: 8, gold: 3 },
+        result: "가을 수확은 넉넉했다. 국경의 초소는 여전히 비어 있었다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "hyeon_court_return",
+    phase: "mid",
+    speaker: "왕의 아우 이현",
+    icon: "🪶",
+    text: "형님, 남군을 반으로 줄이신 뜻은 잘 알았습니다. 대신 조정에 제 자리 하나만 주십시오.",
+    choices: [
+      {
+        label: "종친부를 맡겨라",
+        effects: { food: 0, army: 5, people: 8, gold: -7 },
+        flags: ["hyeon_in_court"],
+        result: "아우가 궁 안에 방을 얻었다. 종친들이 그 방 앞을 자주 지나다녔다."
+      },
+      {
+        label: "봉지로 돌려보내라",
+        effects: { food: 4, army: -8, people: -8, gold: 8 },
+        flags: ["hyeon_sidelined"],
+        result: "아우는 남쪽으로 떠났다. 배웅하는 신하가 왕이 생각한 것보다 많았다."
+      }
+    ],
+    require: ["hyeon_army_cut"],
+    forbid: []
+  },
+  {
+    id: "war_declared",
+    phase: "late",
+    speaker: "흑랑국 사신 갈로",
+    icon: "⚔️",
+    text: "흑랑의 대군이 국경을 넘었습니다. 대왕께서는 왕의 목이 아니라 무릎을 원하신다 하옵니다.",
+    choices: [
+      {
+        label: "국경에서 맞서라",
+        effects: { food: -10, army: -12, people: 16, gold: -5 },
+        flags: ["heukrang_war"],
+        result: "봉화가 밤새 이어졌다. 첫 전투에서 우리는 물러서지 않았고, 많은 것을 잃었다."
+      },
+      {
+        label: "성문을 닫고 버텨라",
+        effects: { food: -13, army: 8, people: -12, gold: -4 },
+        flags: ["heukrang_war"],
+        result: "성문에 빗장이 걸렸다. 성 밖 마을들이 차례로 연기를 올렸다."
+      }
+    ],
+    require: ["tribute_refused"],
+    forbid: []
+  },
+  {
+    id: "vassal_demand",
+    phase: "late",
+    speaker: "흑랑국 사신 갈로",
+    icon: "🏳️",
+    text: "이제 조공으로는 부족하옵니다. 대왕께서 이 나라를 아우의 나라로 삼겠다 하십니다. 왕관은 두시되 도장은 넘기라 하십니다.",
+    choices: [
+      {
+        label: "도장을 넘겨라",
+        effects: { food: 7, army: 5, people: -18, gold: 4 },
+        flags: ["vassal_state", "vassal_pact"],
+        result: "국새 옆에 흑랑의 인장이 나란히 놓였다. 조정은 조용했고 저잣거리는 조용하지 않았다."
+      },
+      {
+        label: "왕관과 도장은 하나다",
+        effects: { food: -8, army: -9, people: 16, gold: -5 },
+        flags: ["heukrang_war"],
+        result: "사신이 잔을 엎고 떠났다. 그날부터 국경의 봉화가 꺼지지 않았다."
+      }
+    ],
+    require: ["tribute_paid"],
+    forbid: []
+  },
+  {
+    id: "coup_imminent",
+    phase: "late",
+    speaker: "밀정 여울",
+    icon: "🗡️",
+    text: "장수 일곱이 그믐날 밤을 정했습니다. 궁문 열쇠를 쥔 자의 이름도 명부에 올라 있사옵니다.",
+    choices: [
+      {
+        label: "그믐 전에 잡아라",
+        effects: { food: 0, army: -17, people: 9, gold: -5 },
+        result: "그믐밤 궁은 조용했다. 병부 명부에서 일곱 이름이 지워졌고, 군영은 텅 빈 듯했다."
+      },
+      {
+        label: "무결에게 맡겨라",
+        effects: { food: 0, army: 8, people: -10, gold: -6 },
+        flags: ["mugyeol_absolute"],
+        result: "장군이 직접 그들을 물렸다. 이제 군을 아는 자는 그 한 사람뿐이다."
+      }
+    ],
+    require: ["generals_conspiracy"],
+    forbid: []
+  },
+  {
+    id: "mugyeol_total_power",
+    phase: "late",
+    speaker: "대장군 무결",
+    icon: "🎖️",
+    text: "전하, 나라가 위태로울 때는 명령이 하나여야 합니다. 병부와 도성 수비를 신에게 온전히 맡겨주십시오.",
+    choices: [
+      {
+        label: "전권을 맡긴다",
+        effects: { food: 0, army: 17, people: -12, gold: -5 },
+        flags: ["mugyeol_absolute"],
+        result: "장군의 인장이 병부의 모든 문서에 찍혔다. 왕의 명은 그다음에 놓였다."
+      },
+      {
+        label: "칼은 나누지 않는다",
+        effects: { food: 0, army: -13, people: 10, gold: 7 },
+        flags: ["mugyeol_slighted"],
+        result: "장군은 갑옷을 벗어 바닥에 놓고 물러났다. 군영에서 그를 따라 나간 자가 적지 않았다."
+      }
+    ],
+    require: ["mugyeol_favored"],
+    forbid: []
+  },
+  {
+    id: "brother_rebellion",
+    phase: "late",
+    speaker: "왕의 아우 이현",
+    icon: "🔥",
+    text: "형님, 이 나라는 이미 형님의 손을 떠났습니다. 남군이 도성 사흘 거리까지 올라왔습니다.",
+    choices: [
+      {
+        label: "군을 내어 맞서라",
+        effects: { food: -9, army: -16, people: 10, gold: -5 },
+        result: "형제의 깃발이 같은 들판에서 마주 섰다. 그날 들판에 남은 것은 깃발뿐이었다."
+      },
+      {
+        label: "곁자리를 주고 화친하라",
+        effects: { food: 7, army: 9, people: -16, gold: -4 },
+        flags: ["hyeon_co_ruler"],
+        result: "아우가 옥좌 아래 자리에 앉았다. 신하들은 이제 절을 두 번 한다."
+      }
+    ],
+    require: ["hyeon_army_grown"],
+    forbid: []
+  },
+  {
+    id: "brother_returns_with_fleet",
+    phase: "late",
+    speaker: "흑랑국 사신 갈로",
+    icon: "⛵",
+    text: "왕의 아우께서 흑랑의 배를 타고 돌아오십니다. 흑랑의 군사 삼천이 함께 노를 젓고 있사옵니다.",
+    choices: [
+      {
+        label: "항구에서 막아라",
+        effects: { food: -7, army: -13, people: 12, gold: -5 },
+        result: "항구가 아침까지 소란했다. 아우의 배는 끝내 닿지 못했고, 흑랑은 이 일을 잊지 않을 것이다."
+      },
+      {
+        label: "형제의 예로 맞으라",
+        effects: { food: 5, army: 8, people: -14, gold: -3 },
+        flags: ["hyeon_co_ruler"],
+        result: "왕이 손수 아우를 부축해 배에서 내렸다. 그 뒤로 낯선 깃발이 따라 들어왔다."
+      }
+    ],
+    require: ["hyeon_sidelined"],
+    forbid: []
+  },
+  {
+    id: "baekyun_betrayal",
+    phase: "late",
+    speaker: "재상 백윤",
+    icon: "🐍",
+    text: "노신이 마지막으로 청을 드리옵니다. 옥좌에서 물러나시면 종친의 어린 분을 세우고 전하를 편히 모시겠습니다.",
+    choices: [
+      {
+        label: "그 자리에서 내쳐라",
+        effects: { food: -7, army: 0, people: 12, gold: -10 },
+        result: "재상은 웃으며 관을 벗었다. 그의 문하 절반이 그날로 조정을 떠났다."
+      },
+      {
+        label: "응하는 척 시간을 벌라",
+        effects: { food: 5, army: 7, people: -12, gold: 5 },
+        flags: ["baekyun_deceived"],
+        result: "왕은 고개를 끄덕였다. 재상은 안심했고, 왕은 그 안심을 세어두었다."
+      }
+    ],
+    require: ["baekyun_faction"],
+    forbid: []
+  },
+  {
+    id: "temple_supremacy",
+    phase: "late",
+    speaker: "국사 혜명",
+    icon: "⛩️",
+    text: "하늘의 뜻을 옮기는 자가 왕보다 위에 있어야 나라가 바로 섭니다. 국사의 인장을 옥새 위에 놓아주십시오.",
+    choices: [
+      {
+        label: "신전의 뜻을 따르라",
+        effects: { food: 0, army: -8, people: 12, gold: -7 },
+        flags: ["temple_above_throne"],
+        result: "국사의 인장이 옥새 위에 놓였다. 백성은 절을 두 번 했고, 두 번째가 더 깊었다."
+      },
+      {
+        label: "하늘 아래 왕은 하나다",
+        effects: { food: 0, army: 8, people: -13, gold: 9 },
+        flags: ["priests_hostile"],
+        result: "신전의 금박이 뜯겨 국고로 들어왔다. 국사는 그날 왕을 이름으로 불렀다."
+      }
+    ],
+    require: ["temple_funded"],
+    forbid: []
+  },
+  {
+    id: "priests_revolt",
+    phase: "late",
+    speaker: "국사 혜명",
+    icon: "🔔",
+    text: "사제들이 고을마다 제단을 세우고 왕의 폐위를 고하고 있사옵니다. 신도들이 관아를 에워쌌사옵니다.",
+    choices: [
+      {
+        label: "제단을 헐어라",
+        effects: { food: 0, army: -9, people: -14, gold: 7 },
+        result: "제단이 무너졌다. 그 자리에 사람들이 다시 돌을 쌓기 시작했다."
+      },
+      {
+        label: "친히 신전에 나아가라",
+        effects: { food: 0, army: -7, people: 14, gold: -8 },
+        flags: ["king_bowed_temple"],
+        result: "왕이 제단 앞에 오래 엎드렸다. 사제들은 만족했고, 대신들은 눈을 돌렸다."
+      }
+    ],
+    require: ["priests_hostile"],
+    forbid: []
+  },
+  {
+    id: "village_lament",
+    phase: "late",
+    speaker: "궁정 의원 명서",
+    icon: "🪦",
+    text: "봉쇄로 죽은 마을의 이름이 노래가 되어 떠돕니다. 그 노래를 부르는 자가 도성 안에도 있사옵니다.",
+    choices: [
+      {
+        label: "노래를 금하라",
+        effects: { food: 0, army: 7, people: -16, gold: -4 },
+        result: "노래는 입 밖으로 나오지 않았다. 대신 담벼락마다 그 마을 이름이 적혔다."
+      },
+      {
+        label: "사당을 세워 사죄하라",
+        effects: { food: -5, army: 0, people: 13, gold: -8 },
+        flags: ["shrine_built"],
+        result: "왕이 폐허 앞에 서서 오래 있었다. 사람들은 그 등을 보며 노래를 멈췄다."
+      }
+    ],
+    require: ["sealed_village_dead"],
+    forbid: []
+  },
+  {
+    id: "succession_dispute",
+    phase: "late",
+    speaker: "시녀장 소류",
+    icon: "👶",
+    text: "왕위를 이을 이가 정해지지 않아 종친들이 저마다 사람을 모읍니다. 한 이름을 부르시면 나머지가 등을 돌릴 것이옵니다.",
+    choices: [
+      {
+        label: "후계를 세워라",
+        effects: { food: 0, army: -9, people: 12, gold: -5 },
+        flags: ["heir_named"],
+        result: "어린 후계의 이름이 종묘에 올랐다. 그 이름에 들지 못한 종친들이 조용히 짐을 쌌다."
+      },
+      {
+        label: "아직 정하지 않겠다",
+        effects: { food: 5, army: 7, people: -10, gold: 4 },
+        result: "종친들은 저마다 희망을 품고 조정에 남았다. 그 희망이 언제까지 조용할지는 알 수 없다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "spy_uncovers_plot",
+    phase: "late",
+    speaker: "밀정 여울",
+    icon: "🔎",
+    text: "궁 안에서 왕의 잔에 손댈 자를 찾았습니다. 이름을 아뢰면 그 뒤에 선 문벌까지 함께 무너집니다.",
+    choices: [
+      {
+        label: "뿌리까지 뽑아라",
+        effects: { food: -5, army: -8, people: 12, gold: -5 },
+        result: "여러 대감 댁 대문에 봉인이 붙었다. 조정의 절반이 하루아침에 비었다."
+      },
+      {
+        label: "그자만 조용히 치워라",
+        effects: { food: 0, army: 5, people: -8, gold: 7 },
+        result: "한 사람이 사라졌고 아무도 그 이름을 묻지 않았다. 뒤에 선 자들은 여전히 조회에 나온다."
+      }
+    ],
+    require: ["spy_network_built"],
+    forbid: []
+  },
+  {
+    id: "last_harvest",
+    phase: "late",
+    speaker: "창고지기 돌쇠",
+    icon: "🌾",
+    text: "이것이 마지막 수확이옵니다. 백성에게 풀지, 성 안에 쌓아 농성에 대비할지 정하셔야 하옵니다.",
+    choices: [
+      {
+        label: "백성에게 풀어라",
+        effects: { food: -12, army: -5, people: 16, gold: 0 },
+        result: "가마니가 마을마다 실려 나갔다. 성 안 곳간은 발소리가 울릴 만큼 비었다."
+      },
+      {
+        label: "성 안에 쌓아라",
+        effects: { food: 13, army: 8, people: -14, gold: -3 },
+        result: "곳간이 천장까지 찼다. 성문 밖 사람들이 그 문을 오래 바라보았다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "night_assassin",
+    phase: "late",
+    speaker: "시녀장 소류",
+    icon: "🕯️",
+    text: "간밤에 침전 앞에서 낯선 자가 붙잡혔사옵니다. 품에서 나온 것은 칼과, 이름이 지워진 서찰이었사옵니다.",
+    choices: [
+      {
+        label: "궁 안을 모두 뒤져라",
+        effects: { food: 0, army: -8, people: -12, gold: -5 },
+        result: "궁의 모든 문에 사람이 붙었다. 시녀들은 서로의 눈을 피해 다녔다."
+      },
+      {
+        label: "없던 일로 덮어라",
+        effects: { food: 0, army: -5, people: -4, gold: -7 },
+        result: "서찰은 화로에 들어갔다. 왕은 그날 밤부터 등을 벽에 대고 잤다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "debt_collectors",
+    phase: "late",
+    speaker: "상단주 여씨",
+    icon: "💰",
+    text: "선왕의 증서를 든 상단들이 도성 앞에 모였습니다. 그들 뒤에는 이웃 나라의 돈이 서 있사옵니다.",
+    choices: [
+      {
+        label: "국고를 헐어 갚아라",
+        effects: { food: 0, army: 0, people: 9, gold: -14 },
+        result: "증서가 한 장씩 불에 들어갔다. 국고 궤짝은 뚜껑을 열어둔 채였다."
+      },
+      {
+        label: "상단의 재산을 몰수하라",
+        effects: { food: 0, army: 5, people: -14, gold: 13 },
+        flags: ["merchants_crushed"],
+        result: "상단 창고에 관인이 붙었다. 이듬해 봄부터 낯선 배가 이 항구에 들어오지 않았다."
+      }
+    ],
+    require: ["old_king_debt_known"],
+    forbid: []
+  },
+  {
+    id: "final_siege",
+    phase: "late",
+    speaker: "대장군 무결",
+    icon: "🏰",
+    text: "적의 깃발이 성 밖 들판을 덮었습니다. 성문은 사흘을 버틸 수 있고, 사람은 그보다 짧게 버팁니다.",
+    choices: [
+      {
+        label: "성문을 열고 나가라",
+        effects: { food: -8, army: -16, people: 0, gold: -3 },
+        result: "성문이 열리고 병사들이 쏟아져 나갔다. 그 뒤로 문이 다시 닫히기까지 오래 걸렸다."
+      },
+      {
+        label: "끝까지 성을 지켜라",
+        effects: { food: -14, army: -7, people: -8, gold: 0 },
+        result: "화살이 성벽 위로 비처럼 떨어졌다. 곳간의 됫박이 하루가 다르게 작아졌다."
+      }
+    ],
+    require: [],
+    forbid: []
+  },
+  {
+    id: "vassal_levy",
+    phase: "late",
+    speaker: "흑랑국 사신 갈로",
+    icon: "📯",
+    text: "속국의 도리로 우리 대왕의 전쟁에 병사를 내셔야 합니다. 이천이면 족하다 하십니다.",
+    choices: [
+      {
+        label: "병사를 내어주라",
+        effects: { food: 5, army: -14, people: -8, gold: 10 },
+        result: "우리 젊은이들이 남의 깃발 아래 섰다. 흑랑에서 사례로 곡식과 은이 왔다."
+      },
+      {
+        label: "이번엔 응하지 않는다",
+        effects: { food: -7, army: 9, people: 12, gold: -7 },
+        flags: ["vassal_defiance"],
+        result: "사신은 아무 말 없이 문서를 접었다. 그 침묵이 어떤 협박보다 길게 남았다."
+      }
+    ],
+    require: ["vassal_state"],
+    forbid: []
+  },
+  {
+    id: "warlord_ultimatum",
+    phase: "late",
+    speaker: "대장군 무결",
+    icon: "🛡️",
+    text: "전하, 이제 병부의 문서는 신의 인장으로 족합니다. 옥좌는 그대로 두시되 조회는 신이 열겠습니다.",
+    choices: [
+      {
+        label: "장군을 체포하라",
+        effects: { food: 0, army: -18, people: 12, gold: -4 },
+        result: "장군은 칼을 풀고 순순히 따랐다. 그날 밤 군영 세 곳에서 불이 올랐다."
+      },
+      {
+        label: "물러나 그를 세워라",
+        effects: { food: 7, army: 10, people: -17, gold: 4 },
+        result: "왕은 발을 내리고 뒤에 앉았다. 조회의 첫 절은 이제 장군을 향한다."
+      }
+    ],
+    require: ["mugyeol_absolute"],
+    forbid: []
+  },
+  {
+    id: "co_ruler_poison",
+    phase: "late",
+    speaker: "밀정 여울",
+    icon: "🍵",
+    text: "아우님의 사람들이 왕의 수라간을 드나든다 하옵니다. 곁자리에 앉은 자가 옥좌를 오래 바라보고 있사옵니다.",
+    choices: [
+      {
+        label: "먼저 손을 쓰라",
+        effects: { food: 0, army: -10, people: -12, gold: 7 },
+        result: "아우는 아침 조회에 나오지 않았다. 아무도 그 까닭을 묻지 않았다."
+      },
+      {
+        label: "형제를 믿겠다",
+        effects: { food: 5, army: 8, people: 7, gold: -11 },
+        result: "왕은 아우와 같은 잔으로 술을 나눴다. 그 밤 이후 왕은 잠들기까지 오래 걸렸다."
+      }
+    ],
+    require: ["hyeon_co_ruler"],
+    forbid: []
+  }
+];
+/* ---------- 사건 카드 데이터 끝 ---------- */
+
+/* ---------- 시드 난수 (같은 시드 = 같은 판) ---------- */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ---------- 저장 ---------- */
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) throw 0;
+    const d = JSON.parse(raw);
+    return { endings: Array.isArray(d.endings) ? d.endings : [], best: d.best || 0, plays: d.plays || 0 };
+  } catch (e) {
+    return { endings: [], best: 0, plays: 0 };
+  }
+}
+function writeSave(d) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch (e) { /* 사생활 모드 등 */ }
+}
+
+/* ---------- 상태 ---------- */
+let S = null;
+let seed = 0;
+let busy = false;
+
+function currentSeed() {
+  const p = new URLSearchParams(location.search).get("s");
+  const n = p ? parseInt(p, 10) : NaN;
+  return (!isNaN(n) && n > 0) ? n : (Math.floor(Math.random() * 899999) + 100000);
+}
+
+function newGame(useSeed) {
+  seed = useSeed;
+  S = {
+    day: 1,
+    food: 50, army: 50, people: 50, gold: 50,
+    flags: new Set(),
+    used: new Set(),
+    rand: mulberry32(seed),
+    log: [],
+    over: null
+  };
+  drawEvent();
+  renderHud();
+  show("game");
+}
+
+/* ---------- 사건 뽑기 ---------- */
+function phaseOf(day) { return day <= 10 ? "early" : day <= 20 ? "mid" : "late"; }
+
+function eligible(e) {
+  if (S.used.has(e.id)) return false;
+  if ((e.require || []).some(f => !S.flags.has(f))) return false;
+  if ((e.forbid || []).some(f => S.flags.has(f))) return false;
+  return true;
+}
+
+function drawEvent() {
+  const ph = phaseOf(S.day);
+  let pool = KINGDOM_EVENTS.filter(e => eligible(e) && (e.phase === ph || e.phase === "any"));
+  if (!pool.length) pool = KINGDOM_EVENTS.filter(eligible);          // 단계 무시하고 재시도
+  if (!pool.length) { S.used.clear(); pool = KINGDOM_EVENTS.slice(); } // 그래도 없으면 덱 재사용
+
+  // 앞선 선택에 이어지는 카드(require 있는 것)를 우선 뽑아 연쇄가 실제로 터지게 한다
+  const chained = pool.filter(e => (e.require || []).length > 0);
+  if (chained.length && S.rand() < 0.75) pool = chained;
+
+  const ev = pool[Math.floor(S.rand() * pool.length)];
+  S.used.add(ev.id);
+  S.cur = ev;
+  renderCard(ev);
+}
+
+/* ---------- 화면 ---------- */
+const $ = id => document.getElementById(id);
+function show(name) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === name));
+  try { window.scrollTo(0, 0); } catch (e) { /* jsdom 등 스크롤 없는 환경 */ }
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("on"), 1900);
+}
+
+function buildGauges() {
+  $("gauges").innerHTML = RES.map(r => `
+    <div class="gauge ${r.cls}" data-res="${r.key}">
+      <span class="ico">${r.icon}</span>
+      <div class="bar"><div class="fill"></div></div>
+      <span class="num">0</span>
+    </div>`).join("");
+}
+
+function renderHud() {
+  $("dayLabel").textContent = `즉위 ${S.day}일차`;
+  $("leftLabel").textContent = `멸망까지 ${Math.max(0, MAX_DAY - S.day + 1)}일`;
+  RES.forEach(r => {
+    const g = $("gauges").querySelector(`[data-res="${r.key}"]`);
+    const v = S[r.key];
+    g.querySelector(".fill").style.width = v + "%";
+    g.querySelector(".num").textContent = v;
+    g.classList.toggle("warn", v <= 15 || v >= 85);
+  });
+}
+
+function renderCard(ev) {
+  $("face").textContent = ev.icon || "📜";
+  $("who").textContent = ev.speaker || "";
+  $("say").textContent = ev.text;
+  $("cL").textContent = ev.choices[0].label;
+  $("cR").textContent = ev.choices[1].label;
+  $("vL").textContent = ev.choices[0].label;
+  $("vR").textContent = ev.choices[1].label;
+  const c = $("card");
+  c.style.transition = "none";
+  c.style.transform = "translateY(14px) scale(0.97)";
+  c.style.opacity = "0";
+  requestAnimationFrame(() => {
+    c.style.transition = "transform 0.28s cubic-bezier(.2,.9,.3,1), opacity 0.28s";
+    c.style.transform = "";
+    c.style.opacity = "1";
+  });
+}
+
+/* 어느 자원이 흔들리는지만 미리 보여준다 — 방향과 크기는 감춘다 */
+function hintRes(idx) {
+  const ef = idx === null ? null : S.cur.choices[idx].effects;
+  RES.forEach(r => {
+    const g = $("gauges").querySelector(`[data-res="${r.key}"]`);
+    g.classList.toggle("hint", !!ef && !!ef[r.key]);
+  });
+}
+
+/* ---------- 선택 ---------- */
+function choose(idx) {
+  if (busy || !S || S.over) return;
+  busy = true;
+  hintRes(null);
+
+  const ev = S.cur;
+  const ch = ev.choices[idx];
+  const before = { food: S.food, army: S.army, people: S.people, gold: S.gold };
+
+  RES.forEach(r => {
+    S[r.key] = Math.max(0, Math.min(100, S[r.key] + (ch.effects[r.key] || 0)));
+  });
+  (ch.flags || []).forEach(f => S.flags.add(f));
+  S.log.push({ day: S.day, who: ev.speaker, label: ch.label });
+
+  // 카드 날리기
+  const c = $("card");
+  c.style.transition = "transform 0.3s ease-in, opacity 0.3s ease-in";
+  const dir = idx === 0 ? -1 : 1;
+  c.style.transform = `translateX(${dir * 420}px) rotate(${dir * 18}deg)`;
+  c.style.opacity = "0";
+
+  renderHud();
+  showResult(ch, before);
+
+  const dead = deathCheck();
+  setTimeout(() => {
+    if (dead) { finish(dead); busy = false; return; }
+    if (S.day >= MAX_DAY) { finish(survivalEnding()); busy = false; return; }
+    S.day++;
+    renderHud();
+    drawEvent();
+    busy = false;
+  }, 1250);
+}
+
+function showResult(ch, before) {
+  const parts = [];
+  RES.forEach(r => {
+    const d = S[r.key] - before[r.key];
+    if (d) parts.push(`${r.icon} ${d > 0 ? "+" : ""}${d}`);
+  });
+  const box = $("result");
+  box.innerHTML = `${ch.result || ""}<div class="delta">${parts.join("　")}</div>`;
+  box.classList.add("on");
+  clearTimeout(showResult._t);
+  showResult._t = setTimeout(() => box.classList.remove("on"), 1450);
+}
+
+function deathCheck() {
+  const map = {
+    food:   ["famine", "gluttony"],
+    army:   ["invaded", "coup"],
+    people: ["revolt", "beloved"],
+    gold:   ["bankrupt", "corrupt"]
+  };
+  for (const r of RES) {
+    if (S[r.key] <= 0) return map[r.key][0];
+    if (S[r.key] >= 100) return map[r.key][1];
+  }
+  return null;
+}
+
+/* 30일을 넘긴 왕의 결말.
+   자원 수치만으로 가르면 어떤 판이든 비슷한 끝이 난다. 그래서 무엇을 선택했는지
+   (플래그)를 먼저 보고, 아무 색깔도 남기지 않은 판만 수치로 가른다.
+   위에서부터 먼저 걸리는 것이 이긴다 — 특수한 결말일수록 위에 둘 것. */
+function survivalEnding() {
+  const { food: f, army: a, people: p, gold: g } = S;
+  const has = k => S.flags.has(k);
+
+  if (has("vassal_pact"))                       return "puppet";     // 흑랑에 도장을 넘겼다
+  if (has("mugyeol_absolute"))                  return "warlord";    // 대장군에게 전권을 줬다
+  if (has("temple_above_throne"))               return "theocracy";  // 신전을 왕좌 위에 뒀다
+  if (has("heukrang_war") && a >= 45)           return "unify";      // 전쟁을 치르고 군을 지켰다
+  if (has("heukrang_marriage"))                 return "alliance";   // 칼 대신 혼인을 골랐다
+  if (has("salt_monopoly") && g >= 45)          return "merchant";   // 전매로 국고를 세웠다
+  if (has("heir_named") && p >= 40)             return "dynasty";    // 후계를 세웠고 민심이 남았다
+  if (Math.min(f, a, p, g) >= 42)               return "golden";     // 아무것도 무너뜨리지 않았다
+  if (Math.min(f, a, p, g) <= 20)               return "fragile";
+  return "survive";
+}
+
+/* ---------- 엔딩 ---------- */
+function finish(endId) {
+  S.over = endId;
+  const end = END_BY_ID[endId] || END_BY_ID.survive;
+  const save = loadSave();
+  const isNew = !save.endings.includes(endId);
+  if (isNew) save.endings.push(endId);
+  save.best = Math.max(save.best, S.day);
+  save.plays = (save.plays || 0) + 1;
+  writeSave(save);
+
+  $("endIcon").textContent = end.icon;
+  $("endName").textContent = end.name;
+  $("endKind").textContent = (isNew ? "NEW · " : "") + end.kind;
+  $("endLine").textContent = end.line;
+
+  const epi = EPILOGUES.filter(e => S.flags.has(e.flag)).slice(0, 3);
+  $("epilogue").innerHTML = epi.length
+    ? "<h4>그 뒤의 이야기</h4>" + epi.map(e => `<p>${e.text}</p>`).join("")
+    : "";
+
+  $("stDay").textContent = S.day;
+  $("stBest").textContent = save.best;
+  $("stCodex").textContent = save.endings.length + " / " + ENDINGS.length;
+
+  const rows = S.log.slice(-12).map(l =>
+    `<p>${l.day}일 · ${l.who} — <b>${l.label}</b></p>`).join("");
+  $("journal").innerHTML = `<h4>왕의 일지</h4>${rows}`;
+
+  setTimeout(() => show("ending"), 700);
+}
+
+/* ---------- 도감 ---------- */
+function renderCodex() {
+  const save = loadSave();
+  $("codexCount").textContent = `${save.endings.length} / ${ENDINGS.length} 종  ·  최장 ${save.best}일  ·  ${save.plays}회 즉위`;
+  $("codexGrid").innerHTML = ENDINGS.map(e => {
+    const got = save.endings.includes(e.id);
+    return `<div class="cx ${got ? "" : "locked"}">
+      <div class="i">${got ? e.icon : "❔"}</div>
+      <div class="n">${got ? e.name : "???"}</div>
+      <div class="d">${got ? e.kind : "아직 보지 못한 결말"}</div>
+    </div>`;
+  }).join("");
+  show("codex");
+}
+
+/* ---------- 도전장 링크 ---------- */
+function shareLink() {
+  const url = location.origin + location.pathname + "?s=" + seed;
+  const text = `멸망까지 30일 — 나는 ${S ? S.day : 0}일 버텼다. 같은 운명으로 해보겠나?\n${url}`;
+  if (navigator.share) {
+    navigator.share({ title: "멸망까지 30일", text: text }).catch(() => {});
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(
+      () => toast("도전장을 복사했습니다"),
+      () => fallbackCopy(text)
+    );
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); toast("도전장을 복사했습니다"); }
+  catch (e) { prompt("이 링크를 친구에게 보내세요", text); }
+  document.body.removeChild(ta);
+}
+
+/* ---------- 스와이프 ---------- */
+function bindSwipe() {
+  const c = $("card");
+  let x0 = null, dx = 0, dragging = false;
+
+  const start = e => {
+    if (busy || !S || S.over) return;
+    dragging = true;
+    x0 = (e.touches ? e.touches[0].clientX : e.clientX);
+    dx = 0;
+    c.style.transition = "none";
+  };
+  const move = e => {
+    if (!dragging) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    dx = x - x0;
+    c.style.transform = `translateX(${dx}px) rotate(${dx / 22}deg)`;
+    const t = Math.min(1, Math.abs(dx) / 90);
+    $("vL").style.opacity = dx < -10 ? t : 0;
+    $("vR").style.opacity = dx > 10 ? t : 0;
+    if (Math.abs(dx) > 20) hintRes(dx < 0 ? 0 : 1); else hintRes(null);
+  };
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    $("vL").style.opacity = 0;
+    $("vR").style.opacity = 0;
+    if (Math.abs(dx) > 85) {
+      choose(dx < 0 ? 0 : 1);
+    } else {
+      hintRes(null);
+      c.style.transition = "transform 0.25s cubic-bezier(.2,1.4,.4,1)";
+      c.style.transform = "";
+    }
+  };
+
+  c.addEventListener("touchstart", start, { passive: true });
+  c.addEventListener("touchmove", move, { passive: true });
+  c.addEventListener("touchend", end);
+  c.addEventListener("mousedown", start);
+  window.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", end);
+}
+
+/* ---------- 시작 ---------- */
+function init() {
+  buildGauges();
+  bindSwipe();
+
+  const fromLink = new URLSearchParams(location.search).has("s");
+  const s = currentSeed();
+  $("seedNote").textContent = fromLink
+    ? `도전장을 받았습니다 · 운명 번호 ${s}`
+    : `운명 번호 ${s}`;
+
+  $("btnStart").onclick = () => newGame(s);
+  $("btnAgain").onclick = () => {
+    // 도전장으로 들어왔으면 같은 판, 아니면 새 운명
+    newGame(fromLink ? s : Math.floor(Math.random() * 899999) + 100000);
+  };
+  $("btnCodex").onclick = renderCodex;
+  $("btnCodex2").onclick = renderCodex;
+  $("btnBack").onclick = () => show(S && S.over ? "ending" : "title");
+  $("btnShare").onclick = shareLink;
+
+  $("cL").onclick = () => choose(0);
+  $("cR").onclick = () => choose(1);
+  $("cL").onmouseenter = () => hintRes(0);
+  $("cR").onmouseenter = () => hintRes(1);
+  $("cL").onmouseleave = () => hintRes(null);
+  $("cR").onmouseleave = () => hintRes(null);
+
+  document.addEventListener("keydown", e => {
+    if (!$("game").classList.contains("on")) return;
+    if (e.key === "ArrowLeft") choose(0);
+    if (e.key === "ArrowRight") choose(1);
+  });
+}
+init();
+</script>
+</body>
+</html>

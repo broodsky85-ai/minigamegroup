@@ -1,6 +1,6 @@
-const CACHE_VERSION = "omok-pwa-v1";
+const CACHE_VERSION = "omok-pwa-v2";
 const OFFLINE_FILES = [
-  "./", "./index.html", "./omok.html", "./baseball.html", "./minesweeper.html",
+  "./", "./index.html", "./omok.html", "./kingdom30.html", "./baseball.html", "./minesweeper.html",
   "./memory.html", "./rps.html", "./tictactoe.html", "./manifest.webmanifest",
   "./icons/omok-192.png", "./icons/omok-512.png"
 ];

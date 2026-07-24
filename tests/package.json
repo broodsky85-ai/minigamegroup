@@ -3,11 +3,12 @@
   "private": true,
   "description": "오목 챌린지 검증 스크립트. 저장소 루트의 omok.html을 직접 읽는다.",
   "scripts": {
-    "test": "node omok.persona.test.js && node omok.game.test.js && node omok.sync.test.js && node android.package.test.js",
+    "test": "node omok.persona.test.js && node omok.game.test.js && node omok.sync.test.js && node android.package.test.js && node kingdom30.smoke.test.js && node kingdom30.balance.test.js",
     "test:persona": "node omok.persona.test.js",
     "test:game": "node omok.game.test.js",
     "test:android": "node android.package.test.js",
-    "test:sync": "node omok.sync.test.js"
+    "test:sync": "node omok.sync.test.js",
+    "test:kingdom": "node kingdom30.smoke.test.js && node kingdom30.balance.test.js"
   },
   "devDependencies": {
     "jsdom": "^24.0.0"
