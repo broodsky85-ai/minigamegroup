@@ -5,6 +5,11 @@
 tests/node_modules/
 tests/package-lock.json
 
+# 업로드 키스토어와 비밀번호 — 절대 커밋하지 않는다
+android/keystore.properties
+*.jks
+*.keystore
+
 # Android local build outputs / generated web asset mirror
 android/.gradle/
 android/local.properties

@@ -15,7 +15,8 @@
         android:theme="@style/Theme.OmokChallenge"
         android:usesCleartextTraffic="false">
 
-        <!-- Google 공식 테스트 App ID. 출시 전 실제 AdMob App ID로 교체한다. -->
+        <!-- 광고 App ID는 build.gradle.kts의 buildTypes에서 주입한다 (debug=테스트, release=실제).
+             여기에 직접 적으면 debug 빌드에서도 실제 광고가 떠서 정책 위반 위험이 있다. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
