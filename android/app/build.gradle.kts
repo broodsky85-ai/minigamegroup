@@ -25,7 +25,8 @@ android {
         applicationId = "com.broodsky85.omokchallenge"
         minSdk = 23
         targetSdk = 36
-        versionCode = 1
+        // versionCode 1은 Play 내부 테스트에 업로드되어 소진됐다. 같은 값은 두 번 못 올린다.
+        versionCode = 2
         versionName = "1.0.0"
     }
 
