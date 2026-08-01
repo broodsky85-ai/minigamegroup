@@ -1,0 +1,2721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>여명의 서약 — 만 번의 검</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0b0d14; --bg2: #121622; --panel: #1a1f30; --panel2: #232a40;
+    --border: #3a4463; --text: #e8e4d8; --muted: #9aa3bd;
+    --gold: #d8b45a; --gold2: #f0d489;
+    --ally: #6fb0f0; --foe: #e0616a; --npc: #7ddc9a; --danger: #e0616a;
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", Pretendard, "Malgun Gothic", Arial, sans-serif;
+    line-height: 1.65; word-break: keep-all; -webkit-tap-highlight-color: transparent;
+  }
+  .screen { display: none; }
+  .screen.on { display: block; }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 20px; border-radius: 4px; font-weight: 700;
+    font-size: clamp(14px, 3.4vw, 15px); cursor: pointer;
+    border: 1px solid var(--border); background: var(--panel2); color: var(--text);
+    font-family: inherit; text-decoration: none; transition: filter .12s, transform .08s;
+  }
+  .btn:hover { filter: brightness(1.18); }
+  .btn:active { transform: translateY(1px); }
+  .btn.gold { background: linear-gradient(180deg, #d8b45a, #a8842f); border-color: #e8ca86; color: #1a1305; }
+  .btn.ghost { background: transparent; }
+  .btn:disabled { opacity: .4; cursor: default; filter: none; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  #title .wrap { padding-top: 48px; text-align: center; }
+  .crest { font-size: 44px; line-height: 1; margin-bottom: 6px; }
+  h1 {
+    font-size: clamp(28px, 7.6vw, 44px); margin: 0 0 6px;
+    letter-spacing: .16em; color: var(--gold2); text-shadow: 0 0 22px rgba(216,180,90,.28);
+  }
+  .sub { color: var(--muted); letter-spacing: .3em; font-size: clamp(11px, 3vw, 13px); margin-bottom: 24px; }
+  .prologue {
+    max-width: 470px; margin: 0 auto 28px; color: var(--muted);
+    font-size: clamp(13px, 3.4vw, 15px); text-align: left;
+    border-left: 2px solid var(--border); padding: 4px 0 4px 16px;
+  }
+  .prologue p { margin: 0 0 6px; }
+  #saveNote { margin-top: 20px; color: var(--muted); font-size: 13px; min-height: 20px; }
+
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .head h2 { margin: 0; font-size: clamp(18px, 5vw, 24px); color: var(--gold2); letter-spacing: .08em; }
+  .actlabel { margin: 22px 0 10px; color: var(--gold); font-size: 12px; letter-spacing: .18em; }
+  .actlabel:first-child { margin-top: 0; }
+  .chlist { display: grid; gap: 10px; }
+  .chcard {
+    display: flex; gap: 14px; align-items: center; text-align: left;
+    background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--gold);
+    border-radius: 4px; padding: 14px 16px; cursor: pointer; color: inherit;
+    font-family: inherit; width: 100%; transition: transform .12s, border-color .12s;
+  }
+  .chcard:hover:not(.locked) { transform: translateX(3px); border-color: var(--gold2); }
+  .chcard.locked { opacity: .42; cursor: default; border-left-color: var(--border); }
+  .chcard.done { border-left-color: var(--npc); }
+  .chnum { font-size: 24px; font-weight: 800; color: var(--gold); min-width: 34px; text-align: center; }
+  .chcard.locked .chnum { color: var(--muted); }
+  .chbody h3 { margin: 0 0 2px; font-size: clamp(14px, 3.9vw, 16px); }
+  .chbody p { margin: 0; color: var(--muted); font-size: clamp(12px, 3.2vw, 13px); }
+
+  .party { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 6px; }
+  .pcard {
+    display: flex; gap: 10px; align-items: center; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px 8px 8px; flex: 1 1 200px;
+  }
+  .pcard canvas { image-rendering: pixelated; width: 40px; height: 40px; flex: none; }
+  .pcard .pn { font-size: 13px; font-weight: 700; }
+  .pcard .pl { font-size: 11px; color: var(--muted); }
+
+  #bar {
+    position: sticky; top: 0; z-index: 6; display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; background: rgba(11,13,20,.94); border-bottom: 1px solid var(--border);
+    font-size: clamp(11px, 3vw, 13px); flex-wrap: wrap;
+  }
+  #bar .t { color: var(--gold2); font-weight: 800; letter-spacing: .06em; }
+  #bar .obj { color: var(--muted); flex: 1 1 100%; order: 3; }
+  #phaseTag { padding: 2px 9px; border-radius: 3px; font-weight: 800; font-size: 11px; }
+  #phaseTag.ally { background: #1d3a5c; color: #9dcbf7; }
+  #phaseTag.foe { background: #4a1e24; color: #f2a2a8; }
+
+  #stage { position: relative; width: 100%; max-width: 672px; margin: 10px auto 0; }
+  #map { display: block; width: 100%; height: auto; image-rendering: pixelated;
+         border: 2px solid var(--border); border-radius: 3px; background: #0d1017; touch-action: manipulation; }
+  .pop {
+    position: absolute; transform: translate(-50%, -50%); pointer-events: none;
+    font-weight: 900; font-size: 17px; text-shadow: 0 2px 0 #000, 0 0 6px #000;
+    animation: rise .85s ease-out forwards;
+  }
+  @keyframes rise { 0% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -190%); } }
+
+  #panels { max-width: 672px; margin: 10px auto 0; display: grid; gap: 10px; }
+  .pane { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; }
+  .pane h4 { margin: 0 0 8px; font-size: 12px; color: var(--gold); letter-spacing: .12em; }
+
+  .uinfo { display: flex; gap: 12px; align-items: flex-start; }
+  .uinfo canvas { image-rendering: pixelated; width: 48px; height: 48px; flex: none; }
+  .uinfo .nm { font-weight: 800; font-size: 15px; }
+  .uinfo .cl { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .hpbar { height: 8px; background: #2a2f45; border-radius: 2px; overflow: hidden; margin: 4px 0 6px; }
+  .hpbar i { display: block; height: 100%; background: linear-gradient(90deg, #5ec97a, #8fe6a4); transition: width .25s; }
+  .hpbar.low i { background: linear-gradient(90deg, #d8b45a, #f0d489); }
+  .hpbar.crit i { background: linear-gradient(90deg, #c0424c, #e0616a); }
+  .stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+  .stats b { color: var(--text); font-weight: 700; }
+  .tagline { margin-top: 6px; font-size: 11px; color: var(--danger); font-weight: 700; letter-spacing: .06em; }
+
+  #actMenu { display: none; gap: 8px; flex-wrap: wrap; }
+  #actMenu.on { display: flex; }
+  #fcast { display: none; }
+  #fcast.on { display: block; }
+  .fc { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .fc .side { flex: 1; }
+  .fc .side.r { text-align: right; }
+  .fc .vs { color: var(--gold); font-weight: 800; }
+  .fc .nm { font-weight: 700; font-size: 13px; }
+  .fc .dm { font-size: 12px; color: var(--muted); }
+  .fc .dm b { color: var(--danger); }
+  .mercy { margin-top: 6px; padding: 5px 9px; border-radius: 3px; background: #3a121a;
+           border: 1px solid #7a2430; color: #f2a2a8; font-size: 11px; font-weight: 700; }
+
+  #log { max-height: 108px; overflow-y: auto; font-size: 12px; color: var(--muted); }
+  #log div { padding: 1px 0; }
+  #log div:last-child { color: var(--text); }
+
+  #talk {
+    position: fixed; inset: 0; z-index: 40; display: none;
+    background: rgba(6,8,13,.82); backdrop-filter: blur(3px);
+    align-items: flex-end; justify-content: center; padding: 16px;
+  }
+  #talk.on { display: flex; }
+  #talkBox {
+    width: 100%; max-width: 680px; background: linear-gradient(180deg, #171c2b, #0f1320);
+    border: 2px solid var(--border); border-radius: 4px; padding: 14px 16px 16px;
+    box-shadow: 0 -10px 40px rgba(0,0,0,.6);
+  }
+  #talkTop { display: flex; gap: 14px; align-items: flex-start; }
+  #talkFace { image-rendering: pixelated; width: 64px; height: 64px; flex: none;
+              border: 1px solid var(--border); background: #0d1017; }
+  #talkFace.hide { display: none; }
+  #talkName { color: var(--gold2); font-weight: 800; font-size: 14px; letter-spacing: .06em; min-height: 20px; }
+  #talkText { font-size: clamp(14px, 3.7vw, 16px); min-height: 3.3em; }
+  #talkText.narr { color: var(--muted); font-style: italic; }
+  #talkHint { text-align: right; color: var(--muted); font-size: 11px; height: 14px; }
+  #talkChoices { display: none; gap: 8px; margin-top: 10px; }
+  #talkChoices.on { display: grid; }
+  #talkChoices .q { color: var(--gold); font-size: 13px; margin-bottom: 2px; }
+  .copt {
+    text-align: left; padding: 11px 14px; border-radius: 3px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--panel2); color: var(--text);
+    font-family: inherit; font-size: clamp(13px, 3.4vw, 15px); line-height: 1.5;
+  }
+  .copt:hover { border-color: var(--gold); background: #2b3350; }
+  .copt small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  .verdict { text-align: center; padding: 26px 0 10px; }
+  .verdict .big { font-size: clamp(26px, 7vw, 36px); font-weight: 900; letter-spacing: .12em; margin-bottom: 4px; }
+  .verdict .big.win { color: var(--gold2); text-shadow: 0 0 24px rgba(216,180,90,.3); }
+  .verdict .big.lose { color: var(--danger); }
+  .verdict p { color: var(--muted); margin: 0; }
+  .memo { display: grid; gap: 10px; }
+  .memo .mi { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--gold);
+              border-radius: 3px; padding: 12px 14px; font-size: 13px; }
+  .memo .mi.locked { border-left-color: var(--border); color: var(--muted); opacity: .55; }
+  .memo .mi h5 { margin: 0 0 4px; font-size: 13px; color: var(--gold2); }
+  .memo .mi p { margin: 0 0 4px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 3px; border: 1px solid var(--border); background: transparent;
+         color: var(--muted); cursor: pointer; font-family: inherit; font-size: 13px; }
+  .tab.on { background: var(--panel2); color: var(--gold2); border-color: var(--gold); }
+  .tpane { display: none; }
+  .tpane.on { display: block; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 22px 16px 30px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="title" class="screen on">
+  <div class="wrap">
+    <div class="crest">⚔️</div>
+    <h1>여명의 서약</h1>
+    <div class="sub">만 번의 검</div>
+    <div class="prologue">
+      <p>북방의 하늘이 검게 물든 지 서른 해.</p>
+      <p>세 번의 원정이 있었고, 세 번 모두 돌아온 자가 없었다.</p>
+      <p>네 번째는 재능 없는 소년 하나로 시작한다.</p>
+      <p>그 소년이 가진 것은 만 번 휘두른 검과, 아무 쓸모 없는 얼굴뿐이었다.</p>
+    </div>
+    <div class="row">
+      <button class="btn gold" id="btnNew">새로 시작</button>
+      <button class="btn" id="btnCont">이어하기</button>
+      <button class="btn ghost" id="btnMemo">회상록</button>
+    </div>
+    <div id="saveNote"></div>
+  </div>
+  <footer>바닐라 HTML · CSS · JS · <a href="index.html">미니게임 모음으로</a></footer>
+</div>
+
+<div id="chapters" class="screen">
+  <div class="wrap">
+    <div class="head">
+      <h2>원정의 기록</h2>
+      <button class="btn ghost" id="btnToTitle">타이틀</button>
+    </div>
+    <div id="chlist"></div>
+    <div class="actlabel">일행</div>
+    <div class="party" id="party"></div>
+  </div>
+</div>
+
+<div id="battle" class="screen">
+  <div id="bar">
+    <span class="t" id="barTitle">1장</span>
+    <span id="phaseTag" class="ally">아군 페이즈</span>
+    <span style="color:var(--muted)" id="turnLabel">1턴</span>
+    <span style="flex:1"></span>
+    <button class="btn" id="btnEnd" style="padding:6px 14px;font-size:12px">턴 종료</button>
+    <button class="btn ghost" id="btnGiveUp" style="padding:6px 12px;font-size:12px">후퇴</button>
+    <span class="obj" id="objLabel"></span>
+  </div>
+
+  <div id="stage"><canvas id="map" width="672" height="480"></canvas></div>
+
+  <div id="panels">
+    <div class="pane">
+      <div class="uinfo">
+        <canvas id="uface" width="64" height="64"></canvas>
+        <div style="flex:1;min-width:0">
+          <div class="nm" id="uName">칸을 눌러 유닛을 고르세요</div>
+          <div class="cl" id="uClass">아군을 고르면 이동할 수 있는 칸이 파랗게 표시됩니다.</div>
+          <div class="hpbar" id="uHpBar"><i style="width:0"></i></div>
+          <div class="stats" id="uStats"></div>
+          <div class="tagline" id="uTag" style="display:none"></div>
+        </div>
+      </div>
+      <div id="actMenu" style="margin-top:10px"></div>
+      <div id="fcast" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px"></div>
+    </div>
+    <div class="pane">
+      <h4>전황</h4>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<div id="result" class="screen">
+  <div class="wrap">
+    <div class="verdict">
+      <div class="big" id="rTitle"></div>
+      <p id="rSub"></p>
+    </div>
+    <div id="rBody" class="memo" style="margin:20px 0"></div>
+    <div class="row"><button class="btn gold" id="btnNext">계속</button></div>
+  </div>
+</div>
+
+<div id="memoir" class="screen">
+  <div class="wrap">
+    <div class="head">
+      <h2>회상록</h2>
+      <button class="btn ghost" id="btnMemoBack">돌아가기</button>
+    </div>
+    <div class="tabs">
+      <button class="tab on" data-t="ep">그 뒤의 이야기</button>
+      <button class="tab" data-t="sp">일행의 대화</button>
+    </div>
+    <div class="tpane on" id="tpEp"><div class="memo" id="epList"></div></div>
+    <div class="tpane" id="tpSp"><div class="memo" id="spList"></div></div>
+  </div>
+</div>
+
+<div id="talk">
+  <div id="talkBox">
+    <div id="talkTop">
+      <canvas id="talkFace" width="64" height="64"></canvas>
+      <div style="flex:1;min-width:0">
+        <div id="talkName"></div>
+        <div id="talkText"></div>
+      </div>
+    </div>
+    <div id="talkChoices"></div>
+    <div id="talkHint">▼ 클릭</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   1. 도트 스프라이트 — 16×16 문자 격자
+   '.'은 투명, 나머지 글자는 유닛별 팔레트에서 색을 찾는다.
+   실루엣은 넷뿐이고(전사·마법사·야수·마족) 색만 갈아끼워 유닛을 늘린다.
+   ========================================================================= */
+
+const SPR = {
+  warrior: [
+    "................",
+    ".....oooooo..m..",
+    "....ohhhhhho.m..",
+    "....ohhhhhho.m..",
+    "....ohssssho.m..",
+    "....osesseso.m..",
+    "....osssssso.m..",
+    "..ooaaaaaaaaom..",
+    ".occoagaagaoggg.",
+    ".occoaaaaaao.o..",
+    ".occoabbbbao.o..",
+    ".ooooaaaaaao....",
+    "....obboobbo....",
+    "....obboobbo....",
+    "....ooo..ooo....",
+    "................"
+  ],
+  mage: [
+    ".......o.....g..",
+    "......ohho...m..",
+    ".....ohhhho..m..",
+    "....ohhhhhho.m..",
+    "...ohhhhhhhhom..",
+    "....osssssso.m..",
+    "....osesseso.m..",
+    "....osssssso.m..",
+    "...oaaaaaaao.m..",
+    "...oacaaacao.m..",
+    "..oaaaaaaaaaoo..",
+    ".oaaaaaaaaaaao..",
+    ".oaaaaaaaaaaao..",
+    ".oaaaaaaaaaaao..",
+    ".oooooooooooo...",
+    "................"
+  ],
+  beast: [
+    "................",
+    "................",
+    "..o..oooooo..o..",
+    "..ok.okkkko.ko..",
+    "...ookkkkkkoo...",
+    "...okekkekko....",
+    "...okkttkkko....",
+    "....okkkkko.....",
+    "...ockkkco.ww...",
+    "..okckkkcko.w...",
+    "..okcccccko.w...",
+    "...okcccko.w....",
+    "...ok...ko......",
+    "...ok...ko......",
+    "..ooo...ooo.....",
+    "................"
+  ],
+  demon: [
+    "................",
+    "..o..........o..",
+    "..oo..oooo..oo..",
+    "...ooookkkoooo..",
+    "....okkkkkko....",
+    "....okekkeko....",
+    "....okkttkko....",
+    "..w.okkkkkko.w..",
+    "wwwoaaaaaaaaowww",
+    ".wwoaggggggaoww.",
+    ".wwoaaaaaaaaoww.",
+    "..woaaaaaaaaow..",
+    "...oaaaaaaaao...",
+    "....obbbbbbo....",
+    "....ooo..ooo....",
+    "................"
+  ]
+};
+
+/* 초상화 — 얼굴 실루엣 넷 */
+const FACE = {
+  short: [
+    "................",
+    "...oooooooooo...",
+    "..ohhhhhhhhhho..",
+    "..ohhhhhhhhhho..",
+    "..ohssssssssho..",
+    "..ohssssssssho..",
+    "..osssssssssso..",
+    "..osoesssseoso..",
+    "..osssssssssso..",
+    "..osssssssssso..",
+    "..ossssbbsssso..",
+    "..osssssssssso..",
+    "...oooooooooo...",
+    ".occccccccccco..",
+    "occcccccccccccco",
+    "oooooooooooooooo"
+  ],
+  long: [
+    "................",
+    "...oooooooooo...",
+    "..ohhhhhhhhhho..",
+    ".ohhhhhhhhhhhho.",
+    ".ohhssssssssho..",
+    ".ohhssssssssho..",
+    ".ohsssssssssho..",
+    ".ohsoesssseosh..",
+    ".ohsssssssssho..",
+    ".ohsssssssssho..",
+    ".ohsssbbsssho...",
+    ".ohsssssssssho..",
+    ".ohhoooooooohh..",
+    ".ohcccccccccho..",
+    "occcccccccccccco",
+    "oooooooooooooooo"
+  ],
+  hood: [
+    "....oooooooo....",
+    "..ooccccccccoo..",
+    ".occcccccccccco.",
+    ".occoooooooocco.",
+    ".occossssssocco.",
+    ".occossssssocco.",
+    ".occosoesseocco.",
+    ".occossssssocco.",
+    ".occossbbssocco.",
+    ".occossssssocco.",
+    ".occcooooooccco.",
+    ".occcccccccccco.",
+    "..occcccccccco..",
+    ".occccccccccccc.",
+    "occcccccccccccco",
+    "oooooooooooooooo"
+  ],
+  horn: [
+    ".o............o.",
+    ".oo..........oo.",
+    "..ooo......ooo..",
+    "...oookkkkooo...",
+    "..okkkkkkkkkko..",
+    "..okkkkkkkkkko..",
+    "..okkkkkkkkkko..",
+    "..okoekkkkeoko..",
+    "..okkkkkkkkkko..",
+    "..okkkkkkkkkko..",
+    "..okkkttttkkko..",
+    "..okkkkkkkkkko..",
+    "...oookkkkooo...",
+    ".occccccccccco..",
+    "occcccccccccccco",
+    "oooooooooooooooo"
+  ]
+};
+
+/* =========================================================================
+   2. 지형
+   ========================================================================= */
+
+const TERRAIN = {
+  ".": { n: "평지", cost: 1, def: 0, avo: 0,  kind: "grass" },
+  "T": { n: "숲",   cost: 2, def: 1, avo: 20, kind: "tree"  },
+  "^": { n: "산",   cost: 3, def: 2, avo: 30, kind: "mtn"   },
+  "~": { n: "강",   cost: 0, def: 0, avo: 0,  kind: "water", block: true },
+  "#": { n: "바위", cost: 0, def: 0, avo: 0,  kind: "wall",  block: true },
+  "=": { n: "다리", cost: 1, def: 0, avo: 0,  kind: "bridge" },
+  "H": { n: "민가", cost: 1, def: 1, avo: 10, kind: "house", heal: 5 },
+  "+": { n: "제단", cost: 1, def: 1, avo: 10, kind: "shrine", heal: 10 },
+  "_": { n: "석실", cost: 1, def: 0, avo: 0,  kind: "floor" },
+  "E": { n: "옥좌", cost: 1, def: 3, avo: 10, kind: "throne" }
+};
+const T_ = c => TERRAIN[c] || TERRAIN["."];
+
+/* =========================================================================
+   3. 병종과 등장인물
+   무기 상성: 검 > 도끼 > 창 > 검. 유리하면 위력 +2, 명중 +12.
+   ========================================================================= */
+
+const BEATS = { sword: "axe", axe: "lance", lance: "sword" };
+const WPN_KR = { sword: "검", lance: "창", axe: "도끼", bow: "활", magic: "마법", staff: "지팡이" };
+
+const CLASSES = {
+  hero:    { n: "용사",      spr: "warrior", wpn: "sword", mov: 4, rng: 1, kind: "phys",
+             base: { hp: 26, atk: 9,  def: 5,  mag: 0,  res: 3 },  grow: { hp: 4, atk: 2, def: 1, mag: 0, res: 1 } },
+  paladin: { n: "성기사",    spr: "warrior", wpn: "lance", mov: 3, rng: 1, kind: "phys",
+             base: { hp: 34, atk: 8,  def: 8,  mag: 0,  res: 4 },  grow: { hp: 5, atk: 1, def: 2, mag: 0, res: 1 } },
+  mage:    { n: "마법사",    spr: "mage",    wpn: "magic", mov: 3, rng: 2, kind: "mag",
+             base: { hp: 18, atk: 2,  def: 3,  mag: 11, res: 6 },  grow: { hp: 3, atk: 0, def: 1, mag: 3, res: 1 } },
+  cleric:  { n: "사제",      spr: "mage",    wpn: "staff", mov: 3, rng: 2, kind: "mag", healer: true,
+             base: { hp: 21, atk: 2,  def: 4,  mag: 7,  res: 8 },  grow: { hp: 4, atk: 0, def: 1, mag: 2, res: 2 } },
+  ranger:  { n: "궁병",      spr: "warrior", wpn: "bow",   mov: 4, rng: 2, kind: "phys",
+             base: { hp: 22, atk: 8,  def: 4,  mag: 0,  res: 4 },  grow: { hp: 3, atk: 2, def: 1, mag: 0, res: 1 } },
+
+  goblin:  { n: "고블린",    spr: "beast",   wpn: "axe",   mov: 4, rng: 1, kind: "phys",
+             base: { hp: 16, atk: 7,  def: 2,  mag: 0,  res: 1 },  grow: { hp: 2, atk: 1, def: 0, mag: 0, res: 0 } },
+  orc:     { n: "오크",      spr: "beast",   wpn: "axe",   mov: 3, rng: 1, kind: "phys",
+             base: { hp: 24, atk: 9,  def: 4,  mag: 0,  res: 1 },  grow: { hp: 3, atk: 1, def: 1, mag: 0, res: 0 } },
+  skel:    { n: "해골병사",  spr: "warrior", wpn: "sword", mov: 3, rng: 1, kind: "phys",
+             base: { hp: 19, atk: 8,  def: 5,  mag: 0,  res: 0 },  grow: { hp: 3, atk: 1, def: 1, mag: 0, res: 0 } },
+  warlock: { n: "흑마도사",  spr: "mage",    wpn: "magic", mov: 3, rng: 2, kind: "mag",
+             base: { hp: 17, atk: 2,  def: 3,  mag: 9,  res: 6 },  grow: { hp: 2, atk: 0, def: 0, mag: 2, res: 1 } },
+  guard:   { n: "마족 근위", spr: "warrior", wpn: "lance", mov: 4, rng: 1, kind: "phys",
+             base: { hp: 28, atk: 11, def: 7,  mag: 0,  res: 5 },  grow: { hp: 3, atk: 1, def: 1, mag: 0, res: 1 } },
+  demon:   { n: "마왕",      spr: "demon",   wpn: "magic", mov: 3, rng: 2, kind: "mag",
+             base: { hp: 66, atk: 14, def: 11, mag: 15, res: 11 }, grow: { hp: 5, atk: 2, def: 2, mag: 2, res: 2 } },
+
+  /* 사람 쪽 — 아르덴의 「자비 없음」이 걸리는 자들 */
+  merc:    { n: "용병",      spr: "warrior", wpn: "axe",   mov: 4, rng: 1, kind: "phys", human: true,
+             base: { hp: 22, atk: 9,  def: 4,  mag: 0,  res: 2 },  grow: { hp: 3, atk: 1, def: 1, mag: 0, res: 0 } },
+  slaver:  { n: "노예상",    spr: "warrior", wpn: "sword", mov: 4, rng: 1, kind: "phys", human: true,
+             base: { hp: 20, atk: 8,  def: 3,  mag: 0,  res: 2 },  grow: { hp: 3, atk: 1, def: 1, mag: 0, res: 0 } },
+  zealot:  { n: "배교 사제", spr: "mage",    wpn: "magic", mov: 3, rng: 2, kind: "mag", human: true,
+             base: { hp: 19, atk: 2,  def: 3,  mag: 10, res: 7 },  grow: { hp: 3, atk: 0, def: 1, mag: 2, res: 1 } },
+  noble:   { n: "영주",      spr: "warrior", wpn: "lance", mov: 3, rng: 1, kind: "phys", human: true,
+             base: { hp: 34, atk: 10, def: 7,  mag: 0,  res: 4 },  grow: { hp: 4, atk: 1, def: 1, mag: 0, res: 1 } },
+  /* 카이렌은 사람이지만 착한 척을 한 적이 없다. evil이 아니므로 「자비 없음」이 걸리지 않는다. */
+  knight:  { n: "흑기사",    spr: "warrior", wpn: "lance", mov: 4, rng: 1, kind: "phys", human: true,
+             base: { hp: 44, atk: 13, def: 9,  mag: 0,  res: 6 },  grow: { hp: 4, atk: 2, def: 1, mag: 0, res: 1 } }
+};
+
+const P = {
+  arden:  { o: "#12131c", h: "#e0c060", s: "#f6d4ae", e: "#2a2f45", a: "#4d7fc4", b: "#2f5490", c: "#c8543f", g: "#e8d089", m: "#eef4ff" },
+  garth:  { o: "#12131c", h: "#b8bcc8", s: "#dcb28e", e: "#2a2f45", a: "#8b93a6", b: "#5d6577", c: "#3f5a8c", g: "#d8b45a", m: "#e6ecf5" },
+  rien:   { o: "#12131c", h: "#8f5fd0", s: "#f2d0b4", e: "#2a2f45", a: "#6a4fb0", b: "#42306e", c: "#e0c060", g: "#e8d089", m: "#c8a8f0" },
+  sera:   { o: "#12131c", h: "#e8e2d0", s: "#f0c9a0", e: "#2a2f45", a: "#dcd6c4", b: "#a09a88", c: "#d8b45a", g: "#e8d089", m: "#f5f0d8" },
+  mila:   { o: "#12131c", h: "#c05a3a", s: "#e8b890", e: "#2a2f45", a: "#4a6a44", b: "#2f4a2c", c: "#8a6a40", g: "#d8b45a", m: "#c8a070" },
+  kairen: { o: "#0a0a10", h: "#e8e8f0", s: "#f6d4ae", e: "#7fd4f0", a: "#2a2f44", b: "#141725", c: "#7a2030", g: "#c8b070", m: "#dceaff" },
+  belzak: { o: "#0a0a10", k: "#7a3050", e: "#f0d060", t: "#f0e8d0", a: "#2a1830", b: "#180e1e", g: "#c02040", w: "#3a1c40", c: "#5a2040" },
+  goblin: { o: "#0f1512", k: "#5f8f4a", e: "#e0d040", t: "#f0f0e0", c: "#7a5a38", w: "#8a6a40" },
+  orc:    { o: "#0f1512", k: "#4a6f5a", e: "#e06040", t: "#f0f0e0", c: "#5a4a30", w: "#9a8a50" },
+  skel:   { o: "#0f1218", h: "#d8d4c0", s: "#e8e4d4", e: "#6ad0e0", a: "#7a7466", b: "#4a4640", c: "#3a4048", g: "#8a8474", m: "#b8c0c8" },
+  warlock:{ o: "#0f1218", h: "#2a2438", s: "#8a7a9a", e: "#a060e0", a: "#3a2c4c", b: "#241a30", c: "#7a3050", g: "#a060e0", m: "#c060f0" },
+  guard:  { o: "#0a0a10", h: "#4a2038", s: "#8a5a70", e: "#f0d060", a: "#5a2438", b: "#341420", c: "#8a2030", g: "#c09030", m: "#d0a8b0" },
+  merc:   { o: "#12131c", h: "#6a4a2a", s: "#c89a72", e: "#2a2f45", a: "#7a5f3a", b: "#4a3a20", c: "#5a4530", g: "#a08040", m: "#c8c0b0" },
+  slaver: { o: "#12131c", h: "#3a2a1a", s: "#c89a72", e: "#2a2f45", a: "#5a4a5a", b: "#382c38", c: "#8a6a2a", g: "#c8a850", m: "#d0c8b8" },
+  zealot: { o: "#12131c", h: "#e0dcd0", s: "#c8a888", e: "#c04050", a: "#e4e0d4", b: "#8a8478", c: "#8a2030", g: "#c8a850", m: "#f0ecd8" },
+  noble:  { o: "#12131c", h: "#8a7a4a", s: "#e0bc94", e: "#2a2f45", a: "#5a3a70", b: "#3a2448", c: "#c8a850", g: "#f0d489", m: "#e8e0c8" }
+};
+
+const FP = {
+  arden:  { o: "#12131c", h: "#e0c060", s: "#f6d4ae", e: "#3a5a90", b: "#a06850", c: "#4d7fc4" },
+  garth:  { o: "#12131c", h: "#b8bcc8", s: "#dcb28e", e: "#4a5060", b: "#96604a", c: "#8b93a6" },
+  rien:   { o: "#12131c", h: "#8f5fd0", s: "#f2d0b4", e: "#6a4fb0", b: "#c07a70", c: "#6a4fb0" },
+  sera:   { o: "#12131c", h: "#e8e2d0", s: "#f0c9a0", e: "#7a8a70", b: "#b07868", c: "#dcd6c4" },
+  mila:   { o: "#12131c", h: "#c05a3a", s: "#e8b890", e: "#4a6a44", b: "#a05a4a", c: "#4a6a44" },
+  kairen: { o: "#0a0a10", h: "#e8e8f0", s: "#f6d4ae", e: "#7fd4f0", b: "#8a4a50", c: "#2a2f44" },
+  belzak: { o: "#0a0a10", k: "#7a3050", e: "#f0d060", t: "#f0e8d0", c: "#2a1830" },
+  noble:  { o: "#12131c", h: "#8a7a4a", s: "#e0bc94", e: "#5a4a30", b: "#a06850", c: "#5a3a70" },
+  zealot: { o: "#12131c", h: "#e0dcd0", s: "#c8a888", e: "#c04050", b: "#a06850", c: "#e4e0d4" }
+};
+
+const CAST = {
+  arden:  { name: "아르덴", cls: "hero",    pal: "arden",  face: "short", fpal: "arden",  color: "#f0d489",
+            note: "재능이 없다. 검을 만 번 휘둘러 겨우 남들만큼 한다." },
+  garth:  { name: "가르트", cls: "paladin", pal: "garth",  face: "short", fpal: "garth",  color: "#b8bcc8",
+            note: "왕국 제3기사단의 마지막 한 명. 원정 두 번을 살아 돌아왔다." },
+  rien:   { name: "리엔",   cls: "mage",    pal: "rien",   face: "long",  fpal: "rien",   color: "#c8a8f0",
+            note: "서쪽 마법탑에서 금서를 안고 도망친 열여섯." },
+  sera:   { name: "세라",   cls: "cleric",  pal: "sera",   face: "hood",  fpal: "sera",   color: "#e8e2d0",
+            note: "성 유리아 수도원에 홀로 남은 사제." },
+  mila:   { name: "밀라",   cls: "ranger",  pal: "mila",   face: "long",  fpal: "mila",   color: "#e0a070",
+            note: "북방 관문의 정찰병. 입이 거칠고 셈이 빠르다." },
+  kairen: { name: "카이렌", cls: "knight",  pal: "kairen", face: "short", fpal: "kairen", color: "#7fd4f0",
+            note: "왕국 최연소 기사단장. 열세 살에 스승을 이긴 뒤로 배울 것이 없었다." },
+  belzak: { name: "벨자크", cls: "demon",   pal: "belzak", face: "horn",  fpal: "belzak", color: "#e0616a",
+            note: "서른 해를 옥좌에 앉아 지루해한 존재." },
+  haiden: { name: "하이덴 남작", cls: "noble", pal: "noble", face: "short", fpal: "noble", color: "#c8a850",
+            note: "구호소를 세운 자애로운 영주. 라는 평판." },
+  ordan:  { name: "오르단 주교", cls: "zealot", pal: "zealot", face: "hood", fpal: "zealot", color: "#e4e0d4",
+            note: "성 유리아 수도원의 주교. 였던 것." },
+
+  goblin: { name: "고블린",    cls: "goblin",  pal: "goblin",  color: "#8fbf6a" },
+  orc:    { name: "오크",      cls: "orc",     pal: "orc",     color: "#8fbf6a" },
+  skel:   { name: "해골병사",  cls: "skel",    pal: "skel",    color: "#d8d4c0" },
+  warlock:{ name: "흑마도사",  cls: "warlock", pal: "warlock", color: "#c060f0" },
+  guard:  { name: "마족 근위", cls: "guard",   pal: "guard",   color: "#e0616a" },
+  merc:   { name: "용병",      cls: "merc",    pal: "merc",    color: "#c8a070" },
+  slaver: { name: "노예상",    cls: "slaver",  pal: "slaver",  color: "#c8a850" },
+  zealot: { name: "배교 사제", cls: "zealot",  pal: "zealot",  color: "#e4e0d4" }
+};
+
+const PARTY_ORDER = ["arden", "garth", "rien", "sera", "mila"];
+const JOIN_AT = { arden: 0, garth: 0, rien: 1, sera: 3, mila: 4 };
+
+/* =========================================================================
+   4. 챕터 — 지도와 이야기
+   지도는 14×10. 대사·선택·후일담이 이 배열 하나에 전부 있다.
+   ========================================================================= */
+
+/* ---- 챕터 데이터 시작 ---- */
+const CHAPTERS = [
+{
+  id: 1, act: "제1부 · 착한 아이", title: "국경 마을 에일드", sub: "만 번째 검",
+  blurb: "세상의 끝이라 불리는 마을에 고블린이 내려온다.",
+  map: [
+    "^^..TT....TT^^",
+    "^....T......T^",
+    "..TT.....TT...",
+    ".....TT.......",
+    "..............",
+    "~~~~~~==~~~~~~",
+    ".....T..T.....",
+    "..HH......HH..",
+    "..HH..++..HH..",
+    "^^..TT..TT..^^"
+  ],
+  allies: [ { id: "arden", x: 6, y: 7 }, { id: "garth", x: 7, y: 7 } ],
+  foes: [
+    { id: "goblin", x: 3, y: 3 }, { id: "goblin", x: 10, y: 3 }, { id: "goblin", x: 6, y: 1 },
+    { id: "orc", x: 7, y: 2, boss: true, name: "고블린 두목" }
+  ],
+  win: { type: "rout" },
+  obj: "적 전멸 — 다리를 건너오는 무리를 막아라",
+  intro: [
+    { n: "북방으로 가는 마지막 마을. 여기서부터 지도는 비어 있다." },
+    { n: "마을 뒤뜰. 소년이 검을 휘두르고 있다. 벌써 세 시간째다." },
+    { w: "garth", t: "…아홉 시부터 보고 있었다. 몇 번째냐." },
+    { w: "arden", t: "오늘은 사백열둘요. 전부 합치면 구천 몇 번쯤 됩니다." },
+    { w: "garth", t: "그런 걸 세면서 하나." },
+    { w: "arden", t: "세야 늘어요. 저는 안 세면 안 늘거든요." },
+    { n: "늙은 기사는 소년의 얼굴을 한참 보았다." },
+    { w: "garth", t: "…얼굴이 반반하군. 아깝게도 그것뿐인가?" },
+    { w: "arden", t: "네. 그것뿐입니다. 검은 평범하고, 마법은 못 하고, 머리도 보통이에요." },
+    { w: "arden", t: "얼굴은 그냥 받은 거라 제 것 같지도 않고요." },
+    { w: "garth", t: "…정직해서 좋군." },
+    { n: "마을 종이 울렸다. 세 번. 습격이다." },
+    { w: "garth", t: "고블린이다. 다리를 건너온다. 숫자가 많아." },
+    { w: "garth", t: "다리목만 막으면 하나씩 상대할 수 있다. 넓은 데서 붙지 마라." },
+    { choice: { q: "마을 사람들이 아직 집에 남아 있다.", opts: [
+      { label: "먼저 대피시킨다", hint: "시간을 쓴다. 첫 턴 이득은 없다.", flag: "saved_villagers",
+        then: [ { w: "arden", t: "다리는 좁아요. 그동안은 제가 서 있을게요." },
+                { w: "garth", t: "…네가 서 있는 동안 죽으면 아무 소용 없다." },
+                { w: "arden", t: "그러니까 같이 서 주세요." },
+                { n: "아르덴은 집집마다 문을 두드렸다. 열두 채를 다 두드리고 나서야 검을 뽑았다." } ] },
+      { label: "지금 친다. 시간이 없다", hint: "첫 턴 동안 아군 위력 +3.", flag: "struck_first",
+        then: [ { w: "garth", t: "옳은 판단이다. 무리가 흩어지기 전에 두목부터 꺾는다." },
+                { w: "arden", t: "…집은요." },
+                { w: "garth", t: "빨리 끝내면 집도 남는다. 검을 들어라." },
+                { w: "arden", t: "…빨리 끝내겠습니다. 진짜로요." } ] }
+    ] } }
+  ],
+  triggers: [
+    { turn: 4, once: true, lines: [ { w: "garth", t: "잘 버티고 있다. 숨 고르고, 한 놈씩." } ] }
+  ],
+  outro: [
+    { w: "garth", t: "…평범하다더니." },
+    { w: "arden", t: "평범한 거 맞아요. 그냥 이 동작만 만 번 해서 그래요." },
+    { w: "garth", t: "만 번 한 게 평범한 건 아니다." },
+    { n: "기사는 투구를 벗었다. 백발이었다." },
+    { w: "garth", t: "가르트다. 왕국 제3기사단… 이었던 것의 마지막 한 명." },
+    { w: "arden", t: "아르덴입니다." },
+    { w: "garth", t: "아르덴. 나는 원정에 두 번 따라갔고 두 번 다 살아 돌아왔다. 그게 자랑이 아니라는 걸 아느냐." },
+    { w: "arden", t: "이번엔 같이 돌아가면 되죠." },
+    { n: "가르트는 한참 아무 말도 하지 않았다." },
+    { w: "garth", t: "…북으로 간다. 뒤따라라." }
+  ]
+},
+{
+  id: 2, act: "제1부 · 착한 아이", title: "잿빛 숲", sub: "겁쟁이 마법사",
+  blurb: "나무는 살아 있으나 잎이 자라지 않는 숲. 비명이 들린다.",
+  map: [
+    "TT..##....TT..",
+    "T....##..T...T",
+    "..TT..##....T.",
+    "....T..##.....",
+    "TT....T..##...",
+    "..T....T....TT",
+    "....TT....T...",
+    "T#..........T.",
+    ".##..TT...##..",
+    "T..T....TT..T#"
+  ],
+  allies: [ { id: "arden", x: 3, y: 8 }, { id: "garth", x: 4, y: 8 } ],
+  npcs: [ { id: "rien", x: 7, y: 5, joinTurn: 2 } ],
+  foes: [
+    { id: "skel", x: 5, y: 3 }, { id: "skel", x: 8, y: 4 }, { id: "skel", x: 8, y: 2 },
+    { id: "skel", x: 6, y: 5 }, { id: "skel", x: 10, y: 3 },
+    { id: "warlock", x: 11, y: 1, boss: true, name: "숲의 흑마도사" }
+  ],
+  win: { type: "rout" },
+  lose: { protect: "rien" },
+  obj: "적 전멸 — 리엔이 쓰러지면 실패",
+  intro: [
+    { n: "잿빛 숲. 나무는 살아 있으나 잎이 자라지 않는다." },
+    { w: "rien", t: "으아아! 오지 마! 오지 말라고!" },
+    { w: "garth", t: "저건… 아이인가?" },
+    { w: "arden", t: "해골한테 둘러싸여 있어요." },
+    { w: "garth", t: "아르덴. 저 아이는 우리 일이 아니다. 우회하면—" },
+    { n: "아르덴은 이미 뛰고 있었다." },
+    { w: "garth", t: "…저놈은 사람 말을 끝까지 듣는 법이 없군." }
+  ],
+  triggers: [
+    { turn: 2, once: true, join: "rien", lines: [
+      { w: "rien", t: "저, 저기요! 도와주시는 거예요?!" },
+      { w: "rien", t: "저 마법 쓸 줄 알아요! 무서워서 그렇지 쓸 줄은 안다고요!" },
+      { w: "garth", t: "그럼 쏴라. 무서운 채로." }
+    ] },
+    { foeHp: "boss", below: 0.4, once: true, lines: [
+      { w: "warlock", t: "…탑의 계집애구나. 책을 내놓으면 살려주마." },
+      { w: "rien", t: "시, 싫어요!" }
+    ] }
+  ],
+  outro: [
+    { w: "rien", t: "리엔이에요. 서쪽 마법탑… 에서 도망쳤어요." },
+    { w: "garth", t: "탑에서 도망친 마법사라. 훔친 건 뭐냐." },
+    { w: "rien", t: "…금서요." },
+    { w: "garth", t: "역시." },
+    { w: "rien", t: "그치만! 이 책에 마왕성 결계를 푸는 방법이 적혀 있어요. 진짜예요!" },
+    { n: "리엔은 그제야 아르덴의 얼굴을 정면으로 봤다. 그리고 두 걸음 물러섰다." },
+    { w: "rien", t: "…저, 저기. 실례지만 얼굴이 왜 그러세요." },
+    { w: "arden", t: "네?" },
+    { w: "rien", t: "아니 그러니까, 그, 사람 얼굴이 그러면 좀 곤란하지 않나 해서요." },
+    { w: "garth", t: "곤란하다. 저 얼굴 때문에 마을에서 밥값을 한 번도 안 냈다더군." },
+    { w: "arden", t: "그건 제가 장작을 패 드려서 그런 거예요." },
+    { choice: { q: "금서를 어떻게 할까.", opts: [
+      { label: "태운다. 저주받은 물건이다", hint: "일행 전원 최대 체력 +3.", flag: "book_burned",
+        then: [ { w: "rien", t: "…네. 사실 저도 무서웠어요. 밤마다 책이 저를 부르는 것 같아서." },
+                { w: "rien", t: "결계 푸는 법은 외웠어요. 외우고 태울게요." },
+                { w: "garth", t: "영리한 아이군." },
+                { n: "그날 밤 일행은 오랜만에 깊이 잤다." } ] },
+      { label: "가지고 가라. 필요할 거다", hint: "리엔의 마력 +3.", flag: "book_kept",
+        then: [ { w: "rien", t: "지, 지켜도 돼요? 진짜로?" },
+                { w: "arden", t: "훔친 건 나중에 돌려주면 되죠. 지금은 문을 여는 게 먼저니까." },
+                { w: "rien", t: "…이상한 사람이다, 진짜." },
+                { n: "리엔은 그날 밤 금서를 처음부터 끝까지 다시 읽었다." } ] }
+    ] } }
+  ]
+},
+{
+  id: 3, act: "제1부 · 착한 아이", title: "자애로운 영주", sub: "웃는 얼굴",
+  blurb: "구호소를 세워 굶주린 자를 먹이는 남작. 그 지하에 사람이 팔려 나간다.",
+  map: [
+    "^^..TT......^^",
+    "^..T....HH..T^",
+    "...T....HH....",
+    "..HH..____....",
+    "..HH.._##_..T.",
+    ".....__##__...",
+    "....___##___..",
+    "..T.__####__..",
+    "..T..__..__.T.",
+    "^^..T......T^^"
+  ],
+  allies: [ { id: "arden", x: 6, y: 9 }, { id: "garth", x: 7, y: 9 }, { id: "rien", x: 5, y: 9 } ],
+  foes: [
+    { id: "haiden", x: 6, y: 3, boss: true, evil: true, hold: true },
+    { id: "merc", x: 4, y: 5, evil: true }, { id: "merc", x: 9, y: 5, evil: true },
+    { id: "merc", x: 5, y: 7, evil: true }, { id: "merc", x: 10, y: 7, evil: true },
+    { id: "slaver", x: 3, y: 4, evil: true }, { id: "slaver", x: 10, y: 4, evil: true }
+  ],
+  win: { type: "boss" },
+  obj: "하이덴 남작 격파 — 지하 사람들을 되찾아라",
+  intro: [
+    { n: "루베르 영지. 굶주린 자에게 빵을 나눠주는 구호소로 이름난 곳이다." },
+    { w: "haiden", t: "오오, 원정대 여러분! 이 하이덴, 영광입니다. 하룻밤 묵어 가시지요." },
+    { w: "haiden", t: "보시다시피 저희는 가진 것이 없으나, 나눌 것은 늘 있습니다." },
+    { w: "rien", t: "좋은 분이네요…" },
+    { w: "arden", t: "…" },
+    { n: "아르덴은 웃으며 빵을 받았다. 그리고 그 자리에 서서 빵을 먹지 않았다." },
+    { w: "arden", t: "남작님." },
+    { w: "haiden", t: "예, 말씀하십시오." },
+    { w: "arden", t: "구호소 뒤편 창고요. 자물쇠가 안쪽이 아니라 바깥쪽에 걸려 있던데요." },
+    { w: "haiden", t: "…" },
+    { w: "arden", t: "곡식을 넣어두는 창고는 도둑이 못 들어오게 잠그죠. 바깥에서요." },
+    { w: "arden", t: "안에서 못 나오게 잠그는 건 곡식이 아니고요." },
+    { w: "garth", t: "…아르덴." },
+    { w: "haiden", t: "허허, 젊은 분이 상상력이…" },
+    { w: "arden", t: "지하에 마흔한 명 있습니다. 방금 세고 왔어요." },
+    { w: "arden", t: "아이가 아홉이고요." },
+    { n: "남작의 얼굴에서 웃음이 사라지는 데 걸린 시간은 아주 짧았다." },
+    { w: "haiden", t: "…쳐라." },
+    { n: "그리고 그때, 리엔은 처음으로 아르덴의 옆얼굴을 봤다." },
+    { w: "rien", t: "…어?" },
+    { w: "arden", t: "리엔. 뒤로 가 있어요." },
+    { w: "rien", t: "저, 저기, 아르덴 씨?" },
+    { w: "arden", t: "부탁이에요. 이건 안 보는 게 좋아요." },
+    { w: "garth", t: "…소름이 끼치는군. 저 얼굴로 저런 목소리를 내나." },
+    { n: "「자비 없음」 — 아르덴이 사람의 탈을 쓴 자를 칠 때, 위력이 1.5배가 되고 반격을 받지 않는다." }
+  ],
+  triggers: [
+    { evilKill: true, once: true, lines: [
+      { w: "rien", t: "…아르덴 씨, 방금." },
+      { w: "rien", t: "말도 안 걸고 베셨어요." },
+      { w: "arden", t: "네." },
+      { w: "rien", t: "…왜요? 항상 그렇게 다정하시면서." },
+      { w: "arden", t: "저 사람들 마흔한 명한테는 아무도 말을 안 걸었으니까요." },
+      { w: "arden", t: "그럼 저도 안 걸어요." }
+    ] },
+    { foeHp: "boss", below: 0.4, once: true, lines: [
+      { w: "haiden", t: "자, 잠깐! 나는 천 명을 먹였다! 마흔 명이 대수인가!" },
+      { w: "arden", t: "천 명을 먹인 건 훌륭한 일이죠." },
+      { w: "arden", t: "그거랑 마흔한 명을 판 건 따로 계산합니다." }
+    ] }
+  ],
+  outro: [
+    { n: "지하 문이 열렸다. 마흔한 명이 걸어 나왔다. 아홉 명은 업혀 나왔다." },
+    { w: "arden", t: "괜찮아요. 이제 괜찮아요. 천천히 나오세요. 물 여기 있어요." },
+    { n: "아르덴은 마흔한 명에게 전부 이름을 물었다. 전부 외웠다." },
+    { w: "rien", t: "…가르트 경." },
+    { w: "garth", t: "말하지 마라. 나도 아직 정리가 안 됐다." },
+    { w: "rien", t: "저분, 무서운 사람이에요? 착한 사람이에요?" },
+    { w: "garth", t: "…둘 다다." },
+    { w: "garth", t: "그리고 그 둘이 같은 이유에서 나온다는 게 제일 무섭지." },
+    { choice: { q: "남작의 금고에 은화가 가득하다.", opts: [
+      { label: "전부 지하에 있던 사람들에게 준다", hint: "일행은 빈손으로 떠난다.", flag: "gave_all",
+        then: [ { w: "arden", t: "마흔한 명이면 한 사람당 얼마죠?" },
+                { w: "rien", t: "…계산해 볼게요. 어, 꽤 되는데요?" },
+                { w: "garth", t: "우리 몫은." },
+                { w: "arden", t: "우리는 걸을 수 있잖아요." },
+                { w: "garth", t: "…그래. 걸을 수 있지." } ] },
+      { label: "절반은 원정 자금으로 쓴다", hint: "일행 전원 위력 +1. 좋은 장비를 산다.", flag: "took_half",
+        then: [ { w: "arden", t: "절반만 가져갑시다. 마왕성까지 맨몸으로는 못 가니까." },
+                { w: "garth", t: "네가 그런 말을 할 줄은 몰랐군." },
+                { w: "arden", t: "저도요. 근데 죽으면 아무도 못 구하잖아요." },
+                { n: "일행은 그 돈으로 검을 갈고 화살을 샀다. 아르덴은 마지막까지 계산서를 들여다봤다." } ] }
+    ] } }
+  ]
+},
+{
+  id: 4, act: "제1부 · 착한 아이", title: "성 유리아 수도원", sub: "기도하는 손",
+  blurb: "제3차 원정대가 마지막 미사를 올린 곳. 주교는 아직 기도하고 있다.",
+  map: [
+    "###__++__#####",
+    "#__________##.",
+    "#_##____##__#.",
+    "._#__##__#_..T",
+    "..__#__#__....",
+    "T.__....__..T.",
+    "..____##____..",
+    ".T..______..T.",
+    "..T..____..TT.",
+    "T..TT....TT..T"
+  ],
+  allies: [ { id: "arden", x: 6, y: 9 }, { id: "garth", x: 7, y: 9 }, { id: "rien", x: 5, y: 9 } ],
+  npcs: [ { id: "sera", x: 6, y: 7, joinTurn: 1 } ],
+  foes: [
+    { id: "ordan", x: 6, y: 0, boss: true, evil: true, hold: true },
+    { id: "zealot", x: 4, y: 2, evil: true }, { id: "zealot", x: 10, y: 2, evil: true },
+    { id: "skel", x: 5, y: 4 }, { id: "skel", x: 8, y: 4 },
+    { id: "skel", x: 3, y: 6 }, { id: "skel", x: 10, y: 6 }
+  ],
+  win: { type: "boss" },
+  lose: { protect: "sera" },
+  obj: "오르단 주교 격파 — 세라가 쓰러지면 실패",
+  intro: [
+    { n: "성 유리아 수도원. 제3차 원정대가 마지막으로 미사를 올린 곳." },
+    { w: "sera", t: "…살아 있는 분은 오랜만입니다." },
+    { w: "arden", t: "여기 혼자 계세요?" },
+    { w: "sera", t: "여기 있는 사람은 전부 살아 있지 않아요. 저만 빼고요." },
+    { w: "sera", t: "주교님은 살아 계십니다만… 그건 또 다른 이야기라." },
+    { n: "제단 위. 오르단 주교가 무릎을 꿇고 기도하고 있었다. 아주 경건하게." },
+    { w: "ordan", t: "…오셨군요. 주께서 네 번째 아이들을 보내셨습니다." },
+    { w: "ordan", t: "제3차 원정대 여덟 분도 여기서 기도하셨지요. 제가 직접 축복을 드렸습니다." },
+    { w: "garth", t: "…여덟 명 전부 성문 앞에서 죽었소." },
+    { w: "ordan", t: "주의 뜻이었습니다." },
+    { w: "arden", t: "주교님." },
+    { w: "ordan", t: "예, 아이야." },
+    { w: "arden", t: "제3차 원정대가 여기서 며칠 묵었죠?" },
+    { w: "ordan", t: "…사흘입니다." },
+    { w: "arden", t: "사흘이면 마왕성 배치를 다 그릴 수 있는 시간이네요." },
+    { w: "arden", t: "그 배치도, 누구한테 보내셨어요?" },
+    { n: "기도하던 손이 멈췄다." },
+    { w: "sera", t: "…네?" },
+    { w: "arden", t: "여덟 명이 전부 성문 앞에서 죽었대요. 문이 열리는 위치까지 정확히 알고 기다린 것처럼요." },
+    { w: "arden", t: "여기서 사흘 묵은 사람이 여덟 명, 그걸 아는 사람이 한 명." },
+    { w: "ordan", t: "…아이야. 나는 이 수도원의 백 명을 지켰다." },
+    { w: "arden", t: "여덟 명을 팔아서요." },
+    { w: "ordan", t: "…셈이 맞지 않느냐!" },
+    { n: "아르덴은 웃지 않았다. 처음부터 웃고 있지 않았다." },
+    { w: "arden", t: "사람은 셈에 안 들어갑니다." },
+    { w: "sera", t: "…주교님." },
+    { w: "sera", t: "저는 그 여덟 분 성함을 다 외우고 있습니다. 매일 아침 외웠습니다." },
+    { w: "sera", t: "…누구 앞에서 외운 거였죠, 그럼." }
+  ],
+  triggers: [
+    { turn: 1, once: true, join: "sera", lines: [
+      { w: "sera", t: "세라입니다. 치유는 제가 맡겠습니다. 다치면 곧바로 오세요." },
+      { w: "sera", t: "그리고… 저 사람은 제가 안 보이는 데서 처리해 주세요. 부탁드립니다." },
+      { w: "arden", t: "아뇨. 보세요." },
+      { w: "sera", t: "…네?" },
+      { w: "arden", t: "여덟 분 이름 외우셨잖아요. 그럼 끝까지 보셔야죠." }
+    ] },
+    { foeHp: "boss", below: 0.35, once: true, lines: [
+      { w: "ordan", t: "나, 나는 백 명을 살렸다! 백 명이다!" },
+      { w: "arden", t: "그 백 명한테 물어보죠. 여덟 명 값으로 산 목숨을 원했는지." },
+      { w: "ordan", t: "…그, 그건—" },
+      { w: "arden", t: "안 물어보셨죠. 저도 압니다. 물어봤으면 여기까지 안 왔을 테니까." }
+    ] }
+  ],
+  outro: [
+    { n: "미사가 끝난 예배당처럼 조용했다." },
+    { w: "sera", t: "…감사합니다." },
+    { w: "arden", t: "죄송해요. 보시게 해서." },
+    { w: "sera", t: "아뇨. 안 봤으면 평생 몰랐을 겁니다." },
+    { w: "sera", t: "용사님. 하나만 여쭤도 될까요." },
+    { w: "arden", t: "네." },
+    { w: "sera", t: "화가 나서 베신 겁니까?" },
+    { w: "arden", t: "아뇨. 화는 안 났어요." },
+    { w: "arden", t: "화가 나면 손이 떨려서 한 번에 안 끝나요. 그럼 저 사람이 아프잖아요." },
+    { n: "세라는 그 대답을 오래 기억했다. 오십 년 뒤에도." },
+    { w: "sera", t: "…같이 가겠습니다. 여기 남은 사람은 이제 저뿐이고, 저는 걸을 수 있어요." }
+  ]
+},
+{
+  id: 5, act: "제2부 · 천재의 그늘", title: "왕도 아르켄", sub: "같은 얼굴",
+  blurb: "왕국 최연소 기사단장이 원정대를 맞는다. 그는 아르덴을 한 번 보고 웃었다.",
+  map: [
+    "####____####__",
+    "#___________##",
+    "#_##_____##__#",
+    "#_##_____##__#",
+    "#____________#",
+    "__####___####_",
+    "__#___T___#___",
+    "__#__TTT__#___",
+    "#____TTT_____#",
+    "###__.....__##"
+  ],
+  allies: [ { id: "arden", x: 6, y: 9 }, { id: "garth", x: 7, y: 9 },
+            { id: "rien", x: 5, y: 9 }, { id: "sera", x: 8, y: 9 } ],
+  npcs: [ { id: "mila", x: 4, y: 6, joinTurn: 1 } ],
+  foes: [
+    { id: "guard", x: 6, y: 1, boss: true, name: "마족 척후장" },
+    { id: "guard", x: 4, y: 2 }, { id: "guard", x: 8, y: 2 },
+    { id: "warlock", x: 2, y: 4 }, { id: "warlock", x: 11, y: 4 },
+    { id: "skel", x: 5, y: 4 }, { id: "skel", x: 8, y: 4 }
+  ],
+  win: { type: "rout" },
+  obj: "적 전멸 — 왕도에 스며든 척후를 쓸어라",
+  intro: [
+    { n: "왕도 아르켄. 원정대가 성문을 지나자 사람들이 걸음을 멈췄다." },
+    { n: "정확히는, 아르덴을 보고 멈췄다." },
+    { w: "rien", t: "…저기요, 저 사람들 왜 저래요." },
+    { w: "garth", t: "익숙해져라. 사흘째다." },
+    { w: "arden", t: "저는 아직도 왜 그러는지 모르겠어요." },
+    { w: "mila", t: "야, 시골뜨기. 길 막지 마라." },
+    { n: "정찰병 하나가 어깨로 밀고 지나가다, 아르덴의 얼굴을 보고 그대로 멈췄다." },
+    { w: "mila", t: "…" },
+    { w: "mila", t: "…미안. 방금 건 내 잘못이다." },
+    { w: "rien", t: "얼굴 한 번에 사과를 받아내네…" },
+    { n: "그리고 회랑 끝에서, 한 사람이 걸어왔다." },
+    { n: "사람들이 다시 걸음을 멈췄다. 이번에는 반대편을 보고." },
+    { w: "kairen", t: "…호오." },
+    { w: "kairen", t: "가르트 경. 이번엔 얼굴을 주워 오셨군요." },
+    { w: "garth", t: "…카이렌 단장." },
+    { w: "kairen", t: "카이렌이다. 제1기사단장." },
+    { w: "arden", t: "아르덴입니다." },
+    { n: "두 사람이 마주 섰다. 회랑이 조용해졌다." },
+    { w: "rien", t: "…어, 저기. 이거 좀 이상한데요." },
+    { w: "sera", t: "말하지 마세요. 저도 보고 있습니다." },
+    { w: "kairen", t: "얼굴은 쓸 만하군. 검은?" },
+    { w: "arden", t: "평범합니다." },
+    { w: "kairen", t: "정직하군. 그럼 필요 없다." },
+    { w: "kairen", t: "나는 열두 살에 검을 처음 잡았고 열세 살에 스승을 이겼다. 그 뒤로는 배울 게 없었다." },
+    { w: "kairen", t: "너는 몇 살에 잡았나." },
+    { w: "arden", t: "열둘요." },
+    { w: "kairen", t: "그럼 지금쯤 뭘 하고 있나." },
+    { w: "arden", t: "만 번쯤 휘둘렀습니다. 아직 스승은 못 이겼고요." },
+    { w: "kairen", t: "…만 번." },
+    { w: "kairen", t: "그런 걸 세면서 사나." },
+    { w: "arden", t: "세야 늘어요." },
+    { n: "카이렌은 웃었다. 처음으로, 조금 흥미롭다는 얼굴이었다." },
+    { w: "kairen", t: "재미없는 대답이군. 그런데 왜 기억에 남지." },
+    { n: "성벽 위에서 경종이 울렸다. 마족 척후가 성 안에 있다." },
+    { w: "kairen", t: "제1기사단은 동문을 맡는다. 서문은 너희가." },
+    { w: "kairen", t: "죽으면 그것도 답이고." }
+  ],
+  triggers: [
+    { turn: 1, once: true, join: "mila", lines: [
+      { w: "mila", t: "밀라다. 북방 관문 소속 정찰병." },
+      { w: "mila", t: "아까 어깨로 민 값은 화살로 갚는다. 뒤는 내가 본다." },
+      { w: "rien", t: "얼굴값 진짜 세다…" }
+    ] },
+    { turn: 5, once: true, lines: [
+      { n: "동문 쪽이 이미 조용해졌다. 카이렌의 부대가 정리를 마친 것이다." },
+      { w: "garth", t: "…벌써 끝냈군. 우리 절반도 안 걸렸다." },
+      { w: "arden", t: "빠르네요." },
+      { w: "garth", t: "분하지 않나." },
+      { w: "arden", t: "분하죠. 그래서 오늘 밤에 더 휘두를 거예요." }
+    ] }
+  ],
+  outro: [
+    { n: "서문의 마지막 척후가 쓰러졌다. 카이렌은 이미 와서 보고 있었다." },
+    { w: "kairen", t: "열일곱 명. 시간은 내 쪽 두 배." },
+    { w: "kairen", t: "그런데 너희 쪽은 한 명도 안 죽었군." },
+    { w: "garth", t: "…그게 목적이오." },
+    { w: "kairen", t: "비효율적이다." },
+    { w: "arden", t: "효율은 나중에 세면 되잖아요. 사람은 지금 세야 하고요." },
+    { n: "카이렌은 그 말에 처음으로 대답하지 않았다." },
+    { w: "kairen", t: "…제4차 원정이 편성됐다. 내가 지휘한다." },
+    { w: "kairen", t: "너희도 온다. 왕명이다." },
+    { w: "kairen", t: "아르덴이라 했나." },
+    { w: "arden", t: "네." },
+    { w: "kairen", t: "네 얼굴이 거슬린다." },
+    { w: "arden", t: "…저도 가끔 그래요." },
+    { w: "kairen", t: "그런 뜻이 아니다." },
+    { n: "카이렌은 돌아섰다. 그리고 아무에게도 들리지 않게 덧붙였다." },
+    { w: "kairen", t: "거울 같아서 그렇지." }
+  ]
+},
+{
+  id: 6, act: "제2부 · 천재의 그늘", title: "북방 관문 카르돈", sub: "숫자를 세는 사람",
+  blurb: "제4차 원정이 출발한다. 지휘는 카이렌. 그의 전술에는 빈틈이 없다.",
+  map: [
+    "##____##____##",
+    "#____##____#_#",
+    "#____##____#_#",
+    "#__________#_#",
+    "##__####__##_#",
+    ".#__#__#__#__.",
+    "..__________..",
+    "^..________..^",
+    "^^..______..^^",
+    "^^^..____..^^^"
+  ],
+  allies: [ { id: "arden", x: 6, y: 9 }, { id: "garth", x: 7, y: 9 },
+            { id: "rien", x: 5, y: 9 }, { id: "sera", x: 8, y: 9 },
+            { id: "mila", x: 4, y: 8 }, { id: "kairen", x: 9, y: 8, lv: 3 } ],
+  foes: [
+    { id: "guard", x: 6, y: 3, boss: true, lv: 3, name: "마족 장군 그라흐" },
+    { id: "guard", x: 3, y: 1, lv: 2 }, { id: "guard", x: 9, y: 1, lv: 2 },
+    { id: "warlock", x: 2, y: 0, lv: 2 }, { id: "warlock", x: 11, y: 0, lv: 2 },
+    { id: "orc", x: 2, y: 3, lv: 2 }, { id: "orc", x: 9, y: 3, lv: 2 },
+    { id: "skel", x: 3, y: 5, lv: 2 }, { id: "skel", x: 5, y: 5, lv: 2 },
+    { id: "skel", x: 8, y: 5, lv: 2 }, { id: "skel", x: 11, y: 5, lv: 2 },
+    { id: "guard", x: 6, y: 6 }, { id: "guard", x: 7, y: 6 }
+  ],
+  extraFoes: [
+    { flag: "defied_kairen", unit: { id: "orc", x: 2, y: 6, lv: 2 } },
+    { flag: "defied_kairen", unit: { id: "orc", x: 11, y: 6, lv: 2 } }
+  ],
+  win: { type: "boss" },
+  obj: "마족 장군 그라흐 격파 — 관문을 되찾아라",
+  intro: [
+    { n: "북방 관문 카르돈. 제4차 원정대 백여 명이 여기서 대열을 갖췄다." },
+    { w: "kairen", t: "배치는 끝냈다. 중앙은 내가, 우익은 제1기사단, 좌익은 보병 스물아홉." },
+    { w: "garth", t: "…좌익 스물아홉은 지원이 없소만." },
+    { w: "kairen", t: "없다." },
+    { w: "garth", t: "…" },
+    { w: "kairen", t: "적이 좌익을 물면 중앙이 비고, 그때 내가 장군의 목을 딴다." },
+    { w: "kairen", t: "스물아홉으로 관문을 산다. 싼 값이다." },
+    { w: "mila", t: "…야. 저 스물아홉 중에 내 동생 있다." },
+    { w: "kairen", t: "그런가." },
+    { w: "kairen", t: "그럼 서른 명 값이겠군." },
+    { n: "밀라의 손이 활에 갔다. 가르트가 그 손목을 잡았다." },
+    { w: "arden", t: "단장님." },
+    { w: "kairen", t: "말해라." },
+    { w: "arden", t: "계산이 틀렸는데요." },
+    { w: "kairen", t: "…뭐?" },
+    { w: "arden", t: "스물아홉을 버리면 관문은 오늘 얻습니다. 근데 내일부터는 아무도 단장님 뒤에 안 서요." },
+    { w: "arden", t: "그건 스물아홉보다 비싼데요." },
+    { n: "카이렌은 처음으로, 아주 잠깐, 계산을 다시 했다." },
+    { w: "kairen", t: "…흥미롭군. 그런데 그건 네 셈이지 내 셈이 아니다." },
+    { choice: { q: "좌익 스물아홉을 어떻게 할까.", opts: [
+      { label: "명령을 따른다", hint: "카이렌의 전술대로 간다. 적이 적다.", flag: "obeyed_kairen",
+        then: [ { w: "arden", t: "…따르겠습니다." },
+                { w: "mila", t: "야!" },
+                { w: "arden", t: "밀라 씨. 여기서 대열이 깨지면 스물아홉이 아니라 백 명이 죽어요." },
+                { w: "arden", t: "대신 제가 중앙을 빨리 뚫을게요. 좌익이 버티는 시간만큼요." },
+                { w: "mila", t: "…빨리 뚫어라. 진짜로." } ] },
+      { label: "좌익으로 간다", hint: "적 둘이 더 붙는다. 스물아홉은 살아남는다.", flag: "defied_kairen",
+        then: [ { w: "arden", t: "저희가 좌익으로 가겠습니다." },
+                { w: "kairen", t: "명령 불복이다." },
+                { w: "arden", t: "네. 처벌은 끝나고 받겠습니다." },
+                { w: "kairen", t: "…네가 죽으면 처벌할 사람이 없다." },
+                { w: "arden", t: "그럼 안 죽을게요." },
+                { w: "garth", t: "…저놈은 저 말을 진심으로 한다는 게 문제요." } ] }
+    ] } }
+  ],
+  triggers: [
+    { turn: 3, once: true, lines: [
+      { n: "중앙이 갈라졌다. 카이렌 혼자였다." },
+      { w: "rien", t: "…어? 방금 저기 넷 있었는데요." },
+      { w: "mila", t: "넷 다 넘어졌다. 나는 두 번째까지밖에 못 봤고." },
+      { w: "garth", t: "…저게 재능이다." },
+      { w: "arden", t: "…" },
+      { w: "garth", t: "분한가." },
+      { w: "arden", t: "네." },
+      { w: "arden", t: "근데 지금은 분해할 시간이 아니라서요. 오른쪽 부탁드립니다." }
+    ] },
+    { foeHp: "boss", below: 0.3, once: true, lines: [
+      { w: "kairen", t: "아르덴. 너는 왜 아직 서 있나." },
+      { w: "arden", t: "…네?" },
+      { w: "kairen", t: "네 검은 평범하다. 세 번은 죽었어야 할 자리다." },
+      { w: "arden", t: "평범한 걸 아니까 세 번 다 피할 준비를 하고 온 거예요." }
+    ] }
+  ],
+  outro: [
+    { n: "관문이 서른 해 만에 왕국 깃발을 올렸다." },
+    { w: "kairen", t: "장군의 목은 내가 땄다. 시간은 예정보다 빨랐고." },
+    { w: "kairen", t: "그런데 네 쪽 사상자가 영이더군." },
+    { w: "arden", t: "네." },
+    { w: "kairen", t: "말이 안 된다. 나는 그 배치에서 최소 열둘을 계산했다." },
+    { w: "arden", t: "열둘 나올 자리를 만 번쯤 상상해 봤거든요." },
+    { w: "arden", t: "재능이 없으면 미리 겪어 보는 수밖에 없어서요." },
+    { n: "카이렌은 오래 아르덴을 봤다. 같은 얼굴 두 개가 마주 보고 있었다." },
+    { w: "kairen", t: "…네 얼굴이 정말 거슬린다." },
+    { w: "arden", t: "그건 저도 어쩔 수가 없어요." },
+    { w: "kairen", t: "그게 아니라." },
+    { w: "kairen", t: "같은 걸 받고 태어나서, 너는 세고 나는 안 셌다는 게 거슬린다는 거다." },
+    { n: "카이렌은 돌아섰다. 그날 밤, 그는 제1기사단에 야간 행군을 명했다." }
+  ]
+},
+{
+  id: 7, act: "제2부 · 천재의 그늘", title: "얼어붙은 협곡", sub: "미끼",
+  blurb: "협곡에 갇혔다. 위에서 누군가 내려다보고 있다.",
+  map: [
+    "^^^^^^^^^^^^^^",
+    "^^..____..^^^^",
+    "^..______..^^^",
+    "^.________..^^",
+    "^..______..^^^",
+    "^^..====..^^^^",
+    "^^..____..^^^^",
+    "^..______..^^^",
+    "^^..____..^^^^",
+    "^^^^^^^^^^^^^^"
+  ],
+  allies: [ { id: "arden", x: 5, y: 8 }, { id: "garth", x: 6, y: 8 },
+            { id: "rien", x: 4, y: 8 }, { id: "sera", x: 7, y: 8 },
+            { id: "mila", x: 5, y: 7 } ],
+  foes: [
+    { id: "guard", x: 5, y: 1, boss: true, lv: 4, name: "추격대장" },
+    { id: "skel", x: 4, y: 2, lv: 3 }, { id: "skel", x: 7, y: 2, lv: 3 },
+    { id: "warlock", x: 3, y: 3, lv: 3 }, { id: "warlock", x: 8, y: 3, lv: 3 },
+    { id: "guard", x: 5, y: 4, lv: 2 }, { id: "guard", x: 6, y: 4, lv: 2 }
+  ],
+  summons: [ { id: "skel", x: 4, y: 1, lv: 3 }, { id: "skel", x: 7, y: 1, lv: 3 } ],
+  win: { type: "survive", turns: 8 },
+  obj: "8턴 생존 — 다리 너머로 병사들이 다 건널 때까지 버텨라",
+  intro: [
+    { n: "얼어붙은 협곡. 폭이 좁고, 위는 절벽이다." },
+    { n: "원정대 본대는 이미 다리를 건넜다. 남은 것은 후위 다섯과, 아직 건너는 중인 병사 예순." },
+    { w: "mila", t: "위에 사람 있다." },
+    { n: "절벽 위. 카이렌이 서 있었다. 혼자, 아주 편하게." },
+    { w: "garth", t: "…카이렌 단장! 후위가 아직 남았소! 지원을!" },
+    { w: "kairen", t: "지원은 없다." },
+    { w: "kairen", t: "너희가 후위인 이유가 그거다." },
+    { w: "rien", t: "…네?" },
+    { w: "kairen", t: "추격대가 붙었다. 누군가는 물려 있어야 본대가 산다." },
+    { w: "kairen", t: "가장 오래 버틸 다섯을 골랐다. 합리적인 인선이다." },
+    { w: "sera", t: "…처음부터, 이러려고." },
+    { w: "kairen", t: "처음부터다." },
+    { w: "kairen", t: "왕도에서 너희를 본 날에 정했다." },
+    { w: "arden", t: "…" },
+    { w: "kairen", t: "화를 내라. 그게 정상이다." },
+    { w: "arden", t: "화는 안 났어요." },
+    { w: "kairen", t: "…또 그건가." },
+    { w: "arden", t: "카이렌 단장." },
+    { w: "arden", t: "저는 당신이 나쁜 사람이라고 생각 안 해요." },
+    { w: "kairen", t: "…뭐?" },
+    { w: "arden", t: "당신은 착한 척을 한 적이 없잖아요. 처음부터 이렇게 셀 거라고 말했고요." },
+    { w: "arden", t: "저는 착한 척하는 사람만 못 참아요. 당신은 아니에요." },
+    { n: "절벽 위의 남자가 웃음을 멈췄다." },
+    { w: "kairen", t: "…그건 용서인가." },
+    { w: "arden", t: "아뇨. 그냥 계산이에요." },
+    { w: "arden", t: "당신을 이기려면 화가 아니라 검이 필요하니까요. 화는 손을 떨리게 하거든요." },
+    { w: "kairen", t: "…" },
+    { w: "kairen", t: "여덟 턴 버텨라. 그럼 예순 명이 건넌다." },
+    { w: "kairen", t: "못 버티면 예순도 너희도 없다. 그건 내 계산에 이미 들어 있고." }
+  ],
+  triggers: [
+    { turn: 3, once: true, summon: true, lines: [
+      { w: "mila", t: "위쪽에 둘 더 붙었다! 예순 명 아직 반도 못 건넜어!" },
+      { w: "sera", t: "버팁니다. 다친 분은 제 옆으로." }
+    ] },
+    { turn: 6, once: true, summon: true, lines: [
+      { w: "rien", t: "저, 저 마법 두 발 남았어요!" },
+      { w: "arden", t: "두 발이면 두 번 더 살릴 수 있는 거예요. 충분해요." },
+      { w: "garth", t: "…아르덴. 저 위의 남자가 아직 안 갔다." },
+      { w: "arden", t: "알아요. 보고 있는 거죠." }
+    ] }
+  ],
+  outro: [
+    { n: "마지막 병사가 다리를 건넜다. 예순 명 전원이었다." },
+    { w: "mila", t: "…예순. 다 셌다." },
+    { choice: { q: "추격대가 다리에 발을 올렸다.", opts: [
+      { label: "다리를 끊는다", hint: "추격을 끊는다. 협곡은 영원히 갈라진다.", flag: "cut_bridge",
+        then: [ { w: "arden", t: "리엔. 다리요." },
+                { w: "rien", t: "…마지막 한 발, 여기 쓸게요." },
+                { n: "얼어붙은 다리가 두 동강 났다. 추격대가 건너편에 남았다." },
+                { w: "garth", t: "…돌아갈 길도 같이 끊겼다는 건 아나." },
+                { w: "arden", t: "네. 그래서 이제 앞으로만 가면 돼요." } ] },
+      { label: "끝까지 막아선다", hint: "다리를 남긴다. 대신 여기서 더 싸운다.", flag: "waited_all",
+        then: [ { w: "arden", t: "다리는 남깁니다." },
+                { w: "mila", t: "미쳤냐?! 저것들 다 건너온다!" },
+                { w: "arden", t: "이 다리, 마을 사람들도 쓰는 길이에요." },
+                { w: "arden", t: "오늘 편하자고 끊으면 내년에 누가 못 건너요." },
+                { w: "garth", t: "…내년 걱정을 지금 하나." },
+                { w: "arden", t: "내년까지 살 거니까요." } ] }
+    ] } },
+    { n: "절벽 위는 이미 비어 있었다." },
+    { w: "sera", t: "…가셨네요." },
+    { w: "garth", t: "아니. 기다리고 있을 거다." },
+    { w: "garth", t: "저런 자는 지루한 걸 제일 못 견디지. 그리고 지금 저자에게 지루하지 않은 건 하나뿐이다." },
+    { w: "rien", t: "…아르덴 씨요?" },
+    { w: "garth", t: "그래." }
+  ]
+},
+{
+  id: 8, act: "제3부 · 만 번의 검", title: "마왕성 성문", sub: "여덟 사람의 이름",
+  blurb: "세 번의 원정이 여기서 멈췄다. 그 자리에 아직 이름이 남아 있다.",
+  map: [
+    "##############",
+    "##__________##",
+    "#____####____#",
+    "#____________#",
+    "#_##______##_#",
+    "#_##______##_#",
+    "#____________#",
+    "#__##____##__#",
+    "##__________##",
+    "####______####"
+  ],
+  allies: [ { id: "arden", x: 6, y: 9 }, { id: "garth", x: 7, y: 9 },
+            { id: "rien", x: 5, y: 9 }, { id: "sera", x: 8, y: 9 },
+            { id: "mila", x: 4, y: 9 } ],
+  foes: [
+    { id: "guard", x: 6, y: 1, boss: true, lv: 5, name: "성문지기 발가스" },
+    { id: "guard", x: 4, y: 3, lv: 3 }, { id: "guard", x: 9, y: 3, lv: 3 },
+    { id: "skel", x: 4, y: 5, lv: 4 }, { id: "skel", x: 9, y: 5, lv: 4 },
+    { id: "warlock", x: 2, y: 2, lv: 4 }, { id: "warlock", x: 11, y: 2, lv: 4 },
+    { id: "guard", x: 6, y: 6, lv: 3 }, { id: "guard", x: 7, y: 6, lv: 3 }
+  ],
+  win: { type: "boss" },
+  obj: "성문지기 발가스 격파 — 문을 열어라",
+  intro: [
+    { n: "마왕성 성문. 돌바닥에 검 여덟 자루가 박혀 있다. 뽑은 사람이 없었다." },
+    { w: "garth", t: "…여기다." },
+    { w: "sera", t: "여덟 분 성함을 읊어도 되겠습니까." },
+    { w: "arden", t: "네. 천천히요." },
+    { n: "세라는 여덟 사람의 이름을 하나씩 불렀다. 아무도 재촉하지 않았다." },
+    { w: "garth", t: "…마지막 한 사람은 내가 부르겠소." },
+    { w: "garth", t: "제3기사단 부단장. 내 아들이오." },
+    { n: "일행 중 누구도 몰랐던 이야기였다." },
+    { w: "arden", t: "…경." },
+    { w: "garth", t: "말하지 마라. 위로는 필요 없다." },
+    { w: "garth", t: "나는 이 문을 열러 왔다. 스무 해를 이 문 앞에서 잤어." },
+    { w: "arden", t: "그럼 오늘 여시죠." },
+    { w: "arden", t: "제가 앞에 서겠습니다. 경은 아드님 검 옆으로 가세요." },
+    { w: "garth", t: "…뭐?" },
+    { w: "arden", t: "아드님이 못 본 걸 경이 보셔야죠. 문 열리는 거요." },
+    { n: "성문 위에서 거대한 그림자가 일어섰다." },
+    { w: "mila", t: "온다! 저게 문지기다!" }
+  ],
+  triggers: [
+    { foeHp: "boss", below: 0.4, once: true, lines: [
+      { w: "garth", t: "…스무 해다." },
+      { w: "garth", t: "스무 해 동안 이 자리에서 뭘 해야 하는지만 생각했다." },
+      { w: "garth", t: "아르덴. 비켜라. 이건 내 몫이다." },
+      { w: "arden", t: "네. 옆에 있을게요." }
+    ] }
+  ],
+  outro: [
+    { n: "성문이 안쪽으로 밀려 열렸다. 서른 해 만이었다." },
+    { n: "가르트는 문턱에 앉아 한참 안쪽을 봤다. 그리고 아들의 검을 뽑았다." },
+    { w: "garth", t: "…열렸다." },
+    { w: "garth", t: "아르덴. 나는 이제 원정 세 번을 살아 돌아온 사람이 된다." },
+    { w: "arden", t: "네 번요. 돌아가야 네 번이니까 아직 세 번 반입니다." },
+    { w: "garth", t: "…말대꾸는 여전하군." },
+    { w: "rien", t: "저기, 분위기 깨서 죄송한데요." },
+    { w: "rien", t: "결계가 안 풀렸어요. 문은 열렸는데 안쪽에 하나 더 있어요." },
+    { w: "sera", t: "누가 안에서 다시 걸었다는 뜻입니까?" },
+    { w: "mila", t: "…안에 사람이 있다는 뜻이지." },
+    { w: "arden", t: "…" },
+    { w: "arden", t: "가시죠. 오래 기다리셨을 텐데." }
+  ]
+},
+{
+  id: 9, act: "제3부 · 만 번의 검", title: "옥좌의 방", sub: "지루한 왕",
+  blurb: "창이 없는 방. 서른 해를 앉아 있던 존재가 처음으로 고개를 든다.",
+  map: [
+    "##############",
+    "#_____EE_____#",
+    "#____####____#",
+    "#____#__#____#",
+    "#____________#",
+    "#_##______##_#",
+    "#____________#",
+    "#__#______#__#",
+    "#____________#",
+    "#####____#####"
+  ],
+  allies: [ { id: "arden", x: 6, y: 9 }, { id: "garth", x: 7, y: 9 },
+            { id: "rien", x: 5, y: 9 }, { id: "sera", x: 8, y: 9 },
+            { id: "mila", x: 4, y: 8 } ],
+  foes: [
+    { id: "belzak", x: 6, y: 1, boss: true, lv: 2 },
+    { id: "guard", x: 4, y: 3, lv: 4 }, { id: "guard", x: 9, y: 3, lv: 4 },
+    { id: "warlock", x: 2, y: 4, lv: 5 }, { id: "warlock", x: 11, y: 4, lv: 5 }
+  ],
+  summons: [ { id: "guard", x: 4, y: 4, lv: 4 }, { id: "guard", x: 9, y: 4, lv: 4 } ],
+  win: { type: "boss" },
+  obj: "마왕 벨자크 격파",
+  intro: [
+    { n: "옥좌의 방. 창이 없다. 빛이 어디서 오는지 알 수 없다." },
+    { w: "belzak", t: "다섯인가. 세 번째는 여덟이었는데." },
+    { w: "belzak", t: "용사. 너는 무엇을 지키러 왔나." },
+    { choice: { q: "마왕이 묻는다.", opts: [
+      { label: "듣겠습니다", hint: "마왕은 첫 턴에 움직이지 않는다.", flag: "heard_offer",
+        then: [ { w: "belzak", t: "나는 서른 해 동안 이 방에 앉아 있었다." },
+                { w: "belzak", t: "아무도 나를 이기지 못했고, 아무도 나를 즐겁게 하지 못했다." },
+                { w: "belzak", t: "돌아가라. 네 마을은 남겨두마. 너 하나가 사는 동안은." },
+                { w: "arden", t: "제가 죽은 다음은요?" },
+                { w: "belzak", t: "그건 네 문제가 아니지 않나." },
+                { w: "arden", t: "제 문제 맞습니다." },
+                { w: "arden", t: "저는 그 다음에 태어날 애들 얼굴을 알아요. 이름도 몇 개는 압니다." },
+                { n: "마왕은 처음으로 자세를 고쳐 앉았다." },
+                { w: "belzak", t: "…그래. 그게 인간의 병이지." } ] },
+      { label: "말은 됐습니다", hint: "일행 전원 첫 턴 위력 +3.", flag: "no_words",
+        then: [ { w: "belzak", t: "말이 없다라." },
+                { w: "arden", t: "서른 해 동안 할 말은 다 하셨잖아요. 이제 제 차례예요." },
+                { w: "garth", t: "…아르덴." },
+                { w: "arden", t: "갑니다." } ] }
+    ] } }
+  ],
+  triggers: [
+    { foeHp: "boss", below: 0.5, once: true, summon: true, lines: [
+      { w: "belzak", t: "재미있군. 서른 해 만이다." },
+      { n: "옥좌의 그림자에서 근위 둘이 걸어 나왔다." },
+      { w: "garth", t: "물러서지 마라! 여기서 물러서면 아무 데도 못 간다!" }
+    ] },
+    { foeHp: "boss", below: 0.2, once: true, lines: [
+      { w: "belzak", t: "…아직인가. 아직도 서 있나." },
+      { w: "sera", t: "용사님! 한 번 더 갑니다!" }
+    ] }
+  ],
+  outro: [
+    { n: "마왕은 옥좌에서 흘러내렸다." },
+    { w: "belzak", t: "…빛이. 창도 없는데." },
+    { w: "belzak", t: "용사. 네 이름이 무엇이냐." },
+    { w: "arden", t: "아르덴입니다." },
+    { w: "belzak", t: "아르덴. …그래. 기억하—" },
+    { n: "말이 끝나기 전에, 마왕의 목이 떨어졌다." },
+    { n: "아르덴의 검이 아니었다." },
+    { w: "rien", t: "…어?" },
+    { w: "kairen", t: "늦었군. 여기까지 오는 데 예상보다 이틀 더 걸렸다." },
+    { w: "mila", t: "너—!" },
+    { n: "카이렌은 마왕의 시신을 옥좌에서 밀어내고, 그 자리에 앉았다." },
+    { w: "kairen", t: "이 자리는 오래 비어 있었다." },
+    { w: "garth", t: "…미쳤나." },
+    { w: "kairen", t: "아니. 지루했다." },
+    { w: "kairen", t: "서른 해 동안 인간 쪽에서도 마족 쪽에서도 나를 이길 자가 없었다." },
+    { w: "kairen", t: "그런데 하나 생겼지. 재능도 없는 게, 세면서 여기까지 왔더군." },
+    { w: "kairen", t: "아르덴." },
+    { w: "arden", t: "네." },
+    { w: "kairen", t: "내가 마왕이 되면, 너는 나를 베러 와야 한다." },
+    { w: "kairen", t: "그게 내가 생각해 낸 유일하게 지루하지 않은 일이다." },
+    { n: "옥좌의 방이 닫혔다. 성 전체가 다시 결계로 잠겼다." },
+    { w: "sera", t: "…저 사람은, 이걸 위해서." },
+    { w: "arden", t: "네. 왕도에서 저를 본 날부터요." },
+    { w: "arden", t: "…가시죠. 기다리게 하면 또 심심하다고 할 거예요." }
+  ]
+},
+{
+  id: 10, act: "제3부 · 만 번의 검", title: "거울", sub: "만 번의 검",
+  blurb: "같은 얼굴 두 개가 마주 선다. 하나는 전부 거저 받았고, 하나는 얼굴만 받았다.",
+  map: [
+    "##############",
+    "#____#EE#____#",
+    "#____#__#____#",
+    "#__##____##__#",
+    "#____________#",
+    "#_##______##_#",
+    "#____________#",
+    "#__##____##__#",
+    "#____________#",
+    "####______####"
+  ],
+  allies: [ { id: "arden", x: 6, y: 9 }, { id: "garth", x: 7, y: 9 },
+            { id: "rien", x: 5, y: 9 }, { id: "sera", x: 8, y: 9 },
+            { id: "mila", x: 4, y: 9 } ],
+  foes: [
+    { id: "kairen", x: 6, y: 1, boss: true, lv: 5, hold: false },
+    { id: "guard", x: 5, y: 3, lv: 5 }, { id: "guard", x: 8, y: 3, lv: 5 },
+    { id: "warlock", x: 1, y: 5, lv: 6 }, { id: "warlock", x: 12, y: 5, lv: 6 },
+    { id: "guard", x: 4, y: 6, lv: 4 }, { id: "guard", x: 9, y: 6, lv: 4 }
+  ],
+  summons: [ { id: "guard", x: 5, y: 4, lv: 5 }, { id: "guard", x: 8, y: 4, lv: 5 } ],
+  win: { type: "boss" },
+  obj: "카이렌 격파",
+  intro: [
+    { n: "옥좌의 방. 마왕의 시신은 치워져 있었다. 아주 깔끔하게." },
+    { w: "kairen", t: "왔군. 이틀 늦었다." },
+    { w: "arden", t: "죄송해요. 중간에 마을이 하나 있어서요." },
+    { w: "kairen", t: "…마을." },
+    { w: "arden", t: "네. 굶고 있길래 이틀 걸렸어요." },
+    { w: "kairen", t: "마왕을 베러 오는 길에." },
+    { w: "arden", t: "마왕을 베는 이유가 그거잖아요." },
+    { n: "카이렌은 옥좌에서 일어섰다. 두 얼굴이 마주 섰다." },
+    { w: "kairen", t: "…거울 같았다. 너를 처음 본 순간부터." },
+    { w: "kairen", t: "같은 얼굴을 하고, 나는 전부 거저 받았고 너는 아무것도 못 받았지." },
+    { w: "kairen", t: "그런데 왜 네가 여기까지 왔나." },
+    { choice: { q: "카이렌이 묻는다. 마지막 질문이다.", opts: [
+      { label: "만 번 휘둘렀으니까요", hint: "센 것을 답으로 내민다.", flag: "ten_thousand",
+        then: [ { w: "kairen", t: "…그 대답이 제일 싫다." },
+                { w: "arden", t: "알아요." },
+                { w: "arden", t: "제일 싫은 게 제일 맞는 답일 때가 있잖아요." },
+                { w: "kairen", t: "…" },
+                { w: "kairen", t: "삼만 번이다." },
+                { w: "arden", t: "네?" },
+                { w: "kairen", t: "네 말을 들은 날부터 세기 시작했다. 삼만 번." },
+                { w: "kairen", t: "…네 것과 셈이 다르더군. 나는 늘어나지 않았다." },
+                { w: "arden", t: "…" },
+                { w: "arden", t: "그건 이미 다 자라서 그런 거예요." },
+                { w: "kairen", t: "위로인가." },
+                { w: "arden", t: "아뇨. 그것도 계산이에요." } ] },
+      { label: "당신이 안 왔으니까요", hint: "천재가 하지 않은 일을 짚는다.", flag: "because_you_didnt",
+        then: [ { w: "kairen", t: "…뭐라고." },
+                { w: "arden", t: "서른 해였어요. 당신은 스물넷이고 열세 살에 이미 최강이었죠." },
+                { w: "arden", t: "그럼 십 년 있었잖아요. 왜 안 왔어요." },
+                { w: "kairen", t: "…재미가 없었으니까." },
+                { w: "arden", t: "네. 그래서 제가 온 거예요." },
+                { w: "arden", t: "재미없어도 가야 하는 자리에는, 재능 없는 사람이 갑니다." },
+                { w: "arden", t: "그게 저희가 있는 이유예요." },
+                { n: "카이렌은 오래 대답하지 않았다." },
+                { w: "kairen", t: "…나는 오늘 처음으로 지는 게 무섭군." } ] }
+    ] } },
+    { w: "kairen", t: "아르덴. 하나만 확인하자." },
+    { w: "kairen", t: "너는 사람 탈을 쓴 것들을 말도 안 걸고 벤다고 들었다." },
+    { w: "kairen", t: "나에게도 그 속도를 쓰나." },
+    { w: "arden", t: "아뇨." },
+    { w: "kairen", t: "…왜." },
+    { w: "arden", t: "당신은 착한 척을 안 했으니까요." },
+    { w: "arden", t: "그래서 당신한테는 제일 빠른 검을 안 씁니다." },
+    { w: "kairen", t: "무시하는 건가." },
+    { w: "arden", t: "아뇨. 제대로 하겠다는 거예요." },
+    { w: "arden", t: "만 번 휘두른 거, 오늘 전부 쓸게요." },
+    { n: "「자비 없음」은 발동하지 않는다. 이 사람은 한 번도 착한 척을 하지 않았다." }
+  ],
+  triggers: [
+    { foeHp: "boss", below: 0.6, once: true, summon: true, lines: [
+      { w: "kairen", t: "…좋다. 근위를 부르지." },
+      { w: "kairen", t: "처음이다. 남을 부른 건." },
+      { w: "mila", t: "야! 저 새끼 지금 우리 인정한 거지?!" },
+      { w: "garth", t: "그래. 그러니 더 위험해졌다." }
+    ] },
+    { foeHp: "boss", below: 0.3, once: true, lines: [
+      { w: "kairen", t: "몇 번째냐." },
+      { w: "arden", t: "…네?" },
+      { w: "kairen", t: "오늘 몇 번 휘둘렀냐고 물었다." },
+      { w: "arden", t: "…이백서른아홉요." },
+      { w: "kairen", t: "…세고 있었나. 이 와중에." },
+      { w: "arden", t: "세야 늘어요." },
+      { n: "카이렌은 웃었다. 이번에는 지루한 웃음이 아니었다." }
+    ] }
+  ],
+  outro: [
+    { n: "이백일흔여섯 번째 검이 들어갔다." },
+    { n: "카이렌은 옥좌 앞에 무릎을 꿇었다. 서른 해 만에 처음으로." },
+    { w: "kairen", t: "…아." },
+    { w: "kairen", t: "이게 지는 거군." },
+    { w: "arden", t: "…" },
+    { w: "kairen", t: "재미있다." },
+    { w: "kairen", t: "아르덴. 하나 알려주마. 네가 이긴 이유다." },
+    { w: "arden", t: "…" },
+    { w: "kairen", t: "나는 오늘 삼만 한 번째를 휘둘렀다. 어제와 똑같은 검이었지." },
+    { w: "kairen", t: "너는 오늘 이백일흔여섯 번을 휘둘렀는데, 마지막 것이 첫 번째와 달랐다." },
+    { w: "kairen", t: "…그게 늘어난다는 거였나." },
+    { w: "arden", t: "네." },
+    { w: "kairen", t: "삼십 년 늦었군." },
+    { w: "kairen", t: "…아니. 열세 살에 스승을 이긴 날부터니까, 십일 년인가." },
+    { n: "천재는 마지막까지 셈이 정확했다." },
+    { choice: { q: "카이렌의 숨이 멎었다.", opts: [
+      { label: "묻어준다", hint: "적이었던 자를 사람으로 대한다.", flag: "buried_kairen",
+        then: [ { w: "mila", t: "…야. 진심이냐. 저 새끼 때문에 예순 명이 죽을 뻔했다." },
+                { w: "arden", t: "네. 그래서 예순 명이 안 죽었잖아요." },
+                { w: "arden", t: "저 사람은 나쁜 사람이었지, 거짓말쟁이는 아니었어요." },
+                { w: "arden", t: "저는 거짓말쟁이만 안 묻어줍니다." },
+                { w: "garth", t: "…네 기준은 늘 이상한데, 늘 일관되는군." },
+                { n: "일행은 성 뒤편에 구덩이를 팠다. 아르덴이 가장 오래 팠다." } ] },
+      { label: "옥좌째 남겨둔다", hint: "아무것도 하지 않는다.", flag: "left_kairen",
+        then: [ { w: "arden", t: "…그냥 두죠." },
+                { w: "sera", t: "기도는 올릴까요." },
+                { w: "arden", t: "저 사람이 제일 싫어할 것 같은데요, 그건." },
+                { w: "rien", t: "…확실히 싫어했을 것 같아요." },
+                { n: "일행은 문을 닫고 나왔다. 옥좌는 그대로였다." } ] }
+    ] } },
+    { n: "성을 나서자 하늘이 걷히고 있었다." },
+    { w: "rien", t: "…하늘이." },
+    { w: "sera", t: "서른 해 만입니다." },
+    { w: "mila", t: "야, 아르덴. 오늘 몇 번 휘둘렀냐." },
+    { w: "arden", t: "이백일흔여섯요." },
+    { w: "mila", t: "…진짜 세고 있었네." },
+    { w: "garth", t: "저놈은 늘 세고 있었다." },
+    { w: "arden", t: "가시죠. 집에요." },
+    { w: "arden", t: "돌아가야 네 번째 원정이 끝나는 거니까요." }
+  ]
+}
+];
+/* ---- 챕터 데이터 끝 ---- */
+
+/* =========================================================================
+   5. 일행의 대화 — 전투 중 두 사람이 나란히 서면 한 번 열린다
+   ========================================================================= */
+
+const SUPPORTS = [
+  { key: "arden-garth-1", a: "arden", b: "garth", ch: 1, title: "붙어 서라", lines: [
+    { w: "garth", t: "붙어 서라. 혼자 튀어나가지 말고." },
+    { w: "arden", t: "같이 가는 게 더 빠르니까요?" },
+    { w: "garth", t: "같이 가는 게 더 오래 산다." }
+  ] },
+  { key: "arden-rien", a: "arden", b: "rien", ch: 2, title: "무서운데 온 사람", lines: [
+    { w: "rien", t: "저, 저 뒤에 있어도 돼요? 무서워서 그런 게 아니라 사거리가 길어서—" },
+    { w: "arden", t: "무서운 거 맞잖아요." },
+    { w: "rien", t: "…맞아요." },
+    { w: "arden", t: "무서운데 온 거니까 더 대단한 거예요." }
+  ] },
+  { key: "garth-rien", a: "garth", b: "rien", ch: 2, title: "겁 없는 놈들", lines: [
+    { w: "rien", t: "기사님은 안 무서우세요?" },
+    { w: "garth", t: "무섭다." },
+    { w: "rien", t: "네?" },
+    { w: "garth", t: "무서우니까 이 나이까지 살아 있는 거다. 겁 없는 놈들은 다 먼저 갔어." }
+  ] },
+  { key: "arden-rien-2", a: "arden", b: "rien", ch: 3, title: "두 얼굴", lines: [
+    { w: "rien", t: "아르덴 씨. 저 무서워해도 돼요?" },
+    { w: "arden", t: "저를요?" },
+    { w: "rien", t: "네." },
+    { w: "arden", t: "…돼요. 무서워하는 게 맞아요." },
+    { w: "arden", t: "근데 리엔한테는 안 그럴 거예요. 그것만 믿어 주면 돼요." }
+  ] },
+  { key: "arden-sera", a: "arden", b: "sera", ch: 4, title: "다른 이유", lines: [
+    { w: "sera", t: "용사님은 왜 검을 드셨습니까." },
+    { w: "arden", t: "아무도 안 들길래요." },
+    { w: "sera", t: "…그게 이유가 됩니까?" },
+    { w: "arden", t: "다른 이유가 필요해요?" }
+  ] },
+  { key: "rien-sera", a: "rien", b: "sera", ch: 4, title: "최선의 대답", lines: [
+    { w: "rien", t: "사제님, 저 죽으면 기도해 주실 거예요?" },
+    { w: "sera", t: "안 죽을 겁니다." },
+    { w: "rien", t: "그건 대답이 아닌데요." },
+    { w: "sera", t: "제가 할 수 있는 최선의 대답입니다." }
+  ] },
+  { key: "garth-sera", a: "garth", b: "sera", ch: 4, title: "여덟 사람의 이름", lines: [
+    { w: "garth", t: "제3차 원정대도 여기서 미사를 올렸지." },
+    { w: "sera", t: "여덟 분이셨죠. 성함을 다 외우고 있습니다." },
+    { w: "garth", t: "…외워줘서 고맙군." }
+  ] },
+  { key: "arden-mila", a: "arden", b: "mila", ch: 5, title: "얼굴값", lines: [
+    { w: "mila", t: "야. 하나 물어보자." },
+    { w: "arden", t: "네." },
+    { w: "mila", t: "그 얼굴로 살면 인생 편하냐." },
+    { w: "arden", t: "밥값을 안 내게 돼요. 그건 좋은데요." },
+    { w: "arden", t: "제가 뭘 잘해도 사람들이 얼굴을 먼저 봐요. 만 번 휘두른 건 안 보고요." },
+    { w: "mila", t: "…아. 미안하다." },
+    { w: "arden", t: "괜찮아요. 밀라 씨는 화살 세는 사람이잖아요. 저는 검 세는 사람이고요." }
+  ] },
+  { key: "mila-rien", a: "mila", b: "rien", ch: 5, title: "셈이 빠른 쪽", lines: [
+    { w: "mila", t: "꼬맹이. 마법은 몇 발 남았냐." },
+    { w: "rien", t: "여, 여섯 발요." },
+    { w: "mila", t: "나는 열한 발. 그럼 왼쪽은 내가 맡는다." },
+    { w: "rien", t: "…그렇게 세면서 싸우는 거예요?" },
+    { w: "mila", t: "안 세면 죽는다." },
+    { w: "rien", t: "여기 사람들 다 뭔가를 세고 있어…" }
+  ] },
+  { key: "garth-mila", a: "garth", b: "mila", ch: 5, title: "북방의 셈", lines: [
+    { w: "garth", t: "북방 관문 소속이라 했나. 그럼 제3차 원정을 봤겠군." },
+    { w: "mila", t: "봤다. 나갈 때 백열두 명, 돌아온 건 영 명." },
+    { w: "garth", t: "…나는 그중 하나였다." },
+    { w: "mila", t: "그럼 영 명이 아니었네." },
+    { w: "mila", t: "…미안. 다시 세겠다." }
+  ] },
+  { key: "arden-garth-2", a: "arden", b: "garth", ch: 6, title: "자랑해도 되는 것", lines: [
+    { w: "arden", t: "가르트 경. 왜 따라오셨어요." },
+    { w: "garth", t: "두 번 다 살아 돌아온 게 자랑이 아니라고 했지." },
+    { w: "garth", t: "이번엔 다 데리고 돌아가면, 그건 자랑해도 되겠지." },
+    { w: "arden", t: "…그럼 다 데리고 돌아가죠." }
+  ] },
+  { key: "sera-mila", a: "sera", b: "mila", ch: 6, title: "세는 사람들", lines: [
+    { w: "mila", t: "사제. 너 죽은 놈 이름 외운다며." },
+    { w: "sera", t: "예." },
+    { w: "mila", t: "몇 명이냐." },
+    { w: "sera", t: "…삼백열넷입니다." },
+    { w: "mila", t: "…" },
+    { w: "mila", t: "내 동생 이름도 넣어줄래. 아직 안 죽었는데, 미리." },
+    { w: "sera", t: "그건 안 됩니다." },
+    { w: "sera", t: "제 명단은 죽은 사람만 들어갑니다. 그래서 안 넣습니다." }
+  ] },
+  { key: "arden-rien-3", a: "arden", b: "rien", ch: 8, title: "무섭지 않은 이유", lines: [
+    { w: "rien", t: "아르덴 씨. 저 이제 안 무서워요." },
+    { w: "arden", t: "오, 진짜요?" },
+    { w: "rien", t: "…거짓말이에요. 엄청 무서워요." },
+    { w: "arden", t: "알아요." },
+    { w: "rien", t: "근데요, 무서운데 손이 안 떨려요. 이건 진짜예요." },
+    { w: "arden", t: "그럼 늘어난 거네요." },
+    { w: "rien", t: "…세어 두셨어요?" },
+    { w: "arden", t: "네. 리엔은 잿빛 숲에서 세 번 떨었고 오늘은 영 번이에요." }
+  ] },
+  { key: "arden-mila-2", a: "arden", b: "mila", ch: 10, title: "마지막 셈", lines: [
+    { w: "mila", t: "야. 저놈 이길 수 있냐." },
+    { w: "arden", t: "몰라요." },
+    { w: "mila", t: "…솔직하네." },
+    { w: "arden", t: "근데 오늘 제가 몇 번 휘두를 수 있는지는 알아요." },
+    { w: "arden", t: "그거면 계산은 됩니다." }
+  ] }
+];
+
+/* =========================================================================
+   6. 그 뒤의 이야기 — 남긴 선택 순서대로 최대 다섯이 붙는다
+   ========================================================================= */
+
+const EPILOGUES = [
+  { flag: "everyone_home",   t: "다섯 사람은 한 명도 빠지지 않고 돌아왔다. 원정 역사상 처음이자 마지막이었다." },
+  { flag: "someone_fell",    t: "돌아오는 길은 갈 때보다 조용했다. 아르덴은 그 침묵을 끝까지 견뎠다." },
+  { flag: "saved_villagers", t: "에일드 마을은 지금도 남아 있다. 다리 옆에 비석이 하나 섰는데, 이름 대신 '사람을 먼저 옮긴 자'라고만 적혀 있다." },
+  { flag: "struck_first",    t: "에일드의 다리는 그날 밤에 무너졌다. 마을은 새 다리에 용사의 이름을 붙이려 했지만 그가 한사코 사양했다." },
+  { flag: "book_burned",     t: "리엔은 끝내 새 책을 쓰지 않았다. '태워도 되는 지식이 있다는 걸 그날 배웠다'고만 했다." },
+  { flag: "book_kept",       t: "금서는 지금 왕립 도서관 가장 깊은 칸에 있다. 대출 기록이 딱 한 줄 있고, 빌린 사람 이름이 리엔이다." },
+  { flag: "gave_all",        t: "루베르의 마흔한 명은 은화를 나눠 배를 샀다. 그 배 이름이 '아르덴'이 아니라 '고맙습니다'인 이유를 아무도 설명하지 못했다." },
+  { flag: "took_half",       t: "루베르에서 산 검은 마지막 장까지 부러지지 않았다. 아르덴은 그 검을 무덤에 넣지 말라고 했다. 누가 또 써야 한다고." },
+  { flag: "obeyed_kairen",   t: "카르돈의 좌익 스물아홉은 그날 버려졌다. 세라는 그 스물아홉의 이름을 죽을 때까지 아침마다 외웠다." },
+  { flag: "defied_kairen",   t: "카르돈의 좌익 스물아홉은 전원 살아서 관문을 나왔다. 그중 열둘이 오십 년 뒤 아르덴의 장례에 왔다." },
+  { flag: "cut_bridge",      t: "얼어붙은 협곡의 다리는 지금도 끊긴 채다. 새로 놓자는 안건이 마흔 번 올라왔고 마흔 번 부결됐다." },
+  { flag: "waited_all",      t: "협곡에서 마지막으로 건너온 병사는 열여섯이었다. 그는 여든까지 살았고, 죽는 날까지 그 밤 이야기를 했다." },
+  { flag: "heard_offer",     t: "아르덴이 마왕과 나눈 문답은 어디에도 기록되지 않았다. 세라만이 외우고 있었고, 죽기 전날에야 한 번 읊었다." },
+  { flag: "no_words",        t: "'말은 됐습니다.' 이 한마디는 훗날 왕국 기사단 서약문의 첫 줄이 되었다." },
+  { flag: "ten_thousand",    t: "'만 번 휘둘렀으니까요.' 이 말은 기사단 훈련장 입구에 새겨졌다. 재능 있는 아이들은 대개 그 앞을 그냥 지나간다." },
+  { flag: "because_you_didnt", t: "아르덴이 카이렌에게 한 그 대답은 기록되지 않았다. 그 자리에 있던 넷이 전부 입을 다물기로 했기 때문이다." },
+  { flag: "buried_kairen",   t: "카이렌의 무덤은 마왕성 뒤편에 있다. 비석에 이름이 없다. '이름은 본인이 정하게 두자'고 아르덴이 말했다." },
+  { flag: "left_kairen",     t: "카이렌의 옥좌는 그대로 두었다. 아무도 앉지 않았고, 아무도 치우지 않았다." }
+];
+
+const ENDING_LINES = [
+  { n: "카이렌이 쓰러진 날, 북방의 하늘이 걷혔다." },
+  { n: "사람들은 그 하늘을 여명이라 불렀다." },
+  { n: "그리고 오십 년이 지났다." },
+  { w: "rien", t: "…늦었어요. 미안해요, 아르덴." },
+  { w: "sera", t: "가르트 경은 십 년 전에. 밀라는 작년에요." },
+  { w: "sera", t: "저는 아직 걸을 수 있어서 왔습니다." },
+  { w: "rien", t: "그거 알아요? 당신, 여행 내내 이상한 소리만 했어요." },
+  { w: "rien", t: "'세야 늘어요.' 열아홉 살짜리가 할 소리예요?" },
+  { w: "sera", t: "…저는 그 말 하나로 여기까지 왔습니다." },
+  { w: "rien", t: "…나도요." },
+  { n: "무덤 앞에 검이 하나 세워져 있다. 루베르에서 산 그 검이다." },
+  { n: "날이 다 닳아 있었다. 몇 번을 휘둘렀는지는 아무도 세지 않았다." },
+  { w: "rien", t: "…아니다. 저 사람은 세어 놨을 거예요." }
+];
+
+const ENDING_CODA = [
+  { n: "용사는 오래 살지 못했다. 그러나 그가 센 숫자는 오십 년을 살았다." },
+  { n: "그리고 지금도, 재능 없는 누군가가 그 숫자를 이어서 센다." }
+];
+
+/* =========================================================================
+   7. 저장
+   ========================================================================= */
+
+const SAVE_KEY = "hero-oath-v1";
+const BLANK = { v: 2, cleared: 0, flags: [], roster: {}, supports: [], epilogues: [], effects: [], cleared_run: false };
+
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(BLANK));
+    const s = JSON.parse(raw);
+    if (s.v !== BLANK.v) return JSON.parse(JSON.stringify(BLANK));
+    return Object.assign(JSON.parse(JSON.stringify(BLANK)), s);
+  } catch (e) { return JSON.parse(JSON.stringify(BLANK)); }
+}
+function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) {} }
+let SAVE = loadSave();
+
+/* =========================================================================
+   8. 전투 상태
+   ========================================================================= */
+
+const W = 14, H = 10, TS = 16, SC = 3;
+const MERCY_MULT = 1.5;   // 「자비 없음」 — 아르덴이 사람 악당을 칠 때
+
+const G = {
+  ch: null, chIdx: 0, grid: [], units: [], turn: 1, side: "ally",
+  sel: null, moveSet: null, atkSet: null, pending: null, over: false,
+  flags: new Set(), roster: {}, log: [], fired: new Set(), fell: new Set(),
+  busy: false, buff: 0, preMove: null, evilKilled: 0
+};
+
+const $ = id => document.getElementById(id);
+const key = (x, y) => y * W + x;
+const inBounds = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+const tileAt = (x, y) => (inBounds(x, y) ? G.grid[y][x] : "#");
+const unitAt = (x, y) => G.units.find(u => u.alive && u.x === x && u.y === y) || null;
+const manhattan = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+
+function makeUnit(spec, side) {
+  const c = CAST[spec.id];
+  const cl = CLASSES[c.cls];
+  const isParty = PARTY_ORDER.indexOf(spec.id) >= 0;
+  const saved = G.roster[spec.id];
+  const lv = isParty ? (saved ? saved.lv : 1) : (spec.lv || 1);
+  const g = lv - 1;
+  const u = {
+    uid: spec.id + "@" + spec.x + "," + spec.y + ":" + Math.random().toString(36).slice(2, 7),
+    id: spec.id, side, name: spec.name || c.name, cls: c.cls, clsName: cl.n,
+    pal: c.pal, spr: cl.spr, wpn: cl.wpn, kind: cl.kind, healer: !!cl.healer,
+    human: !!cl.human, evil: !!spec.evil,
+    mov: cl.mov, rng: cl.rng, lv,
+    maxhp: cl.base.hp + cl.grow.hp * g,
+    atk: cl.base.atk + cl.grow.atk * g,
+    def: cl.base.def + cl.grow.def * g,
+    mag: cl.base.mag + cl.grow.mag * g,
+    res: cl.base.res + cl.grow.res * g,
+    exp: isParty && saved ? saved.exp : 0,
+    x: spec.x, y: spec.y, alive: true, acted: false, boss: !!spec.boss,
+    retreat: spec.retreat || 0, skip: spec.skip || 0,
+    hold: side === "foe" ? (spec.hold !== undefined ? spec.hold : true) : false
+  };
+  if (isParty && saved && saved.bonus) {
+    u.maxhp += saved.bonus.hp || 0; u.mag += saved.bonus.mag || 0;
+    u.atk += saved.bonus.atk || 0; u.def += saved.bonus.def || 0;
+  }
+  u.hp = u.maxhp;
+  return u;
+}
+
+function startChapter(idx) {
+  const ch = CHAPTERS[idx];
+  G.ch = ch; G.chIdx = idx;
+  G.grid = ch.map.map(r => r.split(""));
+  G.units = []; G.turn = 1; G.side = "ally"; G.sel = null; G.moveSet = null;
+  G.atkSet = null; G.pending = null; G.over = false; G.busy = false; G.buff = 0;
+  G.log = []; G.fired = new Set(); G.preMove = null; G.evilKilled = 0;
+
+  ch.allies.forEach(a => { if (JOIN_AT[a.id] === undefined || JOIN_AT[a.id] <= idx) G.units.push(makeUnit(a, "ally")); });
+  (ch.npcs || []).forEach(a => { const u = makeUnit(a, "npc"); u.joinTurn = a.joinTurn; G.units.push(u); });
+  ch.foes.forEach(f => G.units.push(makeUnit(f, "foe")));
+  if (ch.extraFoe && G.flags.has(ch.extraFoe.flag)) G.units.push(makeUnit(ch.extraFoe.unit, "foe"));
+
+  show("battle");
+  $("barTitle").textContent = ch.id + "장 " + ch.title;
+  $("objLabel").textContent = "목표 · " + ch.obj;
+  pushLog(ch.id + "장 「" + ch.title + "」 — " + ch.sub);
+  refresh();
+  talk(ch.intro, () => { applyIntroEffects(); beginPlayerTurn(); });
+}
+
+/* 선택지가 남긴 플래그를 전투 수치에 반영한다 */
+function applyIntroEffects() {
+  if (G.flags.has("struck_first") && G.chIdx === 0) G.buff = 3;
+  if (G.flags.has("no_words")) G.buff = 3;
+  if (G.flags.has("heard_offer")) {
+    const b = G.units.find(u => u.boss && u.side === "foe");
+    if (b) b.skip = 1;
+  }
+  /* 도입부 선택이 적을 늘리는 경우 (예: 6장 좌익 구원) */
+  (G.ch.extraFoes || []).forEach(e => {
+    if (G.flags.has(e.flag) && !unitAt(e.unit.x, e.unit.y)) G.units.push(makeUnit(e.unit, "foe"));
+  });
+  refresh();
+}
+
+/* =========================================================================
+   9. 이동 범위 / 사거리
+   ========================================================================= */
+
+function movable(u) {
+  const cost = new Map(); cost.set(key(u.x, u.y), 0);
+  const q = [{ x: u.x, y: u.y, c: 0 }];
+  while (q.length) {
+    q.sort((a, b) => a.c - b.c);
+    const cur = q.shift();
+    if (cur.c > (cost.get(key(cur.x, cur.y)) ?? 99)) continue;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(d => {
+      const nx = cur.x + d[0], ny = cur.y + d[1];
+      if (!inBounds(nx, ny)) return;
+      const t = T_(tileAt(nx, ny));
+      if (t.block) return;
+      const blocker = unitAt(nx, ny);
+      if (blocker && blocker.side !== u.side) return;   // 적은 통과 못 한다
+      const nc = cur.c + t.cost;
+      if (nc > u.mov) return;
+      if (nc < (cost.get(key(nx, ny)) ?? 99)) { cost.set(key(nx, ny), nc); q.push({ x: nx, y: ny, c: nc }); }
+    });
+  }
+  const out = new Set();
+  cost.forEach((c, k) => {
+    const o = unitAt(k % W, (k / W) | 0);
+    if (!o || o === u) out.add(k);
+  });
+  return out;
+}
+
+function rangeFrom(x, y, rng) {
+  const s = new Set();
+  for (let dy = -rng; dy <= rng; dy++) for (let dx = -rng; dx <= rng; dx++) {
+    const d = Math.abs(dx) + Math.abs(dy);
+    if (d === 0 || d > rng) continue;
+    if (inBounds(x + dx, y + dy)) s.add(key(x + dx, y + dy));
+  }
+  return s;
+}
+
+function threatSet(u, moves) {
+  const s = new Set();
+  moves.forEach(k => rangeFrom(k % W, (k / W) | 0, u.rng).forEach(v => s.add(v)));
+  return s;
+}
+
+/* =========================================================================
+   10. 전투 계산 — 「자비 없음」이 여기 들어 있다
+   ========================================================================= */
+
+function tri(a, d) {
+  if (BEATS[a.wpn] === d.wpn) return 1;
+  if (BEATS[d.wpn] === a.wpn) return -1;
+  return 0;
+}
+function mercy(a, d) { return a.id === "arden" && d.human && d.evil; }
+function power(u) {
+  let p = u.kind === "mag" ? u.mag : u.atk;
+  if (u.side === "ally" && G.turn === 1) p += G.buff;
+  return p;
+}
+function forecast(a, d) {
+  const t = T_(tileAt(d.x, d.y));
+  const guard = a.kind === "mag" ? d.res : d.def + t.def;
+  const adv = tri(a, d);
+  const m = mercy(a, d);
+  let dmg = Math.max(1, power(a) + adv * 2 - guard);
+  if (m) dmg = Math.floor(dmg * MERCY_MULT);
+  const hit = Math.max(35, Math.min(99, 92 + adv * 12 - t.avo + (m ? 8 : 0)));
+  return { dmg, hit, crit: a.boss ? 12 : 8, mercy: m };
+}
+function canCounter(a, d) {
+  if (!d.alive || d.healer) return false;
+  if (mercy(a, d)) return false;            // 자비 없음 — 반격할 틈이 없다
+  return manhattan(a, d) <= d.rng;
+}
+
+/* =========================================================================
+   11. 연출
+   ========================================================================= */
+
+function pop(x, y, text, color) {
+  const st = $("stage"); if (!st) return;
+  const el = document.createElement("div");
+  el.className = "pop"; el.textContent = text; el.style.color = color || "#fff";
+  el.style.left = ((x * TS + TS / 2) / (W * TS) * 100) + "%";
+  el.style.top = ((y * TS + 2) / (H * TS) * 100) + "%";
+  st.appendChild(el);
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 880);
+}
+function pushLog(s) {
+  G.log.push(s); if (G.log.length > 40) G.log.shift();
+  const l = $("log"); if (!l) return;
+  l.innerHTML = G.log.map(x => "<div>" + x + "</div>").join("");
+  l.scrollTop = l.scrollHeight;
+}
+
+/* =========================================================================
+   12. 행동
+   ========================================================================= */
+
+function strike(a, d) {
+  const f = forecast(a, d);
+  if (Math.random() * 100 >= f.hit) {
+    pop(d.x, d.y, "빗나감", "#9aa3bd"); pushLog(a.name + "의 공격 — 빗나갔다.");
+    return 0;
+  }
+  const isCrit = Math.random() * 100 < f.crit;
+  const dmg = isCrit ? Math.floor(f.dmg * 1.5) : f.dmg;
+  d.hp = Math.max(0, d.hp - dmg);
+  pop(d.x, d.y, (f.mercy ? "무자비 " : isCrit ? "회심! " : "") + dmg, f.mercy ? "#ff5560" : isCrit ? "#f0d489" : "#ff8a90");
+  pushLog(a.name + " → " + d.name + " " + dmg + " 피해" +
+    (f.mercy ? " · 자비 없음" : isCrit ? " (회심의 일격)" : "") + ".");
+  if (a.side === "ally") gainExp(a, isCrit ? 14 : 10);
+  if (d.hp === 0) fall(d, a);
+  return dmg;
+}
+
+function fall(u, killer) {
+  u.alive = false;
+  pushLog(u.name + " 쓰러짐.");
+  pop(u.x, u.y, "✖", "#e0616a");
+  if (u.side === "ally" || u.side === "npc") G.fell.add(u.id);
+  if (u.evil && killer && killer.id === "arden") G.evilKilled++;
+  if (killer && killer.side === "ally") gainExp(killer, u.boss ? 60 : 32);
+}
+
+function gainExp(u, n) {
+  if (PARTY_ORDER.indexOf(u.id) < 0) return;
+  u.exp += n;
+  while (u.exp >= 100 && u.lv < 20) {
+    u.exp -= 100; u.lv++;
+    const g = CLASSES[u.cls].grow;
+    u.maxhp += g.hp; u.hp += g.hp; u.atk += g.atk; u.def += g.def; u.mag += g.mag; u.res += g.res;
+    pop(u.x, u.y, "LV " + u.lv, "#8fe6a4");
+    pushLog(u.name + " 레벨 " + u.lv + ".");
+  }
+}
+
+function heal(a, t) {
+  const real = Math.min(8 + Math.floor(a.mag / 2), t.maxhp - t.hp);
+  t.hp += real;
+  pop(t.x, t.y, "+" + real, "#8fe6a4");
+  pushLog(a.name + "이(가) " + t.name + "을(를) " + real + " 회복.");
+  if (a.side === "ally") gainExp(a, 12 + real);
+}
+
+function finishAct(u) {
+  u.acted = true;
+  G.sel = null; G.moveSet = null; G.atkSet = null; G.pending = null; G.preMove = null;
+  const t = T_(tileAt(u.x, u.y));
+  if (t.heal && u.hp < u.maxhp && u.side !== "foe") {
+    const r = Math.min(t.heal, u.maxhp - u.hp); u.hp += r; pop(u.x, u.y, "+" + r, "#8fe6a4");
+  }
+  checkSupports(u);
+  refresh();
+  runTriggers();
+  if (G.over) return;
+  checkEnd();
+  if (!G.over && G.side === "ally" && G.units.every(a => a.side !== "ally" || !a.alive || a.acted)) {
+    setTimeout(endTurn, 340);
+  }
+}
+
+/* =========================================================================
+   13. 조작
+   ========================================================================= */
+
+function selectUnit(u) {
+  G.sel = u; G.pending = null;
+  if (u.side === "ally" && !u.acted && G.side === "ally" && !G.busy) {
+    G.preMove = { x: u.x, y: u.y };
+    G.moveSet = movable(u);
+    G.atkSet = threatSet(u, G.moveSet);
+  } else {
+    G.preMove = null; G.moveSet = null;
+    G.atkSet = u.side === "foe" ? threatSet(u, movable(u)) : null;
+  }
+  refresh();
+}
+
+function resolveAttack(actor, target) {
+  G.busy = true;
+  strike(actor, target);
+  refresh();
+  setTimeout(() => {
+    if (target.alive && canCounter(actor, target)) { strike(target, actor); refresh(); }
+    setTimeout(() => { G.busy = false; finishAct(actor); }, 260);
+  }, 320);
+}
+
+function onTile(x, y) {
+  if (G.busy || G.over || TALK.open) return;
+  const u = unitAt(x, y);
+
+  if (G.pending) {
+    if (u && G.pending.targets.indexOf(u) >= 0) {
+      const p = G.pending;
+      if (p.mode === "attack") resolveAttack(p.actor, u);
+      else { G.busy = true; heal(p.actor, u); refresh(); setTimeout(() => { G.busy = false; finishAct(p.actor); }, 300); }
+      return;
+    }
+    G.pending = null; refresh(); return;
+  }
+
+  // 이동
+  if (G.sel && G.moveSet && G.moveSet.has(key(x, y)) && !G.sel.acted && G.sel.side === "ally") {
+    G.sel.x = x; G.sel.y = y;
+    G.moveSet = null; G.atkSet = null;
+    refresh();
+    return;
+  }
+
+  // 이동을 마친 아군 옆의 적을 바로 누르면 공격
+  if (u && u.side === "foe" && G.sel && G.sel.side === "ally" && !G.sel.acted &&
+      G.side === "ally" && !G.moveSet && manhattan(G.sel, u) <= G.sel.rng) {
+    resolveAttack(G.sel, u); return;
+  }
+
+  if (u) { selectUnit(u); return; }
+  G.sel = null; G.moveSet = null; G.atkSet = null; G.preMove = null; refresh();
+}
+
+function actTargets(u, mode) {
+  const r = rangeFrom(u.x, u.y, u.rng);
+  return G.units.filter(o => o.alive && r.has(key(o.x, o.y)) &&
+    (mode === "attack" ? o.side === "foe" : (o.side !== "foe" && o.hp < o.maxhp)));
+}
+
+function renderActMenu() {
+  const m = $("actMenu"); if (!m) return;
+  m.innerHTML = ""; m.classList.remove("on");
+  const u = G.sel;
+  if (!u || u.side !== "ally" || u.acted || G.side !== "ally" || G.busy || G.over) return;
+  m.classList.add("on");
+
+  const foes = actTargets(u, "attack");
+  const b1 = document.createElement("button");
+  b1.className = "btn"; b1.id = "actAttack";
+  b1.textContent = "공격 (" + foes.length + ")";
+  b1.disabled = foes.length === 0;
+  b1.onclick = () => { G.pending = { actor: u, mode: "attack", targets: foes }; refresh(); };
+  m.appendChild(b1);
+
+  if (u.healer) {
+    const hs = actTargets(u, "heal");
+    const b2 = document.createElement("button");
+    b2.className = "btn"; b2.id = "actHeal";
+    b2.textContent = "치유 (" + hs.length + ")";
+    b2.disabled = hs.length === 0;
+    b2.onclick = () => { G.pending = { actor: u, mode: "heal", targets: hs }; refresh(); };
+    m.appendChild(b2);
+  }
+
+  const b3 = document.createElement("button");
+  b3.className = "btn ghost"; b3.id = "actWait"; b3.textContent = "대기";
+  b3.onclick = () => finishAct(u);
+  m.appendChild(b3);
+
+  if (!G.moveSet && G.preMove && (G.preMove.x !== u.x || G.preMove.y !== u.y)) {
+    const b5 = document.createElement("button");
+    b5.className = "btn ghost"; b5.id = "actUndo"; b5.textContent = "이동 취소";
+    b5.onclick = () => { u.x = G.preMove.x; u.y = G.preMove.y; selectUnit(u); };
+    m.appendChild(b5);
+  }
+  if (G.pending) {
+    const b4 = document.createElement("button");
+    b4.className = "btn ghost"; b4.textContent = "취소";
+    b4.onclick = () => { G.pending = null; refresh(); };
+    m.appendChild(b4);
+  }
+}
+
+function renderForecast() {
+  const f = $("fcast"); if (!f) return;
+  f.classList.remove("on"); f.innerHTML = "";
+  if (!G.pending || G.pending.mode !== "attack" || !G.pending.targets.length) return;
+  const a = G.pending.actor, d = G.pending.targets[0];
+  const mine = forecast(a, d);
+  const back = canCounter(a, d) ? forecast(d, a) : null;
+  f.classList.add("on");
+  f.innerHTML =
+    '<div class="fc"><div class="side"><div class="nm">' + a.name + '</div>' +
+    '<div class="dm">위력 <b>' + mine.dmg + '</b> · 명중 ' + mine.hit + '% · 회심 ' + mine.crit + '%</div></div>' +
+    '<div class="vs">▶</div>' +
+    '<div class="side r"><div class="nm">' + d.name + '</div>' +
+    '<div class="dm">' + (back ? "반격 <b>" + back.dmg + "</b> · 명중 " + back.hit + "%" : "반격 없음") + '</div></div></div>' +
+    (mine.mercy ? '<div class="mercy" id="mercyTag">「자비 없음」 위력 1.5배 · 반격을 받지 않는다</div>' : "") +
+    '<div style="color:var(--muted);font-size:11px;margin-top:6px">붉게 표시된 적을 눌러 공격합니다.</div>';
+}
+
+/* =========================================================================
+   14. 턴
+   ========================================================================= */
+
+function beginPlayerTurn() {
+  G.side = "ally";
+  G.units.forEach(u => { if (u.side !== "foe") u.acted = false; });
+  if (G.turn > 1) G.buff = 0;
+  refresh();
+  runTriggers();
+  checkEnd();
+}
+
+function endTurn() {
+  if (G.over || G.busy) return;
+  if (TALK.open) { setTimeout(endTurn, 200); return; }
+  G.sel = null; G.moveSet = null; G.atkSet = null; G.pending = null; G.preMove = null;
+  G.side = "foe";
+  G.units.forEach(u => { if (u.side === "foe") u.acted = false; });
+  refresh();
+  setTimeout(enemyStep, 380);
+}
+
+function enemyStep() {
+  if (G.over) return;
+  if (TALK.open) { setTimeout(enemyStep, 200); return; }
+  const next = G.units.find(u => u.alive && u.side === "foe" && !u.acted);
+  if (!next) { G.turn++; beginPlayerTurn(); return; }
+  aiAct(next);
+  refresh();
+  runTriggers();
+  checkEnd();
+  if (G.over) return;
+  setTimeout(enemyStep, 260);
+}
+
+/* AI — 닿을 수 있는 자리 중 가장 이득이 큰 곳으로 간다 */
+function aiAct(u) {
+  u.acted = true;
+  if (u.skip > 0) { u.skip--; return; }
+  const marks = G.units.filter(o => o.alive && o.side === "ally");
+  if (!marks.length) return;
+
+  const moves = movable(u);
+  moves.add(key(u.x, u.y));
+
+  if (u.hold) {
+    if (!marks.some(m => manhattan(u, m) <= u.mov + u.rng + 1)) return;
+    u.hold = false;
+  }
+
+  let best = null;
+  moves.forEach(k => {
+    const x = k % W, y = (k / W) | 0;
+    const occ = unitAt(x, y);
+    if (occ && occ !== u) return;
+    const t = T_(tileAt(x, y));
+    marks.forEach(m => {
+      if (Math.abs(x - m.x) + Math.abs(y - m.y) > u.rng) return;
+      const sx = u.x, sy = u.y;
+      u.x = x; u.y = y;
+      const f = forecast(u, m);
+      const expect = Math.min(f.dmg, m.hp) * (f.hit / 100);
+      const back = canCounter(u, m) ? forecast(m, u) : null;
+      const risk = back ? Math.min(back.dmg, u.hp) * (back.hit / 100) : 0;
+      u.x = sx; u.y = sy;
+      let score = expect * 2 - risk + t.def * 1.5;
+      if (f.dmg >= m.hp && f.hit >= 60) score += 60;
+      if (m.id === "arden") score += 8;
+      if (!best || score > best.score) best = { score, x, y, target: m };
+    });
+  });
+
+  if (best && best.score > 0) {
+    u.x = best.x; u.y = best.y;
+    const d = best.target;
+    strike(u, d);
+    if (d.alive && canCounter(u, d)) strike(d, u);
+    return;
+  }
+
+  let goal = marks[0];
+  marks.forEach(m => { if (manhattan(u, m) < manhattan(u, goal)) goal = m; });
+  let pick = { x: u.x, y: u.y, d: manhattan(u, goal) };
+  moves.forEach(k => {
+    const x = k % W, y = (k / W) | 0;
+    const occ = unitAt(x, y);
+    if (occ && occ !== u) return;
+    const d = Math.abs(x - goal.x) + Math.abs(y - goal.y);
+    if (d < pick.d) pick = { x, y, d };
+  });
+  u.x = pick.x; u.y = pick.y;
+}
+
+/* =========================================================================
+   15. 사건 — 트리거, 지원 대화, 승패
+   ========================================================================= */
+
+function boss() { return G.units.find(u => u.side === "foe" && u.boss) || null; }
+
+function runTriggers() {
+  if (G.over || TALK.open) return;
+  const ch = G.ch; if (!ch || !ch.triggers) return;
+  for (let i = 0; i < ch.triggers.length; i++) {
+    const tr = ch.triggers[i], tag = "tr" + i;
+    if (tr.once !== false && G.fired.has(tag)) continue;
+    let hit = false;
+    if (tr.turn && G.turn >= tr.turn && G.side === "ally") hit = true;
+    if (tr.evilKill && G.evilKilled > 0) hit = true;
+    if (tr.foeHp === "boss") { const b = boss(); if (b && b.alive && b.hp / b.maxhp <= tr.below) hit = true; }
+    if (!hit) continue;
+    G.fired.add(tag);
+    if (tr.join) {
+      const u = G.units.find(a => a.id === tr.join && a.side === "npc");
+      if (u) { u.side = "ally"; u.acted = false; pushLog(u.name + " 합류."); }
+    }
+    if (tr.summon && ch.summons) {
+      ch.summons.forEach(s => { if (!unitAt(s.x, s.y)) G.units.push(makeUnit(s, "foe")); });
+      pushLog("증원이 나타났다.");
+    }
+    refresh();
+    talk(tr.lines, () => { refresh(); checkEnd(); });
+    return;
+  }
+}
+
+function checkSupports(u) {
+  if (u.side !== "ally") return;
+  const nbrs = G.units.filter(o => o.alive && o.side === "ally" && o !== u && manhattan(o, u) === 1);
+  for (const o of nbrs) {
+    const s = SUPPORTS.find(sp =>
+      sp.ch <= G.ch.id && SAVE.supports.indexOf(sp.key) < 0 &&
+      ((sp.a === u.id && sp.b === o.id) || (sp.b === u.id && sp.a === o.id)));
+    if (s) {
+      SAVE.supports.push(s.key); writeSave();
+      pushLog("일행의 대화 — 「" + s.title + "」");
+      talk(s.lines, () => refresh());
+      return;
+    }
+  }
+}
+
+function checkEnd() {
+  if (G.over || TALK.open) return;
+  const ch = G.ch;
+  const arden = G.units.find(u => u.id === "arden");
+  if (arden && !arden.alive) return lose("아르덴이 쓰러졌다.");
+  if (ch.lose && ch.lose.protect) {
+    const p = G.units.find(u => u.id === ch.lose.protect);
+    if (p && !p.alive) return lose(CAST[ch.lose.protect].name + "을(를) 지키지 못했다.");
+  }
+  if (!G.units.some(u => u.alive && u.side === "ally")) return lose("일행이 전멸했다.");
+
+  const b = boss();
+  if (b && b.alive && b.retreat && b.hp / b.maxhp <= b.retreat) {
+    b.alive = false; G.over = true; refresh();
+    talk(ch.retreatLines || [], () => win());
+    return;
+  }
+  if (ch.win.type === "boss") { if (!b || !b.alive) return win(); }
+  else if (ch.win.type === "survive") { if (G.turn > ch.win.turns) return win(); }
+  else if (!G.units.some(u => u.alive && u.side === "foe")) return win();
+}
+
+function win() {
+  G.over = true;
+  G.units.filter(u => u.side === "ally" && PARTY_ORDER.indexOf(u.id) >= 0).forEach(u => {
+    const prev = G.roster[u.id];
+    G.roster[u.id] = { lv: u.lv, exp: u.exp, bonus: (prev && prev.bonus) || null };
+  });
+  talk(G.ch.outro, () => afterChapter());
+}
+
+function lose(why) { G.over = true; showResult(false, why); }
+
+/* 아웃트로의 선택이 남긴 보상. 같은 장을 다시 깨도 한 번만 붙는다. */
+function applyOutroEffects() {
+  const bump = (id, k, v) => {
+    G.roster[id] = G.roster[id] || { lv: 1, exp: 0, bonus: null };
+    G.roster[id].bonus = G.roster[id].bonus || { hp: 0, mag: 0, atk: 0, def: 0 };
+    G.roster[id].bonus[k] += v;
+  };
+  const once = (tag, fn) => {
+    if (SAVE.effects.indexOf(tag) >= 0) return;
+    SAVE.effects.push(tag); fn();
+  };
+  if (G.flags.has("book_burned")) once("book_burned", () => PARTY_ORDER.forEach(p => bump(p, "hp", 3)));
+  if (G.flags.has("book_kept")) once("book_kept", () => bump("rien", "mag", 3));
+  if (G.flags.has("took_half")) once("took_half", () => PARTY_ORDER.forEach(p => bump(p, "atk", 1)));
+  if (G.flags.has("tended_wounded")) once("tended_wounded", () => PARTY_ORDER.forEach(p => bump(p, "hp", 2)));
+}
+
+function afterChapter() {
+  applyOutroEffects();
+  SAVE.cleared = Math.max(SAVE.cleared, G.chIdx + 1);
+  SAVE.flags = [...G.flags];
+  SAVE.roster = G.roster;
+  writeSave();
+  if (G.chIdx === CHAPTERS.length - 1 && ENDING_LINES.length) { rollEnding(); return; }
+  showResult(true, null);
+}
+
+/* =========================================================================
+   16. 결과 · 엔딩
+   ========================================================================= */
+
+function showResult(won, why) {
+  show("result");
+  $("rTitle").className = "big " + (won ? "win" : "lose");
+  $("rTitle").textContent = won ? "승리" : "패배";
+  $("rSub").textContent = won ? G.ch.id + "장 「" + G.ch.title + "」 종료" : why + " 다시 시도할 수 있다.";
+  const body = $("rBody"); body.innerHTML = "";
+  if (won) {
+    G.units.filter(u => u.side === "ally").forEach(u => {
+      const d = document.createElement("div");
+      d.className = "mi";
+      d.innerHTML = "<h5>" + u.name + " · Lv " + u.lv + "</h5><p>체력 " + u.hp + "/" + u.maxhp +
+        " · 위력 " + (u.kind === "mag" ? u.mag : u.atk) + " · 방어 " + u.def + " · 저항 " + u.res + "</p>";
+      body.appendChild(d);
+    });
+    if (G.evilKilled > 0) {
+      const d = document.createElement("div"); d.className = "mi";
+      d.innerHTML = "<h5>자비 없음</h5><p>아르덴이 사람의 탈을 쓴 자 " + G.evilKilled + "명을 베었다. 한 번도 말을 걸지 않았다.</p>";
+      body.appendChild(d);
+    }
+  }
+  $("btnNext").textContent = won ? (G.chIdx + 1 < CHAPTERS.length ? "다음 장으로" : "원정의 기록으로") : "다시 도전";
+  $("btnNext").onclick = won ? () => openChapters() : () => startChapter(G.chIdx);
+}
+
+function rollEnding() {
+  if (G.fell.size === 0) G.flags.add("everyone_home"); else G.flags.add("someone_fell");
+  SAVE.flags = [...G.flags];
+  const got = EPILOGUES.filter(e => G.flags.has(e.flag)).slice(0, 5);
+  got.forEach(e => { if (SAVE.epilogues.indexOf(e.flag) < 0) SAVE.epilogues.push(e.flag); });
+  SAVE.cleared_run = true;
+  writeSave();
+  talk(ENDING_LINES.concat(got.map(e => ({ n: e.t }))).concat(ENDING_CODA), () => {
+    show("result");
+    $("rTitle").className = "big win";
+    $("rTitle").textContent = "여명";
+    $("rSub").textContent = "원정은 끝났다. 남은 이야기는 회상록에 있다.";
+    const body = $("rBody"); body.innerHTML = "";
+    got.forEach(e => { const d = document.createElement("div"); d.className = "mi"; d.innerHTML = "<p>" + e.t + "</p>"; body.appendChild(d); });
+    $("btnNext").textContent = "회상록 보기";
+    $("btnNext").onclick = () => openMemoir("title");
+  });
+}
+
+/* =========================================================================
+   17. 대사
+   ========================================================================= */
+
+const TALK = { q: [], open: false, typing: false, full: "", i: 0, timer: null, done: null, choosing: false };
+const TYPE_MS = 16;
+
+function talk(lines, done) {
+  if (!lines || !lines.length) { if (done) done(); return; }
+  TALK.q = lines.slice(); TALK.done = done || null; TALK.open = true; TALK.choosing = false;
+  $("talk").classList.add("on");
+  nextLine();
+}
+
+function nextLine() {
+  if (TALK.choosing) return;
+  if (!TALK.q.length) { closeTalk(); return; }
+  const ln = TALK.q.shift();
+  if (ln.choice) { renderChoice(ln.choice); return; }
+  const who = ln.w || null;
+  const text = ln.t || ln.n || "";
+  const fc = $("talkFace");
+  if (who && CAST[who] && CAST[who].face) { fc.classList.remove("hide"); drawFace(fc, who); }
+  else fc.classList.add("hide");
+  $("talkName").textContent = who && CAST[who] ? CAST[who].name : "";
+  $("talkName").style.color = who && CAST[who] ? CAST[who].color : "var(--muted)";
+  const tt = $("talkText");
+  tt.className = who ? "" : "narr";
+  TALK.full = text; TALK.i = 0; tt.textContent = ""; TALK.typing = true;
+  $("talkHint").textContent = "";
+  clearInterval(TALK.timer);
+  TALK.timer = setInterval(() => {
+    TALK.i += 2;
+    tt.textContent = TALK.full.slice(0, TALK.i);
+    if (TALK.i >= TALK.full.length) finishType();
+  }, TYPE_MS);
+}
+
+function finishType() {
+  clearInterval(TALK.timer); TALK.timer = null; TALK.typing = false;
+  $("talkText").textContent = TALK.full;
+  $("talkHint").textContent = "▼ 클릭";
+}
+
+function renderChoice(c) {
+  TALK.choosing = true;
+  finishType();
+  $("talkText").textContent = c.q;
+  $("talkText").className = "narr";
+  $("talkName").textContent = "";
+  $("talkFace").classList.add("hide");
+  $("talkHint").textContent = "";
+  const box = $("talkChoices");
+  box.className = "on"; box.innerHTML = "";
+  const q = document.createElement("div"); q.className = "q"; q.textContent = "선택";
+  box.appendChild(q);
+  c.opts.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "copt"; b.dataset.opt = i;
+    b.innerHTML = o.label + (o.hint ? "<small>" + o.hint + "</small>" : "");
+    b.onclick = () => pickChoice(c, i);
+    box.appendChild(b);
+  });
+}
+
+function pickChoice(c, i) {
+  const o = c.opts[i]; if (!o) return;
+  if (o.flag) {
+    // 같은 물음의 다른 선택지 플래그는 지운다. 갈림길은 한쪽만 남아야 한다.
+    c.opts.forEach(other => {
+      if (other === o || !other.flag) return;
+      G.flags.delete(other.flag);
+      const j = SAVE.flags.indexOf(other.flag);
+      if (j >= 0) SAVE.flags.splice(j, 1);
+    });
+    G.flags.add(o.flag);
+    if (SAVE.flags.indexOf(o.flag) < 0) SAVE.flags.push(o.flag);
+    writeSave();
+  }
+  $("talkChoices").className = ""; $("talkChoices").innerHTML = "";
+  TALK.choosing = false;
+  if (o.then && o.then.length) TALK.q = o.then.concat(TALK.q);
+  nextLine();
+}
+
+function closeTalk() {
+  clearInterval(TALK.timer); TALK.timer = null;
+  TALK.open = false; TALK.typing = false; TALK.choosing = false;
+  $("talk").classList.remove("on");
+  $("talkChoices").className = ""; $("talkChoices").innerHTML = "";
+  const d = TALK.done; TALK.done = null;
+  if (d) d();
+}
+
+function advanceTalk() {
+  if (!TALK.open || TALK.choosing) return;
+  if (TALK.typing) finishType(); else nextLine();
+}
+
+/* 테스트·빨리감기용. 선택지가 나오면 거기서 멈춘다. */
+function skipTalk() {
+  let guard = 0;
+  while (TALK.open && !TALK.choosing && guard++ < 600) advanceTalk();
+  return TALK.choosing ? "choice" : "closed";
+}
+
+/* =========================================================================
+   18. 그리기
+   ========================================================================= */
+
+let ctx = null;
+try { ctx = $("map").getContext("2d"); } catch (e) { ctx = null; }
+if (ctx) { ctx.imageSmoothingEnabled = false; ctx.setTransform(SC, 0, 0, SC, 0, 0); }
+
+function hash(x, y) {
+  let h = (x * 374761393 + y * 668265263) ^ 0x5bf03635;
+  h = (h ^ (h >> 13)) * 1274126177;
+  return (h ^ (h >> 16)) >>> 0;
+}
+
+function drawSprite(c, rows, pal, px, py) {
+  for (let y = 0; y < rows.length; y++) {
+    const r = rows[y];
+    for (let x = 0; x < r.length; x++) {
+      const ch = r[x];
+      if (ch === "." || ch === " ") continue;
+      const col = pal[ch];
+      if (!col) continue;
+      c.fillStyle = col;
+      c.fillRect(px + x, py + y, 1, 1);
+    }
+  }
+}
+
+function drawTile(t, px, py, gx, gy) {
+  const T = T_(t), h = hash(gx, gy);
+  const base = { grass: "#3f6b3a", tree: "#3f6b3a", mtn: "#4a4f5c", water: "#204a78",
+                 wall: "#33384a", bridge: "#6b4f30", house: "#3f6b3a", shrine: "#5a5f52",
+                 floor: "#4a4c58", throne: "#3a2f4c" }[T.kind] || "#3f6b3a";
+  ctx.fillStyle = base; ctx.fillRect(px, py, TS, TS);
+  ctx.fillStyle = "rgba(255,255,255,.05)";
+  for (let i = 0; i < 5; i++) ctx.fillRect(px + ((h >> (i * 3)) & 15), py + ((h >> (i * 3 + 4)) & 15), 1, 1);
+
+  if (T.kind === "tree") {
+    ctx.fillStyle = "#4a2f1d"; ctx.fillRect(px + 7, py + 10, 2, 5);
+    ctx.fillStyle = "#1e3c22"; ctx.fillRect(px + 3, py + 2, 10, 9);
+    ctx.fillStyle = "#2d5c33"; ctx.fillRect(px + 4, py + 3, 8, 7);
+    ctx.fillStyle = "#3d7742"; ctx.fillRect(px + 5, py + 4, 4, 3);
+  } else if (T.kind === "mtn") {
+    ctx.fillStyle = "#6b7080";
+    for (let i = 0; i < 7; i++) ctx.fillRect(px + 7 - i, py + 4 + i, 2 + i * 2, 1);
+    ctx.fillStyle = "#c8cede"; ctx.fillRect(px + 7, py + 4, 2, 2); ctx.fillRect(px + 6, py + 6, 4, 1);
+    ctx.fillStyle = "#3a3f4c"; ctx.fillRect(px + 1, py + 11, 14, 1);
+  } else if (T.kind === "water") {
+    ctx.fillStyle = "#2b6094"; ctx.fillRect(px, py + 4, TS, 3); ctx.fillRect(px, py + 11, TS, 2);
+    ctx.fillStyle = "#4d8fc4"; ctx.fillRect(px + 2, py + 2, 5, 1); ctx.fillRect(px + 9, py + 8, 5, 1);
+  } else if (T.kind === "wall") {
+    ctx.fillStyle = "#232735"; ctx.fillRect(px, py, TS, 1); ctx.fillRect(px, py, 1, TS);
+    ctx.fillStyle = "#454b60";
+    ctx.fillRect(px + 1, py + 1, 6, 6); ctx.fillRect(px + 9, py + 1, 6, 6);
+    ctx.fillRect(px + 1, py + 9, 6, 6); ctx.fillRect(px + 9, py + 9, 6, 6);
+  } else if (T.kind === "bridge") {
+    ctx.fillStyle = "#8a6840"; ctx.fillRect(px, py + 2, TS, 12);
+    ctx.fillStyle = "#5a3f22";
+    for (let i = 0; i < 4; i++) ctx.fillRect(px + i * 4 + 1, py + 2, 1, 12);
+    ctx.fillRect(px, py + 2, TS, 1); ctx.fillRect(px, py + 13, TS, 1);
+  } else if (T.kind === "house") {
+    ctx.fillStyle = "#c8a878"; ctx.fillRect(px + 3, py + 8, 10, 7);
+    ctx.fillStyle = "#8a3f30";
+    for (let i = 0; i < 5; i++) ctx.fillRect(px + 7 - i, py + 3 + i, 2 + i * 2, 1);
+    ctx.fillStyle = "#4a2f1d"; ctx.fillRect(px + 7, py + 11, 3, 4);
+    ctx.fillStyle = "#2a2015"; ctx.fillRect(px + 3, py + 8, 10, 1);
+  } else if (T.kind === "shrine") {
+    ctx.fillStyle = "#8a8f80"; ctx.fillRect(px + 2, py + 12, 12, 3);
+    ctx.fillStyle = "#d8dcc8"; ctx.fillRect(px + 4, py + 4, 3, 8); ctx.fillRect(px + 9, py + 4, 3, 8);
+    ctx.fillRect(px + 3, py + 2, 10, 2);
+    ctx.fillStyle = "#f0d489"; ctx.fillRect(px + 7, py + 6, 2, 4); ctx.fillRect(px + 6, py + 7, 4, 2);
+  } else if (T.kind === "floor") {
+    ctx.fillStyle = "#3a3c46"; ctx.fillRect(px, py + 7, TS, 1); ctx.fillRect(px + 7, py, 1, TS);
+    ctx.fillStyle = "#565964"; ctx.fillRect(px + 1, py + 1, 5, 5); ctx.fillRect(px + 9, py + 9, 5, 5);
+  } else if (T.kind === "throne") {
+    ctx.fillStyle = "#5a4070"; ctx.fillRect(px + 3, py + 2, 10, 12);
+    ctx.fillStyle = "#d8b45a"; ctx.fillRect(px + 3, py + 2, 10, 2); ctx.fillRect(px + 3, py + 12, 10, 2);
+    ctx.fillStyle = "#8a3050"; ctx.fillRect(px + 5, py + 5, 6, 6);
+  }
+}
+
+function drawHpBar(u, px, py) {
+  const w = 14, f = Math.max(0, Math.round(w * u.hp / u.maxhp));
+  ctx.fillStyle = "#0b0d14"; ctx.fillRect(px + 1, py + TS - 3, w, 3);
+  const r = u.hp / u.maxhp;
+  ctx.fillStyle = r > .5 ? "#5ec97a" : r > .25 ? "#d8b45a" : "#e0616a";
+  ctx.fillRect(px + 1, py + TS - 3, f, 2);
+}
+
+function render() {
+  if (!ctx) return;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) drawTile(tileAt(x, y), x * TS, y * TS, x, y);
+
+  if (G.atkSet) { ctx.fillStyle = "rgba(224,97,106,.30)"; G.atkSet.forEach(k => ctx.fillRect((k % W) * TS, ((k / W) | 0) * TS, TS, TS)); }
+  if (G.moveSet) { ctx.fillStyle = "rgba(111,176,240,.34)"; G.moveSet.forEach(k => ctx.fillRect((k % W) * TS, ((k / W) | 0) * TS, TS, TS)); }
+  if (G.pending) { ctx.fillStyle = "rgba(240,80,90,.55)"; G.pending.targets.forEach(t => ctx.fillRect(t.x * TS, t.y * TS, TS, TS)); }
+
+  G.units.forEach(u => {
+    if (!u.alive) return;
+    const px = u.x * TS, py = u.y * TS;
+    ctx.fillStyle = u.side === "ally" ? "#6fb0f0" : u.side === "npc" ? "#7ddc9a" : "#e0616a";
+    ctx.globalAlpha = .55; ctx.fillRect(px + 2, py + 13, 12, 2); ctx.globalAlpha = 1;
+    if (u.acted && u.side !== "foe") ctx.globalAlpha = .5;
+    drawSprite(ctx, SPR[u.spr], P[u.pal] || P.goblin, px, py);
+    ctx.globalAlpha = 1;
+    if (u.boss) { ctx.fillStyle = "#f0d489"; ctx.fillRect(px + 6, py - 1, 4, 2); }
+    if (u.evil) { ctx.fillStyle = "#ff5560"; ctx.fillRect(px + 1, py + 1, 2, 2); }
+    drawHpBar(u, px, py);
+  });
+
+  if (G.sel && G.sel.alive) {
+    ctx.strokeStyle = "#f0d489"; ctx.lineWidth = 1;
+    ctx.strokeRect(G.sel.x * TS + .5, G.sel.y * TS + .5, TS - 1, TS - 1);
+  }
+}
+
+function drawFace(cv, id) {
+  let c = null;
+  try { c = cv.getContext("2d"); } catch (e) { return; }
+  if (!c) return;
+  c.imageSmoothingEnabled = false;
+  c.setTransform(4, 0, 0, 4, 0, 0);
+  c.fillStyle = "#0d1017"; c.fillRect(0, 0, 16, 16);
+  const cast = CAST[id]; if (!cast) return;
+  drawSprite(c, FACE[cast.face] || FACE.short, FP[cast.fpal] || FP.arden, 0, 0);
+}
+
+function drawUnitIcon(cv, id) {
+  let c = null;
+  try { c = cv.getContext("2d"); } catch (e) { return; }
+  if (!c) return;
+  c.imageSmoothingEnabled = false;
+  const s = cv.width / 16;
+  c.setTransform(s, 0, 0, s, 0, 0);
+  c.clearRect(0, 0, 16, 16);
+  const cast = CAST[id]; if (!cast) return;
+  drawSprite(c, SPR[CLASSES[cast.cls].spr], P[cast.pal], 0, 0);
+}
+
+/* =========================================================================
+   19. 화면 갱신
+   ========================================================================= */
+
+function refresh() {
+  render();
+  $("turnLabel").textContent = G.turn + "턴";
+  const pt = $("phaseTag");
+  pt.className = G.side === "ally" ? "ally" : "foe";
+  pt.textContent = G.side === "ally" ? "아군 페이즈" : "적 페이즈";
+  $("btnEnd").disabled = G.side !== "ally" || G.over || G.busy;
+  if (G.ch) {
+    $("objLabel").textContent = "목표 · " + G.ch.obj +
+      (G.ch.win.type === "survive" ? " (남은 " + Math.max(0, G.ch.win.turns - G.turn + 1) + "턴)" : "");
+  }
+
+  const u = G.sel, tag = $("uTag");
+  if (u) {
+    if (CAST[u.id] && CAST[u.id].face) drawFace($("uface"), u.id); else drawUnitIcon($("uface"), u.id);
+    $("uName").textContent = u.name + (u.boss ? " ★" : "") + (PARTY_ORDER.indexOf(u.id) >= 0 ? " · Lv " + u.lv : "");
+    const t = T_(tileAt(u.x, u.y));
+    $("uClass").textContent = u.clsName + " · " + (u.side === "foe" ? "적" : u.side === "npc" ? "중립" : "아군") +
+      " · " + t.n + (t.def ? " (방어 +" + t.def + ", 회피 +" + t.avo + ")" : "");
+    const r = u.hp / u.maxhp;
+    const bar = $("uHpBar");
+    bar.className = "hpbar" + (r <= .25 ? " crit" : r <= .5 ? " low" : "");
+    bar.firstChild.style.width = (r * 100) + "%";
+    $("uStats").innerHTML =
+      "체력 <b>" + u.hp + "/" + u.maxhp + "</b>" +
+      "<span>위력 <b>" + (u.kind === "mag" ? u.mag : u.atk) + "</b></span>" +
+      "<span>방어 <b>" + u.def + "</b></span>" +
+      "<span>저항 <b>" + u.res + "</b></span>" +
+      "<span>이동 <b>" + u.mov + "</b></span>" +
+      "<span>사거리 <b>" + u.rng + "</b></span>" +
+      "<span>무기 <b>" + WPN_KR[u.wpn] + "</b></span>";
+    if (u.evil) { tag.style.display = "block"; tag.textContent = "사람의 탈 — 아르덴 앞에서 「자비 없음」이 걸린다"; }
+    else if (u.id === "arden") { tag.style.display = "block"; tag.textContent = "「자비 없음」 · 사람 악당에게 위력 1.5배, 반격 없음"; }
+    else tag.style.display = "none";
+  } else {
+    $("uName").textContent = "칸을 눌러 유닛을 고르세요";
+    $("uClass").textContent = "아군을 고르면 이동할 수 있는 칸이 파랗게 표시됩니다.";
+    $("uHpBar").firstChild.style.width = "0";
+    $("uStats").innerHTML = "";
+    tag.style.display = "none";
+  }
+  renderActMenu();
+  renderForecast();
+}
+
+/* =========================================================================
+   20. 화면 전환과 목록
+   ========================================================================= */
+
+function show(id) {
+  ["title", "chapters", "battle", "result", "memoir"].forEach(s => {
+    const el = $(s); if (el) el.classList.toggle("on", s === id);
+  });
+  try { window.scrollTo(0, 0); } catch (e) {}
+}
+
+function openChapters() {
+  show("chapters");
+  const list = $("chlist"); list.innerHTML = "";
+  let act = null;
+  CHAPTERS.forEach((ch, i) => {
+    if (ch.act !== act) {
+      act = ch.act;
+      const h = document.createElement("div"); h.className = "actlabel"; h.textContent = act;
+      list.appendChild(h);
+      const g = document.createElement("div"); g.className = "chlist"; g.dataset.act = act;
+      list.appendChild(g);
+    }
+    const locked = i > SAVE.cleared, done = i < SAVE.cleared;
+    const b = document.createElement("button");
+    b.className = "chcard" + (locked ? " locked" : "") + (done ? " done" : "");
+    b.dataset.ch = i;
+    b.innerHTML = '<div class="chnum">' + ch.id + '</div><div class="chbody"><h3>' +
+      (locked ? "???" : ch.title + " — " + ch.sub) + '</h3><p>' +
+      (locked ? "앞 장을 끝내야 열린다." : ch.blurb) + (done ? " · 완료" : "") + '</p></div>';
+    if (!locked) b.onclick = () => startChapter(i);
+    list.lastChild.appendChild(b);
+  });
+
+  const party = $("party"); party.innerHTML = "";
+  PARTY_ORDER.forEach(id => {
+    if (JOIN_AT[id] > SAVE.cleared) return;
+    const r = G.roster[id] || { lv: 1 };
+    const d = document.createElement("div"); d.className = "pcard";
+    const cv = document.createElement("canvas"); cv.width = 32; cv.height = 32;
+    d.appendChild(cv);
+    const box = document.createElement("div");
+    box.innerHTML = '<div class="pn">' + CAST[id].name + ' · Lv ' + (r.lv || 1) + '</div><div class="pl">' +
+      CLASSES[CAST[id].cls].n + ' · ' + CAST[id].note + '</div>';
+    d.appendChild(box); party.appendChild(d);
+    drawUnitIcon(cv, id);
+  });
+}
+
+let memoBack = "title";
+function openMemoir(from) {
+  memoBack = from || "title";
+  show("memoir");
+  const ep = $("epList"); ep.innerHTML = "";
+  EPILOGUES.forEach(e => {
+    const got = SAVE.epilogues.indexOf(e.flag) >= 0;
+    const d = document.createElement("div");
+    d.className = "mi" + (got ? "" : " locked");
+    d.innerHTML = got ? "<p>" + e.t + "</p>" : "<p>??? — 아직 이 선택을 하지 않았다.</p>";
+    ep.appendChild(d);
+  });
+  const sp = $("spList"); sp.innerHTML = "";
+  SUPPORTS.forEach(s => {
+    const got = SAVE.supports.indexOf(s.key) >= 0;
+    const d = document.createElement("div");
+    d.className = "mi" + (got ? "" : " locked");
+    d.innerHTML = got
+      ? "<h5>" + CAST[s.a].name + " · " + CAST[s.b].name + " — 「" + s.title + "」</h5>" +
+        s.lines.map(l => "<p>" + (l.w ? "<b style='color:" + CAST[l.w].color + "'>" + CAST[l.w].name + "</b> " : "") + (l.t || l.n) + "</p>").join("")
+      : "<h5>" + CAST[s.a].name + " · " + CAST[s.b].name + "</h5><p>전투 중 두 사람을 나란히 세우면 열린다.</p>";
+    sp.appendChild(d);
+  });
+}
+
+function refreshSaveNote() {
+  const n = $("saveNote");
+  $("btnCont").disabled = SAVE.cleared <= 0;
+  if (SAVE.cleared_run) {
+    n.textContent = "원정을 마쳤다. 모은 후일담 " + SAVE.epilogues.length + "/" + EPILOGUES.length +
+      " · 일행의 대화 " + SAVE.supports.length + "/" + SUPPORTS.length;
+  } else if (SAVE.cleared > 0) {
+    n.textContent = SAVE.cleared + "장까지 진행했다. (전체 " + CHAPTERS.length + "장)";
+  } else n.textContent = "";
+}
+
+/* =========================================================================
+   21. 이벤트 연결
+   ========================================================================= */
+
+$("btnNew").onclick = () => {
+  G.flags = new Set(); G.roster = {}; G.fell = new Set();
+  SAVE.cleared = 0; SAVE.flags = []; SAVE.roster = {}; SAVE.effects = []; SAVE.cleared_run = false;
+  writeSave();
+  openChapters();
+};
+$("btnCont").onclick = () => {
+  G.flags = new Set(SAVE.flags || []);
+  G.roster = SAVE.roster || {};
+  openChapters();
+};
+$("btnMemo").onclick = () => openMemoir("title");
+$("btnMemoBack").onclick = () => show(memoBack);
+$("btnToTitle").onclick = () => { refreshSaveNote(); show("title"); };
+$("btnEnd").onclick = () => endTurn();
+$("btnGiveUp").onclick = () => { if (!G.over) { G.over = true; showResult(false, "후퇴했다."); } };
+
+$("map").addEventListener("click", ev => {
+  const r = ev.currentTarget.getBoundingClientRect();
+  const x = Math.floor((ev.clientX - r.left) / (r.width / W));
+  const y = Math.floor((ev.clientY - r.top) / (r.height / H));
+  if (inBounds(x, y)) onTile(x, y);
+});
+
+$("talk").addEventListener("click", ev => {
+  if (ev.target.closest && ev.target.closest(".copt")) return;
+  advanceTalk();
+});
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll(".tab").forEach(o => o.classList.toggle("on", o === t));
+    $("tpEp").classList.toggle("on", t.dataset.t === "ep");
+    $("tpSp").classList.toggle("on", t.dataset.t === "sp");
+  };
+});
+
+document.addEventListener("keydown", e => {
+  if (TALK.open && (e.key === " " || e.key === "Enter")) { e.preventDefault(); advanceTalk(); }
+});
+
+refreshSaveNote();
+</script>
+</body>
+</html>
