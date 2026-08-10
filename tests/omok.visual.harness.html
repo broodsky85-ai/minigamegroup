@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>오목 Android 화면 검증</title>
+  <style>
+    html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; overflow: hidden; background: #020617; }
+  </style>
+</head>
+<body>
+<iframe id="game" src="../omok.html" title="오목 Android 화면 검증" scrolling="no"></iframe>
+<script>
+  const frame = document.getElementById("game");
+  frame.addEventListener("load", () => {
+    const game = frame.contentWindow;
+    const doc = frame.contentDocument;
+    const params = new URLSearchParams(location.search);
+    const level = Number(params.get("level") || 0);
+    doc.body.classList.add("native-app");
+    game.OmokRecords.clearAll();
+    doc.getElementById("updateBanner").hidden = true;
+
+    if (level >= 1 && level <= 30) {
+      game.OmokRecords.mergeSnapshot({ unlocked: 30, updatedAt: Date.now() + 1000, levels: {} });
+      const realm = level <= 10 ? "human" : level <= 20 ? "divine" : "war";
+      doc.querySelector('.tab-btn[data-tab="game"]').click();
+      doc.querySelector('.realm-btn[data-realm="' + realm + '"]').click();
+      doc.querySelectorAll(".boss-card")[(level - 1) % 10].click();
+      doc.body.classList.add("battle-active");
+    }
+    document.body.dataset.ready = "true";
+  });
+</script>
+</body>
+</html>

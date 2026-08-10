@@ -1,7 +1,7 @@
 {
-  "name": "오목 챌린지: 인간계를 넘어 신계에 도전하라",
+  "name": "오목 챌린지: 신들의 전쟁을 끝내라",
   "short_name": "오목 챌린지",
-  "description": "15명의 AI 보스를 꺾고 오목신에 도전하는 오목 게임",
+  "description": "30명의 AI 보스를 꺾고 신들의 전쟁 최종보스 절대신에 도전하는 오목 게임",
   "lang": "ko",
   "start_url": "./omok.html",
   "scope": "./",

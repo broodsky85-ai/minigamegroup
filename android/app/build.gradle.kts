@@ -25,9 +25,9 @@ android {
         applicationId = "com.broodsky85.omokchallenge"
         minSdk = 23
         targetSdk = 36
-        // versionCode 1은 Play 내부 테스트에 업로드되어 소진됐다. 같은 값은 두 번 못 올린다.
-        versionCode = 2
-        versionName = "1.0.0"
+        // versionCode 1~4는 Play 테스트 트랙에 업로드되어 소진됐다. 같은 값은 두 번 못 올린다.
+        versionCode = 5
+        versionName = "1.2.2"
     }
 
     signingConfigs {
@@ -67,6 +67,7 @@ android {
 
 dependencies {
     implementation("com.google.android.gms:play-services-ads:25.4.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
@@ -77,7 +78,8 @@ dependencies {
 
 val syncWebAssets by tasks.registering(Sync::class) {
     from(rootProject.projectDir.parentFile) {
-        include("*.html")
+        // Android 앱은 오목 전용이다. 웹 홈과 다른 게임 HTML은 패키지에 넣지 않는다.
+        include("omok.html")
         include("manifest.webmanifest")
         include("sw.js")
         include("icons/**")

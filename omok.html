@@ -2,14 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#070b18">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/omok-192.png">
 <link rel="apple-touch-icon" href="icons/omok-192.png">
-<title>오목 챌린지 - 인간계를 넘어 신계에 도전하라</title>
+<title>오목 챌린지 - 신들의 전쟁을 끝내라</title>
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -25,10 +25,7 @@
     --danger: #f87171;
     --gold: #fcd34d;
     --neon: #38bdf8;
-    --cell: 32px;
-  }
-  @media (max-width: 560px) {
-    :root { --cell: 20px; }
+    --cell: clamp(20px, calc((100vw - 22px) / 15), 32px);
   }
   body {
     margin: 0;
@@ -204,9 +201,9 @@
 
   .realm-switch {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
-    width: min(520px, 100%);
+    width: min(760px, 100%);
     margin: 0 auto 22px;
     padding: 6px;
     border: 1px solid var(--border);
@@ -242,7 +239,18 @@
     background: linear-gradient(135deg, #fcd34d, #c084fc);
     box-shadow: 0 0 22px rgba(192, 132, 252, 0.42);
   }
+  .realm-btn.active[data-realm="war"] {
+    color: #240608;
+    background: linear-gradient(135deg, #fcd34d, #fb7185 52%, #c084fc);
+    box-shadow: 0 0 24px rgba(251, 113, 133, 0.46);
+  }
   .realm-btn.locked { cursor: not-allowed; opacity: 0.5; }
+
+  @media (max-width: 620px) {
+    .realm-switch { gap: 5px; padding: 5px; }
+    .realm-btn { padding: 10px 5px; font-size: 12px; word-break: keep-all; }
+    .realm-btn small { font-size: 9px; }
+  }
 
   .realm-intro {
     max-width: 1000px;
@@ -305,6 +313,8 @@
     align-items: center;
     gap: 10px;
   }
+  .boss-card .row > div,
+  .boss-banner .row > div { min-width: 0; }
   .boss-card .icon {
     font-size: 24px;
     line-height: 1;
@@ -326,6 +336,43 @@
     color: var(--muted);
     font-size: 13px;
     line-height: 1.55;
+  }
+  .boss-card .initiative-note,
+  .boss-card .unlock-note {
+    align-self: flex-start;
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 800;
+  }
+  .boss-card .initiative-note { color: color-mix(in srgb, var(--neon) 78%, var(--text)); }
+  .boss-card .unlock-note {
+    width: 100%;
+    padding-top: 7px;
+    border-top: 1px dashed color-mix(in srgb, var(--neon) 26%, var(--border));
+    color: var(--muted);
+  }
+  .boss-card .lock-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 16px;
+    opacity: .82;
+  }
+  .boss-trait {
+    display: inline-flex;
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 4px 9px;
+    border: 1px solid color-mix(in srgb, var(--neon) 35%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--neon) 10%, var(--panel-2));
+    color: var(--neon);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow-wrap: break-word;
+    word-break: keep-all;
   }
   .boss-card .final-badge {
     align-self: flex-start;
@@ -353,6 +400,22 @@
     opacity: 0.45;
     font-size: 18px;
     text-shadow: 0 0 12px var(--neon);
+  }
+  .boss-card.war {
+    background:
+      radial-gradient(circle at 88% 15%, color-mix(in srgb, var(--neon) 28%, transparent), transparent 30%),
+      linear-gradient(145deg, rgba(127, 29, 29, 0.34), color-mix(in srgb, var(--neon) 13%, transparent) 48%, transparent 72%),
+      #1c1022;
+  }
+  .boss-card.war::after {
+    content: "⚔";
+    position: absolute;
+    right: 14px;
+    top: 8px;
+    color: var(--neon);
+    opacity: 0.58;
+    font-size: 20px;
+    text-shadow: 0 0 14px var(--neon);
   }
   .boss-card .realm-badge {
     align-self: flex-start;
@@ -400,6 +463,22 @@
     color: var(--neon);
   }
   .boss-banner .name { margin: 0; font-size: clamp(18px, 5vw, 24px); font-weight: 900; }
+  .boss-banner .boss-profile {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 9px 0 0;
+    font-size: 12px;
+  }
+  .boss-banner .boss-profile b { color: var(--muted); }
+  .boss-banner .boss-behavior {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+    word-break: keep-all;
+  }
   .boss-banner .quote {
     margin: 10px 0 0;
     padding-left: 12px;
@@ -441,24 +520,47 @@
   .turn-info.thinking::after { content:""; display:inline-block; width:1.4em; text-align:left; animation:thinkingDots 1.1s steps(4,end) infinite; }
   @keyframes thinkingDots { 0%{content:""} 25%{content:"."} 50%{content:".."} 75%,100%{content:"..."} }
   body.reduce-motion .turn-info.thinking::after { animation:none; content:"..."; }
+  .rule-note {
+    margin-top: -4px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    word-break: keep-all;
+  }
 
   .board-shell {
+    position: relative;
     padding: 8px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--neon) 8%, transparent);
     box-shadow: 0 0 30px -10px var(--neon);
     max-width: 100%;
-    overflow-x: auto;
+    max-height: min(78vh, 720px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--neon) 55%, transparent) transparent;
+    -webkit-overflow-scrolling: touch;
   }
 
   #board {
+    box-sizing: content-box;
     display: grid;
     grid-template-columns: repeat(15, var(--cell));
     grid-template-rows: repeat(15, var(--cell));
+    width: calc(var(--cell) * 15);
+    min-width: calc(var(--cell) * 15);
+    height: calc(var(--cell) * 15);
+    min-height: calc(var(--cell) * 15);
+    margin: 0 auto;
     background: linear-gradient(135deg, #d9b177, #bd8f52);
     border: 3px solid #6b4d29;
     border-radius: 4px;
     box-shadow: inset 0 0 14px rgba(0,0,0,0.4);
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .cell {
@@ -471,6 +573,22 @@
   }
   .cell:nth-child(15n) { border-right: none; }
   .cell:nth-child(n+211) { border-bottom: none; }
+  #board.player-turn .cell:not(.has-stone):hover {
+    background: rgba(56, 189, 248, 0.16);
+    box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.55);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    #board.player-turn .cell:not(.has-stone):hover::before {
+      content: "";
+      position: absolute;
+      inset: 9%;
+      z-index: 2;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 28%, rgba(107,114,128,.82), rgba(11,17,32,.82) 72%);
+      box-shadow: 0 2px 5px rgba(0,0,0,.55);
+      pointer-events: none;
+    }
+  }
 
   .cell.star::after {
     content: "";
@@ -490,6 +608,14 @@
     border-radius: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
+  }
+  .stone.placed {
+    animation: stoneDrop .2s cubic-bezier(.2,.9,.3,1.35);
+  }
+  @keyframes stoneDrop {
+    0% { transform: translate(-50%, -72%) scale(1.34); filter: brightness(1.65); opacity: .35; }
+    68% { transform: translate(-50%, -47%) scale(.92); }
+    100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1); opacity: 1; }
   }
   .stone.black {
     background: radial-gradient(circle at 32% 28%, #6b7280, #0b1120 72%);
@@ -536,6 +662,64 @@
     to   { box-shadow: 0 0 18px 7px var(--accent-2); }
   }
 
+  .board-shell.finish-win { --finish-color: #67e8f9; }
+  .board-shell.finish-lose { --finish-color: #fb7185; }
+  .board-shell.finish-draw { --finish-color: #fcd34d; }
+  .stone.finisher,
+  .cell.win .stone.finisher {
+    z-index: 8;
+    box-shadow:
+      0 0 0 3px #fff,
+      0 0 14px 6px var(--finish-color),
+      0 0 34px 12px color-mix(in srgb, var(--finish-color) 55%, transparent);
+    animation:
+      finalStoneImpact .72s cubic-bezier(.16,.84,.3,1.2),
+      finalStoneGlow .8s .72s ease-in-out infinite alternate;
+  }
+  .stone.finisher::before {
+    inset: -7px;
+    border: 3px solid var(--finish-color);
+    animation: finalShockwave 1.15s ease-out infinite;
+  }
+  .stone.finisher::after {
+    width: 34%;
+    height: 34%;
+    background: #fff;
+    box-shadow: 0 0 9px 3px var(--finish-color);
+  }
+  .board-shell.finish-impact::after {
+    content: "";
+    position: absolute;
+    z-index: 7;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at var(--impact-x, 50%) var(--impact-y, 50%),
+      rgba(255,255,255,.88) 0,
+      color-mix(in srgb, var(--finish-color) 62%, transparent) 8%,
+      transparent 34%);
+    pointer-events: none;
+    animation: boardImpactFlash .82s ease-out forwards;
+  }
+  @keyframes finalStoneImpact {
+    0% { transform: translate(-50%, -50%) scale(2.5); filter: brightness(2.4); opacity: .25; }
+    45% { transform: translate(-50%, -50%) scale(.76); filter: brightness(1.7); opacity: 1; }
+    72% { transform: translate(-50%, -50%) scale(1.17); }
+    100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1); }
+  }
+  @keyframes finalStoneGlow {
+    from { filter: brightness(1); }
+    to { filter: brightness(1.35); }
+  }
+  @keyframes finalShockwave {
+    0% { transform: scale(.72); opacity: 1; }
+    75%, 100% { transform: scale(2.3); opacity: 0; }
+  }
+  @keyframes boardImpactFlash {
+    0% { opacity: 0; transform: scale(.82); }
+    16% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.08); }
+  }
+
   .board-shell.shake { animation: shake 0.42s ease; }
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
@@ -543,6 +727,14 @@
     40% { transform: translateX(6px); }
     60% { transform: translateX(-4px); }
     80% { transform: translateX(3px); }
+  }
+  body.reduce-motion .stone.placed,
+  body.reduce-motion .stone.last::before,
+  body.reduce-motion .stone.finisher,
+  body.reduce-motion .cell.win .stone,
+  body.reduce-motion .board-shell.finish-impact::after,
+  body.reduce-motion .board-shell.shake {
+    animation: none !important;
   }
 
   /* ---------- 결과 오버레이 ---------- */
@@ -660,6 +852,89 @@
     margin: 0 0 16px;
   }
   .my-rank b { color: var(--text); }
+  .move-review {
+    margin: 0 0 14px;
+    padding: 13px 14px;
+    border: 1px solid color-mix(in srgb, var(--neon) 35%, var(--border));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--neon) 7%, var(--panel));
+  }
+  .move-review h3 { margin: 0 0 7px; font-size: 13px; color: var(--neon); }
+  .move-review p { margin: 0 0 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .move-review-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .move-chip {
+    padding: 4px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(7, 11, 24, 0.58);
+    color: var(--text);
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .move-chip.ai { color: #e9d5ff; border-color: rgba(192, 132, 252, 0.42); }
+  .review-board {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    width: min(230px, 100%);
+    aspect-ratio: 1;
+    margin: 11px auto 9px;
+    padding: 5px;
+    border: 1px solid rgba(92, 55, 20, 0.75);
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e2b36f, #c88d48);
+    box-shadow: inset 0 0 16px rgba(78, 43, 14, 0.32);
+  }
+  .review-cell {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    border-right: 1px solid rgba(88, 53, 24, 0.42);
+    border-bottom: 1px solid rgba(88, 53, 24, 0.42);
+  }
+  .review-cell.black::before,
+  .review-cell.white::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 12%;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.55);
+  }
+  .review-cell.black::before { background: radial-gradient(circle at 32% 28%, #6b7280, #090d16 72%); }
+  .review-cell.white::before { background: radial-gradient(circle at 32% 28%, #fff, #cbd5e1 72%); }
+  .review-cell.last::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    width: 24%;
+    aspect-ratio: 1;
+    left: 38%;
+    top: 38%;
+    border-radius: 50%;
+    background: #22d3ee;
+    box-shadow: 0 0 4px #0891b2;
+  }
+  .review-controls {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    align-items: center;
+    gap: 7px;
+  }
+  .review-step {
+    width: 34px;
+    height: 32px;
+    border: 1px solid color-mix(in srgb, var(--neon) 40%, var(--border));
+    border-radius: 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 900;
+  }
+  .review-step:disabled { opacity: 0.35; cursor: default; }
+  .review-status { color: var(--text); font-size: 11px; font-weight: 800; text-align: center; }
+  .review-range { grid-column: 1 / -1; width: 100%; accent-color: var(--neon); }
 
   .result-actions { display: flex; flex-direction: column; gap: 8px; }
   .result-actions .btn { width: 100%; }
@@ -696,6 +971,162 @@
     font-size:10px;
     font-weight:900;
     letter-spacing:-0.02em;
+  }
+
+  .board-zoom {
+    width: min(100%, 360px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: -2px auto 0;
+  }
+  .board-zoom .label {
+    margin-right: 3px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .board-zoom button {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--neon) 55%, var(--border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--neon) 8%, var(--panel-2));
+    color: var(--text);
+    font: inherit;
+    font-size: 26px;
+    line-height: 1;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--neon) 18%, transparent);
+  }
+  .board-zoom button:disabled { opacity: .38; cursor: default; }
+  .board-zoom .zoom-value {
+    width: 76px;
+    height: 44px;
+    border-radius: 999px;
+    color: var(--neon);
+    font-size: 13px;
+  }
+  .board-gesture-hint {
+    margin: -4px 0 0;
+    color: var(--muted);
+    font-size: 11.5px;
+    text-align: center;
+  }
+  .board-gesture-hint span { display: block; }
+
+  .board-magnifier {
+    --mag-cell: 26px;
+    position: fixed;
+    z-index: 120;
+    width: 154px;
+    height: 154px;
+    padding: 8px;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 4px solid var(--neon);
+    border-radius: 50%;
+    background: #8a6336;
+    box-shadow:
+      0 12px 34px rgba(0,0,0,.58),
+      0 0 24px color-mix(in srgb, var(--neon) 55%, transparent),
+      inset 0 0 0 2px rgba(255,255,255,.22);
+    pointer-events: none;
+    transform: scale(.92);
+    opacity: 0;
+    transition: opacity .1s ease, transform .1s ease;
+  }
+  .board-magnifier.visible { opacity: 1; transform: scale(1); }
+  .board-magnifier.invalid { border-color: #fb7185; }
+  .magnifier-grid {
+    display: grid;
+    grid-template-columns: repeat(5, var(--mag-cell));
+    grid-template-rows: repeat(5, var(--mag-cell));
+    width: calc(var(--mag-cell) * 5);
+    height: calc(var(--mag-cell) * 5);
+    margin: 0 auto;
+    background: linear-gradient(135deg, #e3bb7e, #c79658);
+    box-shadow: inset 0 0 10px rgba(0,0,0,.32);
+  }
+  .magnifier-cell {
+    position: relative;
+    width: var(--mag-cell);
+    height: var(--mag-cell);
+    border-right: 1px solid rgba(60,40,20,.55);
+    border-bottom: 1px solid rgba(60,40,20,.55);
+  }
+  .magnifier-cell:nth-child(5n) { border-right: 0; }
+  .magnifier-cell:nth-child(n+21) { border-bottom: 0; }
+  .magnifier-cell.outside {
+    background: rgba(71,48,25,.3);
+  }
+  .magnifier-cell.aim::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    z-index: 3;
+    border: 3px solid #22d3ee;
+    border-radius: 50%;
+    box-shadow: 0 0 9px #22d3ee, inset 0 0 5px rgba(255,255,255,.7);
+  }
+  .board-magnifier.invalid .magnifier-cell.aim::before {
+    border-color: #fb7185;
+    box-shadow: 0 0 9px #fb7185;
+  }
+  .magnifier-cell.aim:not(.occupied)::after {
+    content: "";
+    position: absolute;
+    z-index: 4;
+    width: 6px;
+    height: 6px;
+    left: 50%;
+    top: 50%;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px #22d3ee;
+    transform: translate(-50%, -50%);
+  }
+  .magnifier-stone {
+    position: absolute;
+    z-index: 2;
+    inset: 3px;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,.55);
+  }
+  .magnifier-stone.black {
+    background: radial-gradient(circle at 32% 28%, #6b7280, #0b1120 72%);
+  }
+  .magnifier-stone.white {
+    background: radial-gradient(circle at 32% 28%, #fff, #cbd5e1 72%);
+  }
+
+  @media (max-width: 560px) {
+    #gameTab.active { padding-left: 4px; padding-right: 4px; }
+    .battle-wrap { gap: 10px; padding-top: 12px; }
+    .boss-banner { width: calc(100% - 16px); padding: 14px; }
+    .boss-banner .boss-profile { font-size: 11.5px; }
+    #battleView .panel {
+      padding: 14px 4px 18px;
+      border-left: 0;
+      border-right: 0;
+      border-radius: 10px;
+    }
+    #battleView .toolbar,
+    #battleView .item-grid,
+    #battleView .item-note,
+    #battleView .turn-info,
+    #battleView .status,
+    #battleView .score,
+    #battleView .hint { max-width: calc(100vw - 24px); }
+    .board-shell {
+      width: calc(100vw - 8px);
+      max-width: none;
+      padding: 4px;
+      border-radius: 6px;
+    }
   }
   .item-grid .btn.ad-refill {
     border-color:var(--gold);
@@ -801,15 +1232,20 @@
   /* 잠긴 보스 카드 */
   .boss-card.locked {
     cursor: not-allowed;
-    opacity: 0.5;
-    filter: grayscale(0.7);
+    opacity: 1;
+    filter: none;
+    border-color: color-mix(in srgb, var(--neon) 26%, var(--border));
+    background-color: color-mix(in srgb, var(--panel) 88%, #020617);
   }
   .boss-card.locked:hover {
     transform: none;
     border-color: var(--border);
     box-shadow: none;
   }
-  .boss-card.locked .icon { filter: none; }
+  .boss-card.locked .icon { filter: grayscale(.35) drop-shadow(0 0 5px var(--neon)); opacity: .76; }
+  .boss-card.locked .name,
+  .boss-card.locked .boss-trait,
+  .boss-card.locked .tagline { opacity: .78; }
 
   /* ---------- 신계 개방 ---------- */
   .realm-gate {
@@ -825,6 +1261,16 @@
       radial-gradient(circle at 50% 50%, rgba(252, 211, 77, 0.14), transparent 48%),
       rgba(3, 5, 15, 0.96);
   }
+  .realm-gate.war {
+    background:
+      radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.3), transparent 25%),
+      radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.17), transparent 50%),
+      rgba(12, 3, 10, 0.97);
+  }
+  .realm-gate.war::before { border-color: rgba(251, 113, 133, 0.82); }
+  .realm-gate.war::after { border-color: rgba(252, 211, 77, 0.78); }
+  .realm-gate.war .gate-mark { text-shadow: 0 0 28px #fb7185, 0 0 58px #f97316; }
+  .realm-gate.war .gate-copy .eyebrow { color: #fda4af; }
   .cell.danger::before { content:"!"; position:absolute; inset:10%; display:grid; place-items:center; border:2px solid #fb7185; border-radius:50%; color:#fb7185; font-weight:900; }
   .cell.future-ai::before { content:"AI"; position:absolute; inset:10%; display:grid; place-items:center; border:2px dashed #c084fc; border-radius:50%; color:#7e22ce; font-size:9px; font-weight:900; }
   .cell.future-player::before { content:"나"; position:absolute; inset:10%; display:grid; place-items:center; border:2px dashed #38bdf8; border-radius:50%; color:#075985; font-size:9px; font-weight:900; }
@@ -1002,6 +1448,7 @@
     background: var(--panel-2);
     border-radius: 999px;
     padding: 3px 10px;
+    word-break: keep-all;
   }
   .level-quote {
     margin: 0 0 10px;
@@ -1010,7 +1457,14 @@
     font-style: italic;
     font-size: 13.5px;
   }
-  .level-desc { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .level-analysis {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 10px;
+  }
+  .level-analysis b { color: var(--neon); font-size: 12px; }
   .level-tip {
     background: var(--panel-2);
     border-radius: 10px;
@@ -1018,6 +1472,12 @@
     font-size: 13.5px;
   }
   .level-tip b { color: var(--accent-2); }
+
+  @media (max-width: 560px) {
+    #guideTab .inner { padding-left: 12px; padding-right: 12px; }
+    .level-card { padding: 17px 16px; }
+    .level-head { gap: 8px; }
+  }
 
   .cta { text-align: center; margin-top: 40px; }
 
@@ -1028,6 +1488,122 @@
     color: var(--muted);
     font-size: 13px;
   }
+
+  /* Android WebView 전용: 오목 앱답게 시스템 UI 아래의 세로 공간을 보드에 우선 배정한다. */
+  body.native-app {
+    padding-top: 0;
+    background-attachment: scroll;
+    overscroll-behavior: none;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  body.native-app::-webkit-scrollbar { display: none; }
+  body.native-app .topbar {
+    position: relative;
+    min-height: 42px;
+    padding: max(7px, env(safe-area-inset-top)) 12px 7px;
+    flex-wrap: nowrap;
+  }
+  body.native-app .topbar > a,
+  body.native-app .install-btn { display: none !important; }
+  body.native-app .update-banner { display: none !important; }
+  body.native-app footer { display: none; }
+  body.native-app .topbar .title { font-size: 13px; font-weight: 800; }
+  body.native-app .topbar .settings-btn { margin-left: auto; padding: 5px 9px; font-size: 12px; }
+  body.native-app .tabs {
+    top: 0;
+    gap: 5px;
+    padding: 7px 5px;
+  }
+  body.native-app .tab-btn {
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 7px 5px;
+    font-size: 12.5px;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+  body.native-app.battle-active {
+    padding-top: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  body.native-app.battle-active .topbar,
+  body.native-app.battle-active .tabs { display: none; }
+  body.native-app.battle-active #gameTab.active { padding: 0 3px 18px; }
+  body.native-app.battle-active .battle-wrap { gap: 6px; padding-top: max(4px, env(safe-area-inset-top)); }
+  body.native-app.battle-active .boss-banner {
+    width: calc(100% - 8px);
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
+  body.native-app.battle-active .boss-banner .row { gap: 7px; flex: 0 1 auto; }
+  body.native-app.battle-active .boss-banner .icon { font-size: 19px; }
+  body.native-app.battle-active .boss-banner .stage { font-size: 9.5px; line-height: 1.2; }
+  body.native-app.battle-active .boss-banner .name { font-size: 15px; line-height: 1.2; }
+  body.native-app.battle-active .boss-banner .boss-profile {
+    margin: 0;
+    padding: 3px 7px;
+    font-size: 10.5px;
+    line-height: 1.25;
+  }
+  body.native-app.battle-active .boss-banner .boss-profile b { display: none; }
+  body.native-app.battle-active .boss-banner .boss-behavior,
+  body.native-app.battle-active .boss-banner .quote { display: none; }
+  body.native-app.battle-active #battleView .panel {
+    padding: 7px 3px 14px;
+    gap: 6px;
+  }
+  body.native-app.battle-active #battleView .toolbar { order: 1; margin-bottom: 0; }
+  body.native-app.battle-active #battleView .toolbar .btn { padding: 7px 12px; font-size: 12px; }
+  body.native-app.battle-active #battleView .turn-info { order: 2; min-height: 22px; font-size: 13px; }
+  body.native-app.battle-active #battleView .rule-note { order: 3; margin: 0; font-size: 10.5px; }
+  body.native-app.battle-active #battleView .item-grid {
+    order: 4;
+    width: min(100%, calc(100vw - 18px));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin: 1px 0;
+  }
+  body.native-app.battle-active #battleView .item-grid .btn {
+    min-width: 0;
+    min-height: 42px;
+    padding: 5px 2px;
+    font-size: 10.5px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  body.native-app.battle-active #battleView .item-grid .count {
+    min-width: 15px;
+    margin-left: 1px;
+    padding: 0 4px;
+    font-size: 9px;
+  }
+  body.native-app.battle-active #battleView .item-grid .item-ad-copy { font-size: 0; margin: 0; }
+  body.native-app.battle-active #battleView .item-grid .item-ad-copy::after { content: "📺 +1 충전"; font-size: 10px; }
+  body.native-app.battle-active #battleView .board-shell {
+    order: 5;
+    scrollbar-width: none;
+  }
+  body.native-app.battle-active #battleView .board-shell::-webkit-scrollbar { display: none; }
+  body.native-app.battle-active #battleView .board-zoom {
+    order: 6;
+    width: min(100%, 300px);
+    gap: 6px;
+    margin: 0 auto;
+  }
+  body.native-app.battle-active #battleView .board-zoom button { width: 38px; height: 36px; font-size: 20px; }
+  body.native-app.battle-active #battleView .board-zoom .zoom-value { width: 76px; font-size: 12px; }
+  body.native-app.battle-active #battleView .board-magnifier { order: 7; }
+  body.native-app.battle-active #battleView .status { order: 8; }
+  body.native-app.battle-active #battleView .score { order: 9; }
+  body.native-app.battle-active #battleView .item-note { order: 10; margin-top: 2px; }
+  body.native-app.battle-active #battleView .board-gesture-hint { order: 11; font-size: 10px; }
+  body.native-app.battle-active #battleView .hint { order: 12; }
 </style>
 </head>
 <body>
@@ -1053,7 +1629,7 @@
     <div class="hero-main">
       <div class="eyebrow" id="challengeEyebrow">AI 보스전</div>
       <h1>오목 챌린지</h1>
-      <p class="subtitle" id="challengeSubtitle">인간계를 넘어 신계에 도전하라</p>
+      <p class="subtitle" id="challengeSubtitle">인간계를 넘어 신들의 전쟁을 끝내라</p>
       <p class="lede" id="challengeLede"></p>
     </div>
 
@@ -1064,7 +1640,8 @@
 
     <div class="realm-switch" aria-label="도전 영역 선택">
       <button class="realm-btn active" data-realm="human">🌍 인간계<small>1~10단계</small></button>
-      <button class="realm-btn" data-realm="divine">🔒 신계<small>11단계부터</small></button>
+      <button class="realm-btn" data-realm="divine">🔒 신계<small>11~20단계</small></button>
+      <button class="realm-btn" data-realm="war">🔒 신들의 전쟁<small>21~30단계</small></button>
     </div>
     <div class="realm-intro" id="realmIntro"></div>
 
@@ -1095,8 +1672,22 @@
         </div>
         <div class="item-note" id="itemNote">각 아이템은 판마다 1회 무료입니다.</div>
         <div class="turn-info" id="turnInfo">당신(⚫) 차례입니다</div>
+        <div class="rule-note" id="ruleNote">자유룰 · 장목 승리 · 3-3/4-4 금수 없음</div>
+        <div class="board-zoom" aria-label="보드 확대 축소">
+          <span class="label">보드 크기</span>
+          <button id="zoomOutBtn" type="button" aria-label="보드 축소">−</button>
+          <button id="zoomResetBtn" type="button" class="zoom-value" aria-label="보드 크기 초기화">100%</button>
+          <button id="zoomInBtn" type="button" aria-label="보드 확대">＋</button>
+        </div>
+        <div class="board-gesture-hint">
+          <span>길게 눌러 돋보기로 정확히 착수</span>
+          <span>두 손가락 또는 Ctrl+휠로 확대 · 확대 후 밀어서 이동</span>
+        </div>
         <div class="board-shell" id="boardShell">
           <div id="board"></div>
+        </div>
+        <div class="board-magnifier" id="boardMagnifier" hidden aria-hidden="true">
+          <div class="magnifier-grid" id="magnifierGrid"></div>
         </div>
         <div class="status" id="status"></div>
         <div class="score">
@@ -1108,7 +1699,7 @@
           <span>무 <b id="scoreDraw">0</b></span>
           <span>패 <b id="scoreLose">0</b></span>
         </div>
-        <div class="hint">당신은 흑돌로 선공입니다. 가로·세로·대각선 중 어느 방향이든 5개를 먼저 이으면 승리! 막힐 땐 상단의 📖 공략집 탭을 확인해보세요.</div>
+        <div class="hint" id="gameHint">당신은 흑돌로 선공입니다. 가로·세로·대각선 중 어느 방향이든 5개를 먼저 이으면 승리! 막힐 땐 상단의 📖 공략집 탭을 확인해보세요.</div>
       </div>
     </div>
   </div>
@@ -1165,7 +1756,7 @@
       <div class="basic-card">
         <span class="icon">⚫</span>
         <h3>선공의 이점</h3>
-        <p>당신은 항상 흑돌로 먼저 둡니다. 먼저 두는 쪽이 유리하니 이 이점을 살려 초반부터 적극적으로 공격하세요.</p>
+        <p>1~15단계는 당신이 흑돌로 선공합니다. 16~30단계는 보스가 흑돌로 천원을 선점하고, 당신은 백돌 후공으로 주도권을 되찾아야 합니다.</p>
       </div>
       <div class="basic-card">
         <span class="icon">➖</span>
@@ -1208,12 +1799,12 @@
   <div class="result-card" id="resultCard" role="dialog" aria-modal="true" aria-labelledby="verdictText"></div>
 </div>
 
-<div class="realm-gate" id="realmGate" hidden role="dialog" aria-modal="true" aria-label="신계 개방">
+<div class="realm-gate" id="realmGate" hidden role="dialog" aria-modal="true" aria-label="새로운 세계 개방">
   <div class="gate-copy">
-    <div class="gate-mark">✦</div>
-    <div class="eyebrow">인간계의 끝을 넘었다</div>
-    <h2>신계 개방</h2>
-    <p>더 이상 실수하는 상대는 없습니다.</p>
+    <div class="gate-mark" id="realmGateMark">✦</div>
+    <div class="eyebrow" id="realmGateEyebrow">인간계의 끝을 넘었다</div>
+    <h2 id="realmGateTitle">신계 개방</h2>
+    <p id="realmGateBody">더 이상 실수하는 상대는 없습니다.</p>
   </div>
 </div>
 
@@ -1232,10 +1823,11 @@
         <button id="syncRecordsBtn" hidden>지금 동기화</button>
         <button id="accountSignOutBtn" hidden>로그아웃</button>
         <button class="danger" id="deleteAccountBtn" hidden>계정 삭제</button>
+        <button id="privacyOptionsBtn" hidden>광고 개인정보 설정</button>
       </div>
     </section>
     <button class="btn" id="settingsCloseBtn">설정 완료</button>
-    <p class="hint" style="margin:12px auto 0;">오목 챌린지 v1.0.0 · PWA</p>
+    <p class="hint" style="margin:12px auto 0;">오목 챌린지 v1.2.2</p>
   </div>
 </div>
 <div class="update-banner" id="updateBanner" hidden><span>새 버전이 준비되었습니다.</span><button class="btn" id="updateBtn">업데이트</button></div>
@@ -1255,77 +1847,77 @@
   // 단계 = 보스. 이름/문구/색상/AI 파라미터를 한 곳에서 정의한다.
   const LEVELS = [
     {
-      name: "새싹", icon: "🌱", neon: "#4ade80", tag: "거의 무작위", realm: "human",
-      tagline: "오목을 막 배우기 시작한 초보 AI. 가끔 공격 기회를 놓칩니다.",
+      name: "새싹", icon: "🌱", neon: "#4ade80", tag: "초보형 · 판단 흔들림", realm: "human",
+      tagline: "기본 모양만 따라가는 초보 AI. 위협을 알아도 종종 엉뚱한 후보를 고릅니다.",
       quote: "처음이라도 봐주지는 않을게요.",
       winLine: "첫 번째 관문을 통과했습니다.",
-      desc: "AI가 즉시 이길 수 있는 수는 놓치지 않지만, 방어는 절반 가까이(약 45%) 실패하고 대부분 근처의 아무 자리에나 둡니다. 계획적인 수읽기는 거의 없습니다.",
-      tip: "열린 3이나 열린 4를 만들면 AI가 못 막을 확률이 높습니다. 복잡하게 생각하지 말고 한 방향으로 돌을 쭉 이어보세요.",
+      desc: "즉시 이기는 수는 반드시 두지만, 즉시 패배를 막는 전용 판단은 45% 확률로만 작동합니다. 한 수 깊이와 좁은 후보만 보고, 자주 상위 후보 사이에서 흔들립니다.",
+      tip: "열린 3 하나에만 기대지 말고 다른 방향의 연결점도 함께 키워 방어 선택을 갈라놓으세요.",
       depth: 1, cand: 6, randomChance: 0.55, randomTop: 3, blockChance: 0.45,
       persona: { defBias: 0.9, forkWeight: 0 },   // 새싹: 성격이랄 게 없다
     },
     {
-      name: "수습생", icon: "📘", neon: "#34d399", tag: "약한 방어", realm: "human",
+      name: "수습생", icon: "📘", neon: "#34d399", tag: "기본형 · 약한 방어", realm: "human",
       tagline: "기본적인 공격과 방어를 익힌 AI. 방심하면 빈틈을 노립니다.",
       quote: "한 단계 전과 같을 거라고 생각하지 마세요.",
       winLine: "기본 실력은 충분하군요.",
-      desc: "1단계보다 넓은 범위의 수를 살펴보지만, 여전히 방어 성공률이 60% 정도이고 상황 판단 없이 눈앞의 수만 봅니다.",
+      desc: "1단계보다 후보를 넓게 보고 즉시 패배 차단 판단도 더 자주 작동합니다. 다만 한 수 깊이만 보고 상위 후보 사이에서 흔들려, 먼 위협에는 약합니다.",
       tip: "한 곳에서 위협을 만드는 척하다가 반대편에서 진짜 승부를 내는 식으로 조금만 변칙을 줘도 쉽게 뚫립니다.",
       depth: 1, cand: 8, randomChance: 0.45, randomTop: 3, blockChance: 0.6,
       persona: { defBias: 0.9, forkWeight: 0 },   // 수습생: 아직 평범하다
     },
     {
-      name: "방패", icon: "🛡️", neon: "#38bdf8", tag: "방어 우선", realm: "human",
+      name: "방패", icon: "🛡️", neon: "#38bdf8", tag: "수비형 · 연결 차단", realm: "human",
       tagline: "공격보다 방어를 우선하는 AI. 당신의 연결을 끈질기게 차단합니다.",
       quote: "당신의 공격은 여기서 끝입니다.",
       winLine: "철벽을 깨뜨렸습니다.",
-      desc: "상대(당신)의 다음 반응까지 한 수 앞서 계산하기 시작합니다. 방어 성공률은 75%로 올라갑니다. 자기 모양을 키우기보다 당신의 돌 근처에 붙어 연결을 끊는 쪽을 택합니다.",
+      desc: "자신의 착수 뒤 플레이어의 한 차례 응수까지 보고, 작은 상대 모양도 자기 공격보다 무겁게 평가합니다. 즉시 패배 차단 전용 판단은 75% 확률로 작동합니다.",
       tip: "단순한 열린 3 하나로는 막힐 수 있습니다. 두 개 이상의 방향에서 동시에 위협을 준비하는 이중 위협 전략을 연습하기 좋은 단계입니다.",
       depth: 2, cand: 6, randomChance: 0.35, randomTop: 2, blockChance: 0.75,
       persona: { defBias: 1.5, forkWeight: 0 },   // 방패: 상대 모양을 무겁게 본다
     },
     {
-      name: "추격자", icon: "🏹", neon: "#22d3ee", tag: "공격 우선", realm: "human",
+      name: "추격자", icon: "🏹", neon: "#22d3ee", tag: "공격형 · 주도권 추격", realm: "human",
       tagline: "한 번 잡은 공격 기회를 놓치지 않는 AI. 계속해서 압박해 옵니다.",
       quote: "도망칠 곳은 없습니다.",
       winLine: "추격을 따돌렸습니다.",
-      desc: "더 많은 후보 수를 비교하며 방어 성공률이 85%까지 오릅니다. 명백한 실수는 줄어들지만 먼 미래의 위협은 아직 잘 못 봅니다. 급하지 않은 상황에서는 방어보다 자기 공격을 잇는 쪽을 택합니다.",
+      desc: "자신의 착수와 플레이어의 응수까지 보며 여덟 후보를 비교합니다. 결정적 위협이 아니면 차단보다 자기 공격을 훨씬 높게 평가해 주도권을 고집합니다.",
       tip: "눈에 보이는 위협보다 2~3수 뒤에 완성되는 '숨은 이중 위협'을 미리 설계하면 AI가 대응하지 못하고 뚫립니다.",
       depth: 2, cand: 8, randomChance: 0.25, randomTop: 2, blockChance: 0.85,
       persona: { defBias: 0.62, forkWeight: 0.25 },   // 추격자: 공격을 우선한다
     },
     {
-      name: "함정술사", icon: "🕸️", neon: "#a78bfa", tag: "이중 위협 선호", realm: "human",
-      tagline: "눈앞의 공격보다 두 수 뒤의 함정을 노리는 AI. 방심하면 양쪽이 동시에 무너집니다.",
+      name: "함정술사", icon: "🕸️", neon: "#a78bfa", tag: "전술형 · 교차 양수", realm: "human",
+      tagline: "한 수로 두 방향을 위협하는 교차점을 노리는 AI. 모양이 겹치는 순간 함정이 시작됩니다.",
       quote: "당신이 보고 있는 수가 전부일까요?",
       winLine: "함정을 모두 간파했습니다.",
-      desc: "방어 성공률 90%, 더 많은 후보 수를 검토합니다. 이 단계부터는 실수를 노리기보다 정직한 공격 전략이 더 잘 통합니다. 한 수로 두 방향에 위협이 서는 자리를 특히 좋아합니다.",
-      tip: "하나의 큰 위협에 집중하기보다, 여러 방향으로 돌을 분산시켜 다음 수에 선택지를 넓혀두는 '포석'이 중요해집니다.",
+      desc: "후보 10개를 비교하고, 한 수로 두 방향에 위협이 생기는 자리에 큰 가산점을 둡니다. 다만 플레이어의 다음 응수까지만 보므로 긴 강제 수순은 아직 읽지 못합니다.",
+      tip: "보스 돌이 두 방향으로 뻗을 교차점을 먼저 끊고, 내 공격은 서로 떨어진 두 축으로 나눠 한 번에 막히지 않게 하세요.",
       depth: 2, cand: 10, randomChance: 0.15, randomTop: 2, blockChance: 0.9,
       persona: { defBias: 1.0, forkWeight: 1.1 },   // 함정술사: 이중 위협을 노린다
     },
     {
-      name: "맹공", icon: "⚔️", neon: "#fb7185", tag: "공격 우선 · 2수 앞", realm: "human",
+      name: "맹공", icon: "⚔️", neon: "#fb7185", tag: "공격형 · 3수 탐색", realm: "human",
       tagline: "방어보다 공격을 우선하는 AI. 초반부터 강하게 몰아붙입니다.",
       quote: "막기만 해서는 이길 수 없습니다.",
       winLine: "맹공을 버텨내고 반격에 성공했습니다.",
-      desc: "2수 앞(자신-상대-자신)까지 내다보는 탐색을 시작합니다. 방어 성공률 95%로 결정적인 위협은 정확히 막지만, 급하지 않으면 방어를 미루고 먼저 몰아붙입니다.",
+      desc: "자신의 착수, 플레이어의 응수, 자신의 후속 착수까지 세 수를 탐색합니다. 결정적 패배 수는 거의 막지만, 급하지 않으면 방어보다 공격 연결을 우선합니다.",
       tip: "단발성 위협은 대부분 막힙니다. 하나의 수로 두 개의 열린 3을 동시에 만드는 '양삼' 모양을 노려야 승산이 있습니다.",
       depth: 3, cand: 6, randomChance: 0.10, randomTop: 1, blockChance: 0.95,
       persona: { defBias: 0.55, forkWeight: 0.35 },   // 맹공: 방어를 뒤로 미룬다
     },
     {
-      name: "철벽", icon: "🧱", neon: "#818cf8", tag: "완벽한 방어", realm: "human",
-      tagline: "실수가 거의 없는 방어형 AI. 작은 틈도 쉽게 허용하지 않습니다.",
+      name: "철벽", icon: "🧱", neon: "#818cf8", tag: "수비형 · 즉시 패배 차단", realm: "human",
+      tagline: "결정적인 패배 수를 반드시 먼저 막는 수비형 AI. 작은 상대 모양도 무겁게 봅니다.",
       quote: "한 번이라도 실수하면 끝입니다.",
       winLine: "철벽에 균열을 만들었습니다.",
-      desc: "즉시 승리로 이어지는 상대의 수는 절대 놓치지 않습니다(방어 성공률 100%). 3수 앞까지 계산하며, 같은 값이면 언제나 당신을 막는 쪽을 고릅니다.",
+      desc: "즉시 패배 수는 100% 차단하고 세 수를 탐색합니다. 비슷한 후보라면 높은 방어 가중치로 상대 연결을 끊는 수를 선호하며, 무작위 후보 변경 가능성은 5%만 남습니다.",
       tip: "이제부터는 '함정'이 필요합니다. 당장은 약해 보이지만 3~4수 뒤에 이중 위협으로 이어지는 복합적인 모양을 미리 짜두세요.",
       depth: 3, cand: 8, randomChance: 0.05, randomTop: 1, blockChance: 1,
       persona: { defBias: 1.55, forkWeight: 0.1 },   // 철벽: 가장 방어적이다
     },
     {
-      name: "심판자", icon: "⚖️", neon: "#fbbf24", tag: "넓고 정확한 수읽기", realm: "human",
+      name: "심판자", icon: "⚖️", neon: "#fbbf24", tag: "균형형 · 넓은 3수 탐색", realm: "human",
       tagline: "공격과 방어의 균형이 뛰어난 AI. 당신의 실력을 냉정하게 시험합니다.",
       quote: "지금부터 진짜 실력을 보겠습니다.",
       winLine: "심판자의 인정을 받았습니다.",
@@ -1335,27 +1927,27 @@
       persona: { defBias: 1.0, forkWeight: 0.5 },   // 심판자: 균형
     },
     {
-      name: "지배자", icon: "🔱", neon: "#f87171", tag: "전면 장악 · 4수 앞", realm: "human",
-      tagline: "보드 전체를 장악하며 싸우는 최상급 AI. 몇 수 앞까지 흐름을 읽습니다.",
+      name: "지배자", icon: "🔱", neon: "#f87171", tag: "균형형 · 깊은 4수 탐색", realm: "human",
+      tagline: "공격·방어·양수를 고르게 비교하는 최상급 AI. 네 수 앞의 응수까지 읽습니다.",
       quote: "이 판의 주인은 이미 정해졌습니다.",
       winLine: "지배자의 영역을 무너뜨렸습니다.",
-      desc: "자신-상대-자신-상대까지 4수 앞을 내다보는 깊은 탐색을 수행합니다. 실수 확률 0%, 방어 성공률 100%로 웬만한 계획은 미리 읽힙니다.",
-      tip: "정면 승부보다 초반 포석에서 우위를 가져가야 합니다. 두 개 이상의 잠재적 위협을 동시에 키워서 AI의 수읽기 범위를 넘어서는 복잡한 국면을 만드세요.",
+      desc: "무작위 후보 변경 없이 네 수를 탐색합니다. 후보 폭은 6개로 좁지만 균형형 평가와 높은 양수 가중치로 깊이를 우선합니다.",
+      tip: "한곳에서 정면전하기보다 서로 떨어진 잠재 위협을 넓혀, 여섯 후보 밖에서 다음 공격을 준비하세요.",
       depth: 4, cand: 6, randomChance: 0, randomTop: 1, blockChance: 1,
       persona: { defBias: 1.05, forkWeight: 0.7 },   // 지배자: 균형 + 함정
     },
     {
-      name: "오목왕", icon: "👑", neon: "#fcd34d", tag: "인간계 최종보스", realm: "human", final: true,
-      tagline: "공격 방어 함정 수읽기를 모두 갖춘 최종보스. 여기까지 도달한 도전자는 많지 않습니다.",
+      name: "오목왕", icon: "👑", neon: "#fcd34d", tag: "완성형 · 넓은 4수 탐색", realm: "human", final: true,
+      tagline: "공격·방어·양수 평가를 고르게 갖춘 인간계의 완성형. 여덟 후보를 네 수 깊이로 읽습니다.",
       quote: "마지막 한 판입니다. 당신의 모든 수를 보여주세요.",
       winLine: "오목왕 격파! 이제 당신이 새로운 오목왕입니다.",
-      desc: "9단계와 동일한 4수 앞 탐색이지만 더 넓은 후보 수를 비교해 최선의 수를 찾는 최고 난이도입니다. 실수도, 놓치는 위협도 없습니다.",
+      desc: "9단계와 같은 네 수 탐색에 후보를 8개로 넓히고 양수 가중치도 강화합니다. 의도적인 실수와 차단 실패는 없지만, 탐색 범위 밖의 모든 수까지 아는 것은 아닙니다.",
       tip: "정공법으로는 이기기 어렵습니다. 첫 몇 수부터 남들이 잘 두지 않는 변칙적인 포석으로 AI의 평가 함수가 예상하지 못한 복잡한 모양을 만들어보세요. 여러 번 두면서 AI의 패턴을 파악하는 것도 방법입니다.",
       depth: 4, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1,
       persona: { defBias: 1.0, forkWeight: 1.0 },   // 오목왕: 모든 것을 갖췄다
     },
     {
-      name: "문지기", icon: "⛩️", neon: "#c084fc", tag: "신계 포석 · 양수 차단", realm: "divine",
+      name: "문지기", icon: "⛩️", neon: "#c084fc", tag: "포석형 · 양수 선제 대응", realm: "divine",
       tagline: "인간계의 수법을 모두 꿰뚫는 신계의 첫 관문. 초반부터 좋은 자리를 내주지 않습니다.",
       quote: "왕의 자리는 인간계의 끝일 뿐입니다.",
       winLine: "신계의 문지기를 넘어 첫 발을 내디뎠습니다.",
@@ -1366,18 +1958,18 @@
       persona: { defBias: 1.08, forkWeight: 1.3, centerWeight: 12 },
     },
     {
-      name: "천리안", icon: "👁️", neon: "#a78bfa", tag: "위협 예지", realm: "divine",
+      name: "천리안", icon: "👁️", neon: "#a78bfa", tag: "예지형 · 넓은 양수 탐색", realm: "divine",
       tagline: "아직 완성되지 않은 위협까지 먼저 보는 감시자. 뻔한 함정은 놓치지 않습니다.",
       quote: "두기 전부터 그 수의 끝을 보았습니다.",
       winLine: "천리안의 시야 밖에서 승리를 만들어냈습니다.",
-      desc: "이중 위협의 공격과 방어를 항상 검사하고 더 넓은 탐색 후보를 비교합니다. 초반에는 중앙과 별점을 잇는 안정적인 포석을 선택합니다.",
+      desc: "이중 위협의 공격과 방어를 항상 검사하고, 문지기보다 전술 후보를 14개로 넓힙니다. 초반에는 중앙·별점도 후보에 넣고 중심에 가까운 수를 우선합니다.",
       tip: "즉시 완성되는 함정보다 가치가 비슷한 후보를 여러 곳에 남겨 판단을 흔드세요. 한쪽에 돌이 몰리면 모두 읽힙니다.",
       depth: 4, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1,
       divine: { forkAttack: true, forkDefense: true, forcingAttack: false, forcingDefense: false, opening: true, tacticalCand: 14 },
       persona: { defBias: 1.12, forkWeight: 1.5, centerWeight: 14 },
     },
     {
-      name: "파괴신", icon: "⚡", neon: "#fb7185", tag: "강제 수순 공격", realm: "divine",
+      name: "파괴신", icon: "⚡", neon: "#fb7185", tag: "공격형 · 강제 수순 시작", realm: "divine",
       tagline: "막을 수밖에 없는 수를 연속으로 던지는 공격의 신. 한 번 주도권을 내주면 끝까지 몰아칩니다.",
       quote: "막아보세요. 그다음 수는 이미 준비됐으니.",
       winLine: "파괴신의 연속 공격을 견디고 반격에 성공했습니다.",
@@ -1388,7 +1980,7 @@
       persona: { defBias: 0.92, forkWeight: 1.8, centerWeight: 15 },
     },
     {
-      name: "운명신", icon: "🌀", neon: "#60a5fa", tag: "강제 수순 간파", realm: "divine",
+      name: "운명신", icon: "🌀", neon: "#60a5fa", tag: "수비형 · 강제 수순 차단", realm: "divine",
       tagline: "공격의 시작점까지 찾아 지워버리는 수호자. 단순한 양수 유도는 통하지 않습니다.",
       quote: "당신이 만들 미래는 여기서 닫힙니다.",
       winLine: "정해진 운명을 뒤집고 신의 계산을 벗어났습니다.",
@@ -1399,22 +1991,204 @@
       persona: { defBias: 1.18, forkWeight: 1.8, centerWeight: 17 },
     },
     {
-      name: "오목신", icon: "✦", neon: "#fcd34d", tag: "신계 최종보스", realm: "divine", final: true,
-      tagline: "포석, 위협 예지, 강제 수순, 깊은 탐색을 모두 갖춘 신계의 주인.",
+      name: "오목신", icon: "✦", neon: "#fcd34d", tag: "완성형 · 신계 전술 총합", realm: "divine",
+      tagline: "포석, 위협 예지, 강제 수순, 깊은 탐색을 모두 갖춘 신계의 주인. 그러나 신계에는 더 깊은 층이 존재합니다.",
       quote: "여기까지 온 인간은 처음이군요. 신의 한 수를 넘어보십시오.",
-      winLine: "오목신 격파! 인간의 수가 신의 계산을 넘어섰습니다.",
+      winLine: "오목신 격파! 승리의 충격으로 신계 심층의 문이 열렸습니다.",
       desc: "신계의 모든 전술 검사와 가장 깊고 넓은 5수 탐색을 함께 사용합니다. 무작위 실수 없이 공격과 방어의 강제 수순을 먼저 계산합니다.",
-      tip: "정해진 공략은 없습니다. 초반부터 여러 방향의 잠재력을 유지하고, 상대가 강제 수순을 시작하기 전에 주도권을 잡아야 합니다.",
+      tip: "구석 첫수로 후보를 가두는 공략은 더 이상 통하지 않습니다. 초반부터 여러 방향의 잠재력을 유지하고, 상대가 강제 수순을 시작하기 전에 주도권을 잡아야 합니다.",
       depth: 5, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1,
       divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 16 },
       persona: { defBias: 1.12, forkWeight: 2.1, centerWeight: 20 },
+    },
+    {
+      name: "선수신", icon: "⚫", neon: "#f97316", tag: "선공형 · 천원 장악", realm: "divine",
+      tagline: "도전자의 선공권부터 빼앗는 신. 천원을 차지한 상태에서 대국을 시작합니다.",
+      quote: "늘 먼저 두었으니 이겼던 것은 아닙니까?",
+      winLine: "선수신 격파! 후공으로 신의 주도권을 뒤집었습니다.",
+      desc: "이 단계부터 보스가 천원에 첫 돌을 놓고 시작합니다. 신계의 모든 전술 검사와 5수 탐색을 사용하며 후보 폭도 오목신보다 넓습니다.",
+      tip: "플레이어가 후공입니다. 첫 수부터 공격을 고집하지 말고 천원에서 뻗는 축을 끊으면서 반격할 두 방향을 함께 준비하세요.",
+      depth: 5, cand: 9, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 18 },
+      persona: { defBias: 1.15, forkWeight: 2.2, centerWeight: 22 },
+    },
+    {
+      name: "변화신", icon: "♟️", neon: "#2dd4bf", tag: "안전형 · 양수 사전 차단", realm: "divine",
+      tagline: "좋아 보이는 수라도 상대의 양수를 허용하면 버리는 신. 공격보다 안전한 선수를 고릅니다.",
+      quote: "같은 길로 두 번 신에게 닿을 수는 없습니다.",
+      winLine: "변화신 격파! 끊임없이 바뀌는 수읽기에서 단 하나의 승리를 찾았습니다.",
+      desc: "천원 선공과 신계 전술 탐색에 양수 안전 검사를 더합니다. 미니맥스가 고른 수라도 플레이어가 다음 수에 양수를 만들 수 있으면 다른 후보로 바꿉니다.",
+      tip: "직접적인 양수 하나는 미리 걸러집니다. 서로 떨어진 위협을 키워 한 후보를 막아도 다른 축이 남게 하세요.",
+      depth: 5, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 20, safeFork: true },
+      persona: { defBias: 1.24, forkWeight: 2.3, centerWeight: 23 },
+    },
+    {
+      name: "봉쇄신", icon: "🔒", neon: "#818cf8", tag: "봉쇄형 · 강제수 안전 검사", realm: "divine",
+      tagline: "완성된 공격이 아니라 공격이 태어날 자리부터 닫아버리는 수호신.",
+      quote: "당신의 다음 수가 아니라, 그 수가 만들 미래를 막겠습니다.",
+      winLine: "봉쇄신 격파! 닫힌 모든 길 사이에서 마지막 한 길을 열었습니다.",
+      desc: "상대가 다음 수에 만들 양수뿐 아니라 강제 수순의 시작점까지 검사합니다. 위험한 반격을 허용하는 후보는 깊은 탐색의 결과라도 버립니다.",
+      tip: "눈앞의 열린 3 하나로는 부족합니다. 서로 멀리 떨어져 한 수로 함께 막을 수 없는 잠재 위협을 준비해야 합니다.",
+      depth: 5, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 22, safeFork: true, safeForcing: true },
+      persona: { defBias: 1.34, forkWeight: 2.4, centerWeight: 24 },
+    },
+    {
+      name: "인과신", icon: "∞", neon: "#e879f9", tag: "장기형 · 6수 탐색", realm: "divine",
+      tagline: "원인과 결과를 함께 보는 신. 지금의 한 수를 여섯 수 뒤의 패배와 연결합니다.",
+      quote: "당신이 돌을 놓기 전에 그 결과는 이미 이곳에 있습니다.",
+      winLine: "인과신 격파! 정해진 결과에서 벗어나 새로운 인과를 만들었습니다.",
+      desc: "선공, 전술 안전 검사, 강제 수순 탐색에 6수 깊이의 일반 탐색을 더합니다. 공격과 방어 어느 쪽에서도 짧은 속임수에 흔들리지 않습니다.",
+      tip: "즉석 전술보다 장기 포석이 중요합니다. 한쪽 공격이 막혀도 다른 축의 돌 가치가 남도록 연결 가능성을 분산하세요.",
+      depth: 6, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 24, safeFork: true, safeForcing: true },
+      persona: { defBias: 1.22, forkWeight: 2.6, centerWeight: 25 },
+    },
+    {
+      name: "천원신", icon: "☯️", neon: "#fde047", tag: "완성형 · 선공·6수 탐색", realm: "divine", final: true,
+      tagline: "천원에서 모든 수를 지배하는 최종신. 선공과 신계의 모든 계산을 완성했습니다.",
+      quote: "첫 수부터 마지막 수까지, 이 판의 모든 길은 천원으로 돌아옵니다.",
+      winLine: "천원신 격파! 당신의 한 수가 마침내 신계의 모든 계산을 넘어섰습니다.",
+      desc: "천원을 선점하고 시작하며 가장 넓은 전술 검사와 6수 탐색을 함께 사용합니다. 양수와 강제 수순을 공격·방어 양쪽에서 검사하고 위험한 후보를 스스로 폐기합니다.",
+      tip: "정해진 한 가지 공략은 통하지 않습니다. 수비로 주도권을 되찾고, 두 개 이상의 독립된 공격 축이 동시에 살아 있는 순간에만 승부를 거세요.",
+      depth: 6, cand: 9, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 26, safeFork: true, safeForcing: true },
+      persona: { defBias: 1.28, forkWeight: 2.8, centerWeight: 28 },
+    },
+    {
+      name: "전쟁의 전령", icon: "⚔️", neon: "#fb7185", tag: "연쇄형 · 공수 3단계", realm: "war",
+      tagline: "천원신의 패배로 깨어난 첫 전령. 두 번 막은 뒤에 오는 세 번째 위협까지 이어 봅니다.",
+      quote: "신 하나를 꺾었다고 전쟁에서 이긴 것은 아닙니다.",
+      winLine: "전쟁의 전령 격파! 신들의 전장에 인간의 깃발을 세웠습니다.",
+      desc: "신계의 모든 전술 검사에 재귀 강제 수순을 더합니다. 한 번 막고 끝나는 양수가 아니라, 강제 방어를 연속으로 끌어낸 뒤 완성되는 필승점까지 탐색합니다.",
+      tip: "열린 3을 쉽게 내주면 그다음 방어까지 강제로 끌려갑니다. 공격 모양을 만들 때도 상대의 반격 시작점을 먼저 지우세요.",
+      depth: 6, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 28, safeFork: true, safeForcing: true },
+      war: { attackDepth: 3, defenseDepth: 3, safeCandidates: 4, thinkMs: 1200 },
+      persona: { defBias: 1.3, forkWeight: 3.0, centerWeight: 30 },
+    },
+    {
+      name: "창조신", icon: "🌌", neon: "#38bdf8", tag: "확장형 · 넓은 후보 검증", realm: "war",
+      tagline: "더 넓은 후보를 전장으로 바꾸는 신. 다섯 개의 안전 후보를 비교해 빈틈을 넓게 지웁니다.",
+      quote: "빈칸은 공백이 아닙니다. 아직 태어나지 않은 승리입니다.",
+      winLine: "창조신 격파! 만들어진 미래보다 먼저 새로운 길을 놓았습니다.",
+      desc: "3단계 공격·방어 연쇄는 전령과 같지만 전술 후보를 30개, 안전 후보를 5개로 넓힙니다. 강해 보이는 수라도 상대의 필승 연쇄를 허용하면 버립니다.",
+      tip: "깊이는 전령과 같습니다. 한 갈래 긴 공격보다 서로 떨어진 위협을 만들어 넓어진 후보 검사에도 한 번에 지워지지 않게 하세요.",
+      depth: 6, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 30, safeFork: true, safeForcing: true },
+      war: { attackDepth: 3, defenseDepth: 3, safeCandidates: 5, thinkMs: 1300 },
+      persona: { defBias: 1.24, forkWeight: 3.2, centerWeight: 31 },
+    },
+    {
+      name: "거울신", icon: "🪞", neon: "#c084fc", tag: "공격 반사형 · 4/3연쇄", realm: "war",
+      tagline: "자신의 공격은 네 단계, 도전자의 반격은 세 단계까지 읽는 공격적인 거울.",
+      quote: "당신이 제게 겨눈 칼끝은 이미 당신을 향하고 있습니다.",
+      winLine: "거울신 격파! 되비친 수 너머의 빈틈을 찔렀습니다.",
+      desc: "네 단계 필승 연쇄를 찾되 플레이어의 연쇄는 세 단계까지 검사합니다. 공격 후보도 안전 검사를 거쳐 반격이 더 빠른 수를 피합니다.",
+      tip: "한눈에 강해 보이는 수는 거울신도 가장 먼저 봅니다. 상대가 최선으로 받아도 모양이 둘 이상 남는 비대칭 포석을 만드세요.",
+      depth: 6, cand: 11, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 30, safeFork: true, safeForcing: true },
+      war: { attackDepth: 4, defenseDepth: 3, safeCandidates: 5, thinkMs: 1400 },
+      persona: { defBias: 1.36, forkWeight: 3.3, centerWeight: 32 },
+    },
+    {
+      name: "시간신", icon: "⏳", neon: "#2dd4bf", tag: "장기형 · 공수 4연쇄", realm: "war",
+      tagline: "현재의 돌보다 네 번의 강제 응수 뒤를 보는 신. 늦게 드러나는 함정도 지나치지 않습니다.",
+      quote: "당신에게는 다음 수지만, 제게는 이미 지나간 결말입니다.",
+      winLine: "시간신 격파! 정해진 수순의 시간을 끊어냈습니다.",
+      desc: "최대 네 번 이어지는 공격 강제 수순과 그 방어를 계산합니다. 일반 탐색 후보도 11개로 넓혀 짧은 미니맥스가 놓치던 바깥쪽 차단 수를 찾습니다.",
+      tip: "직선적인 연속 공격은 끝까지 읽힙니다. 강제수가 아닌 조용한 연결 수로 여러 미래를 한꺼번에 준비하세요.",
+      depth: 6, cand: 11, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 32, safeFork: true, safeForcing: true },
+      war: { attackDepth: 4, defenseDepth: 4, safeCandidates: 6, thinkMs: 1500 },
+      persona: { defBias: 1.38, forkWeight: 3.5, centerWeight: 33 },
+    },
+    {
+      name: "전쟁신", icon: "🗡️", neon: "#f97316", tag: "주도형 · 7수 탐색", realm: "war",
+      tagline: "공격과 방어를 따로 보지 않는 전장의 지배자. 한 수의 주도권을 끝까지 증폭합니다.",
+      quote: "막는 순간에도 공격하라. 전쟁에는 순수한 수비가 없습니다.",
+      winLine: "전쟁신 격파! 신의 전장에서 주도권을 빼앗았습니다.",
+      desc: "7수 일반 탐색을 시작하고, 강제 연쇄 안전 검사를 통과한 후보만 실제 착수로 남깁니다. 수비하면서 자기 위협을 키우는 교차점을 특히 높게 평가합니다.",
+      tip: "한쪽이 일방적으로 막기 시작하면 끝입니다. 상대 축을 끊는 돌이 동시에 내 두 번째 공격 축과 연결되게 두세요.",
+      depth: 7, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 32, safeFork: true, safeForcing: true },
+      war: { attackDepth: 4, defenseDepth: 4, safeCandidates: 7, thinkMs: 1650 },
+      persona: { defBias: 1.28, forkWeight: 3.8, centerWeight: 34 },
+    },
+    {
+      name: "공허신", icon: "◈", neon: "#818cf8", tag: "제거형 · 8후보 안전 검사", realm: "war",
+      tagline: "상위 후보를 가상 착수해 패배로 이어지는 수를 지우는 신. 안전한 길부터 남깁니다.",
+      quote: "가능성을 고르는 일은 인간의 방식. 신은 실패를 없앱니다.",
+      winLine: "공허신 격파! 지워진 가능성 사이에서 존재할 수 없는 승리를 만들었습니다.",
+      desc: "다섯 단계 공격 연쇄와 네 단계 방어 연쇄를 검사합니다. 상위 8개 후보를 가상 착수해 즉시 패배·양수·강제 수순을 허용하는 수를 제거합니다.",
+      tip: "첫 번째 함정은 거의 통하지 않습니다. 안전 검사의 후보 수를 넘길 만큼 가치 있는 갈림길을 넓게 분산해야 합니다.",
+      depth: 7, cand: 8, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 34, safeFork: true, safeForcing: true },
+      war: { attackDepth: 5, defenseDepth: 4, safeCandidates: 8, thinkMs: 1750 },
+      persona: { defBias: 1.42, forkWeight: 3.9, centerWeight: 35 },
+    },
+    {
+      name: "질서신", icon: "⚙️", neon: "#60a5fa", tag: "수비형 · 공수 5연쇄", realm: "war",
+      tagline: "공격과 방어를 같은 다섯 단계로 읽고, 위험한 최선 수보다 안전한 차선 수를 택하는 신.",
+      quote: "모든 돌에는 자리가 있고, 당신의 돌이 설 자리는 없습니다.",
+      winLine: "질서신 격파! 완전한 계산에 단 하나의 예외를 새겼습니다.",
+      desc: "공격과 방어 모두 다섯 단계 강제 연쇄를 읽고 더 많은 안전 후보를 비교합니다. 최선 수가 위험하면 차선, 차차선까지 내려가 생존하는 수를 찾습니다.",
+      tip: "정면 승부보다 계산량을 분산시키세요. 서로 닿지 않는 세 구역에서 동시에 연결 가능성을 남기면 질서의 우선순위가 흔들립니다.",
+      depth: 7, cand: 9, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 35, safeFork: true, safeForcing: true },
+      war: { attackDepth: 5, defenseDepth: 5, safeCandidates: 9, thinkMs: 1850 },
+      persona: { defBias: 1.46, forkWeight: 4.1, centerWeight: 36 },
+    },
+    {
+      name: "혼돈신", icon: "🎲", neon: "#e879f9", tag: "광역형 · 36후보 탐색", realm: "war",
+      tagline: "무작위 실수 없이 더 넓은 전술 후보를 비교하는 신. 한곳에 갇히지 않고 여러 전선을 살핍니다.",
+      quote: "예측할 수 없는 것이 아니라, 당신의 예측보다 많은 길을 볼 뿐입니다.",
+      winLine: "혼돈신 격파! 셀 수 없는 갈림길을 하나의 승리로 수렴시켰습니다.",
+      desc: "36개 전술 후보와 9개 일반 후보를 비교하고, 공격은 여섯 단계·방어는 다섯 단계 연쇄까지 읽습니다. 무작위성이 아니라 탐색 폭으로 변칙성을 만듭니다.",
+      tip: "한곳의 정석만 반복하지 말고 서로 떨어진 공격 축을 번갈아 키워, 넓은 후보 탐색에도 한 수로 모두 정리되지 않게 하세요.",
+      depth: 7, cand: 9, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 36, safeFork: true, safeForcing: true },
+      war: { attackDepth: 6, defenseDepth: 5, safeCandidates: 10, thinkMs: 1950 },
+      persona: { defBias: 1.34, forkWeight: 4.3, centerWeight: 37 },
+    },
+    {
+      name: "종말신", icon: "☄️", neon: "#f43f5e", tag: "응징형 · 공수 6연쇄", realm: "war",
+      tagline: "작은 실수 하나를 여섯 번의 강제 응수로 종말까지 잇는 신. 되돌릴 틈을 주지 않습니다.",
+      quote: "패배는 마지막 수에 오지 않습니다. 방금 당신이 둔 수에서 시작됐습니다.",
+      winLine: "종말신 격파! 끝으로 이어지는 단 하나의 인과를 끊었습니다.",
+      desc: "공격과 방어 양쪽에서 여섯 단계 강제 연쇄를 계산합니다. 열 개의 착수 후보를 안전 검사하며 살아남는 수가 있다면 미니맥스의 선호보다 우선합니다.",
+      tip: "공격을 시작한 뒤에는 늦습니다. 돌 하나를 놓을 때마다 상대가 열린 3을 강제 수순으로 바꿀 연결점을 모두 확인하세요.",
+      depth: 7, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 38, safeFork: true, safeForcing: true },
+      war: { attackDepth: 6, defenseDepth: 6, safeCandidates: 11, thinkMs: 2100 },
+      persona: { defBias: 1.48, forkWeight: 4.6, centerWeight: 38 },
+    },
+    {
+      name: "절대신", icon: "♛", neon: "#fcd34d", tag: "완성형 · 공수 7연쇄", realm: "war", final: true,
+      tagline: "모든 신의 수읽기를 하나로 합친 절대자. 일곱 겹 강제 수순과 7수 탐색으로 전쟁을 끝냅니다.",
+      quote: "서른 번째 관문입니다. 이제 인간의 수가 신들의 전쟁을 끝내 보십시오.",
+      winLine: "절대신 격파! 인간의 한 수가 신들의 전쟁에 종지부를 찍었습니다.",
+      desc: "가장 넓은 40개 전술 후보에서 공격·방어의 강제 연쇄를 최대 일곱 단계까지 읽습니다. 7수 미니맥스와 12개 후보 안전 검사를 제한시간 안에서 반복해 마지막 실수를 제거합니다.",
+      tip: "외운 공략이나 한 번의 함정으로는 이길 수 없습니다. 주도권을 내주지 않은 채 독립된 공격 축 셋을 유지하고, 절대신이 모두 막을 수 없는 순간까지 서두르지 마세요.",
+      depth: 7, cand: 10, randomChance: 0, randomTop: 1, blockChance: 1, initiative: true,
+      divine: { forkAttack: true, forkDefense: true, forcingAttack: true, forcingDefense: true, opening: true, tacticalCand: 40, safeFork: true, safeForcing: true },
+      war: { attackDepth: 7, defenseDepth: 7, safeCandidates: 12, thinkMs: 2250 },
+      persona: { defBias: 1.5, forkWeight: 5.0, centerWeight: 40 },
     },
   ];
 
   const boardEl = document.getElementById("board");
   const boardShellEl = document.getElementById("boardShell");
+  const zoomOutBtn = document.getElementById("zoomOutBtn");
+  const zoomResetBtn = document.getElementById("zoomResetBtn");
+  const zoomInBtn = document.getElementById("zoomInBtn");
+  const boardMagnifierEl = document.getElementById("boardMagnifier");
+  const magnifierGridEl = document.getElementById("magnifierGrid");
   const statusEl = document.getElementById("status");
   const turnInfoEl = document.getElementById("turnInfo");
+  const ruleNoteEl = document.getElementById("ruleNote");
+  const gameHintEl = document.getElementById("gameHint");
   const resetBtn = document.getElementById("resetBtn");
   const backBtn = document.getElementById("backBtn");
   const hintBtn = document.getElementById("hintBtn");
@@ -1439,6 +2213,7 @@
   const syncRecordsBtn = document.getElementById("syncRecordsBtn");
   const accountSignOutBtn = document.getElementById("accountSignOutBtn");
   const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+  const privacyOptionsBtn = document.getElementById("privacyOptionsBtn");
   const installBtn = document.getElementById("installBtn");
   const updateBannerEl = document.getElementById("updateBanner");
   const updateBtn = document.getElementById("updateBtn");
@@ -1460,6 +2235,10 @@
   const overlayEl = document.getElementById("overlay");
   const resultCardEl = document.getElementById("resultCard");
   const realmGateEl = document.getElementById("realmGate");
+  const realmGateMarkEl = document.getElementById("realmGateMark");
+  const realmGateEyebrowEl = document.getElementById("realmGateEyebrow");
+  const realmGateTitleEl = document.getElementById("realmGateTitle");
+  const realmGateBodyEl = document.getElementById("realmGateBody");
   const realmIntroEl = document.getElementById("realmIntro");
   const challengeEyebrowEl = document.getElementById("challengeEyebrow");
   const challengeLedeEl = document.getElementById("challengeLede");
@@ -1472,11 +2251,29 @@
   let currentTurn = BLACK;
   let gameOver = false;
   let aiThinking = false;
+  let aiTurnToken = 0;
+  let aiTimer = null;
+  let aiWorkerJob = null;
+  let lastAiDecisionReason = "search";
+  let boardZoom = 1;
+  let pinchStartDistance = 0;
+  let pinchStartZoom = 1;
+  let magnifierTimer = null;
+  let magnifierActive = false;
+  let magnifierTarget = null;
+  let magnifierStartPoint = null;
+  let suppressBoardClickUntil = 0;
+  const BOARD_ZOOM_MIN = 1;
+  const BOARD_ZOOM_MAX = 1.75;
+  const BOARD_ZOOM_STEP = 0.25;
   let lastMoveEl = null;
   let currentLevel = 1;
   let moveCount = 0;
   let startedAt = 0;
   let tickTimer = null;
+  let timerPausedAt = 0;
+  let timerPausedTotal = 0;
+  let appPaused = false;
   let scores = { win: 0, draw: 0, lose: 0 };
   let selectedRealm = "human";
 
@@ -1491,7 +2288,12 @@
   const SETTINGS_KEY = "omok-settings-v1";
   let settings = loadSettings();
   let accountState = { native: !!window.OmokAccount, signedIn: false, anonymous: true, name: "", email: "" };
+  document.body.classList.toggle("native-app", accountState.native);
   let audioContext = null;
+  let audioMaster = null;
+  let resultMusicTimer = null;
+  let resultMusicSources = [];
+  let finalImpactTimer = null;
   let deferredInstallPrompt = null;
 
   function setupPwa() {
@@ -1524,16 +2326,154 @@
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* 세션 설정만 유지 */ }
     document.body.classList.toggle("reduce-motion", !settings.motion);
   }
-  function playEffect(kind) {
-    if (!settings.sound) return;
-    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  function getAudioContext() {
+    if (!settings.sound) return null;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
     try {
-      audioContext = audioContext || new AC(); const osc = audioContext.createOscillator(); const gain = audioContext.createGain();
-      const tones = { black: 260, white: 360, win: 660, lose: 150, item: 520 }; osc.frequency.value = tones[kind] || 300;
-      gain.gain.setValueAtTime(0.045, audioContext.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + (kind === "win" ? .35 : .12));
-      osc.connect(gain); gain.connect(audioContext.destination); osc.start(); osc.stop(audioContext.currentTime + (kind === "win" ? .35 : .12));
+      if (!audioContext) {
+        audioContext = new AC();
+        audioMaster = audioContext.createGain();
+        audioMaster.gain.value = .72;
+        if (audioContext.createDynamicsCompressor) {
+          const compressor = audioContext.createDynamicsCompressor();
+          compressor.threshold.value = -18;
+          compressor.knee.value = 14;
+          compressor.ratio.value = 5;
+          compressor.attack.value = .003;
+          compressor.release.value = .2;
+          audioMaster.connect(compressor);
+          compressor.connect(audioContext.destination);
+        } else {
+          audioMaster.connect(audioContext.destination);
+        }
+      }
+      if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+      return audioContext;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function scheduleTone(ctx, frequency, start, duration, volume, type, endFrequency, trackResult) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(Math.max(1, frequency), start);
+    if (endFrequency) osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), start + duration);
+    gain.gain.setValueAtTime(.0001, start);
+    gain.gain.exponentialRampToValueAtTime(volume, start + Math.min(.018, duration * .22));
+    gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+    osc.connect(gain);
+    gain.connect(audioMaster);
+    osc.start(start);
+    osc.stop(start + duration + .03);
+    if (trackResult) resultMusicSources.push(osc);
+    return osc;
+  }
+
+  function scheduleWoodClick(ctx, start, bright) {
+    const duration = .075;
+    const count = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, count, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < count; i++) {
+      const decay = Math.pow(1 - i / count, 4.5);
+      data[i] = (Math.random() * 2 - 1) * decay;
+    }
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    source.buffer = buffer;
+    filter.type = "bandpass";
+    filter.frequency.value = bright ? 1450 : 920;
+    filter.Q.value = 1.15;
+    gain.gain.setValueAtTime(.13, start);
+    gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioMaster);
+    source.start(start);
+  }
+
+  function playEffect(kind) {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime + .008;
+      if (kind === "black" || kind === "white") {
+        const white = kind === "white";
+        scheduleWoodClick(ctx, now, white);
+        scheduleTone(ctx, white ? 235 : 155, now, .105, .115, "triangle", white ? 165 : 98);
+        scheduleTone(ctx, white ? 470 : 310, now, .045, .035, "sine", white ? 330 : 205);
+      } else if (kind === "finish-win") {
+        scheduleWoodClick(ctx, now, true);
+        scheduleTone(ctx, 130, now, .46, .18, "sine", 52);
+        scheduleTone(ctx, 660, now + .035, .32, .09, "triangle", 990);
+      } else if (kind === "finish-lose") {
+        scheduleWoodClick(ctx, now, false);
+        scheduleTone(ctx, 105, now, .58, .2, "sawtooth", 42);
+        scheduleTone(ctx, 220, now + .03, .36, .07, "triangle", 110);
+      } else if (kind === "finish-draw") {
+        scheduleWoodClick(ctx, now, false);
+        scheduleTone(ctx, 180, now, .4, .15, "triangle", 120);
+        scheduleTone(ctx, 360, now + .04, .28, .06, "sine", 300);
+      } else {
+        scheduleTone(ctx, 520, now, .15, .07, "sine", 780);
+      }
     } catch (e) { /* 오디오가 막혀도 게임은 계속된다 */ }
   }
+
+  function stopResultMusic() {
+    if (resultMusicTimer !== null) clearTimeout(resultMusicTimer);
+    resultMusicTimer = null;
+    resultMusicSources.forEach((source) => {
+      try { source.stop(); } catch (e) { /* 이미 끝난 음 */ }
+    });
+    resultMusicSources = [];
+  }
+
+  function startResultMusic(result) {
+    const ctx = getAudioContext();
+    if (!ctx || !gameOver) return;
+    const now = ctx.currentTime + .02;
+    const scores = {
+      win: [
+        [0, 523.25, .2], [.2, 659.25, .2], [.4, 783.99, .24], [.64, 1046.5, .55],
+        [1.22, 783.99, .18], [1.4, 880, .18], [1.58, 1046.5, .8],
+      ],
+      lose: [
+        [0, 329.63, .28], [.3, 293.66, .28], [.6, 246.94, .38], [1.02, 196, .9],
+      ],
+      draw: [
+        [0, 392, .24], [.27, 440, .24], [.54, 392, .24], [.82, 349.23, .7],
+      ],
+    };
+    const melody = scores[result] || scores.draw;
+    const type = result === "lose" ? "triangle" : "sine";
+    melody.forEach(([offset, frequency, duration]) => {
+      scheduleTone(ctx, frequency, now + offset, duration, result === "win" ? .085 : .072, type, null, true);
+    });
+    if (result === "win") {
+      [[0, 130.81, .62], [.64, 174.61, .55], [1.22, 196, 1.18]].forEach(([offset, frequency, duration]) => {
+        scheduleTone(ctx, frequency, now + offset, duration, .055, "triangle", null, true);
+      });
+    } else if (result === "lose") {
+      scheduleTone(ctx, 82.41, now, 2.05, .07, "sine", 55, true);
+    } else {
+      scheduleTone(ctx, 130.81, now, 1.62, .045, "triangle", null, true);
+    }
+  }
+
+  function queueResultMusic(result) {
+    stopResultMusic();
+    resultMusicTimer = setTimeout(() => {
+      resultMusicTimer = null;
+      if (settings.sound && gameOver) startResultMusic(result);
+    }, 280);
+  }
+
+  function unlockAudio() { getAudioContext(); }
   function vibrate(pattern) { if (settings.vibration && navigator.vibrate) navigator.vibrate(pattern); }
   function syncSettingsUI() { soundSettingEl.checked=settings.sound; vibrationSettingEl.checked=settings.vibration; motionSettingEl.checked=settings.motion; saveSettings(); }
 
@@ -1778,9 +2718,29 @@
     return m + "분 " + (s < 10 ? "0" + s : s) + "초";
   }
 
+  function bossHasInitiative(level) {
+    const lv = LEVELS[(level || currentLevel) - 1];
+    return !!(lv && lv.initiative);
+  }
+
+  // AI 코어는 플레이어=BLACK, 보스=WHITE를 유지하고 화면의 실제 돌 색만 단계 규칙에 맞춘다.
+  function displayedStone(player, level) {
+    if (!bossHasInitiative(level)) return player;
+    return player === BLACK ? WHITE : player === WHITE ? BLACK : player;
+  }
+
+  function stoneClassForPlayer(player, level) {
+    return displayedStone(player, level) === BLACK ? "black" : "white";
+  }
+
+  function stoneSymbolForPlayer(player, level) {
+    return displayedStone(player, level) === BLACK ? "⚫" : "⚪";
+  }
+
   function elapsedSeconds() {
     if (!startedAt) return 0;
-    return Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+    const end = timerPausedAt || Date.now();
+    return Math.max(0, Math.round((end - startedAt - timerPausedTotal) / 1000));
   }
 
   /* ---------- 보스 선택 화면 렌더링 ---------- */
@@ -1790,39 +2750,53 @@
     return name + (hasBatchim ? "을" : "를");
   }
 
+  function subjectParticle(name) {
+    const last = name.charCodeAt(name.length - 1);
+    const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0;
+    return name + (hasBatchim ? "이" : "가");
+  }
+
   function renderChallengeCopy() {
     const humanLevels = LEVELS.filter((lv) => lv.realm === "human");
     const divineLevels = LEVELS.filter((lv) => lv.realm === "divine");
+    const warLevels = LEVELS.filter((lv) => lv.realm === "war");
     const first = LEVELS[0];
     const last = LEVELS[LEVELS.length - 1];
     challengeEyebrowEl.textContent = LEVELS.length + "단계 AI 보스전";
     challengeLedeEl.innerHTML =
-      "1단계 " + first.name + "부터 신계 최종보스 <b>" + last.name +
+      "1단계 " + first.name + "부터 신들의 전쟁 최종보스 <b>" + last.name +
       "</b>까지. 당신은 어디까지 갈 수 있나요?";
     guideIntroEl.textContent =
       "1단계 " + first.name + "부터 " + LEVELS.length + "단계 " + last.name +
       "까지, AI가 어떻게 강해지는지와 각 상대의 공략을 정리했습니다.";
     guideBossTitleEl.textContent =
-      "📊 " + humanLevels.length + "명의 인간계와 " + divineLevels.length + "명의 신계 보스";
+      "📊 " + humanLevels.length + "명의 인간계 · " + divineLevels.length + "명의 신계 · " +
+      warLevels.length + "명의 전쟁 보스";
   }
 
   function renderRealmSwitch() {
     const divineUnlocked = store.unlocked > 10;
+    const warUnlocked = store.unlocked > 20;
     realmButtons.forEach((btn) => {
       const realm = btn.dataset.realm;
+      const locked = (realm === "divine" && !divineUnlocked) || (realm === "war" && !warUnlocked);
       btn.classList.toggle("active", realm === selectedRealm);
-      btn.classList.toggle("locked", realm === "divine" && !divineUnlocked);
+      btn.classList.toggle("locked", locked);
       if (realm === "human") {
         btn.innerHTML = "🌍 인간계<small>1~10단계 · 오목왕</small>";
+      } else if (realm === "divine") {
+        btn.innerHTML = (divineUnlocked ? "✦" : "🔒") + " 신계<small>11~20단계 · 천원신</small>";
       } else {
-        btn.innerHTML = (divineUnlocked ? "✦" : "🔒") + " 신계<small>11~15단계 · 오목신</small>";
+        btn.innerHTML = (warUnlocked ? "⚔️" : "🔒") + " 신들의 전쟁<small>21~30단계 · 절대신</small>";
       }
     });
-    const divine = selectedRealm === "divine";
-    realmIntroEl.style.setProperty("--realm-color", divine ? "#c084fc" : "#38bdf8");
-    realmIntroEl.innerHTML = divine
-      ? "<strong>✦ 신계</strong><span>실수 없는 AI가 이중 위협과 강제 수순까지 읽습니다.</span>"
-      : "<strong>🌍 인간계</strong><span>기초부터 최상급 수읽기까지, 10명의 보스를 차례로 돌파하세요.</span>";
+    const realmCopy = selectedRealm === "war"
+      ? { color: "#fb7185", html: "<strong>⚔️ 신들의 전쟁</strong><span>21단계부터 연속 강제 수순과 후보 안전 검사가 시작됩니다. 모든 보스가 흑돌로 천원을 선점합니다.</span>" }
+      : selectedRealm === "divine"
+        ? { color: "#c084fc", html: "<strong>✦ 신계</strong><span>11~15단계는 도전자가 흑돌로 선공하고, 16단계부터는 보스가 흑돌로 천원을 선점합니다.</span>" }
+        : { color: "#38bdf8", html: "<strong>🌍 인간계</strong><span>기초부터 최상급 수읽기까지, 10명의 보스를 차례로 돌파하세요.</span>" };
+    realmIntroEl.style.setProperty("--realm-color", realmCopy.color);
+    realmIntroEl.innerHTML = realmCopy.html;
   }
 
   function renderBossGrid() {
@@ -1836,7 +2810,7 @@
 
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "boss-card" + (lv.realm === "divine" ? " divine" : "") + (locked ? " locked" : "");
+      btn.className = "boss-card " + lv.realm + (locked ? " locked" : "");
       btn.style.setProperty("--neon", lv.neon);
       btn.disabled = locked;
       btn.innerHTML =
@@ -1847,24 +2821,40 @@
             '<h3 class="name"></h3>' +
           "</div>" +
         "</div>" +
-        '<p class="tagline"></p>';
-      btn.querySelector(".icon").textContent = locked ? "🔒" : lv.icon;
+        '<span class="boss-trait"></span>' +
+        '<p class="tagline"></p>' +
+        '<p class="initiative-note"></p>';
+      btn.querySelector(".icon").textContent = lv.icon;
       btn.querySelector(".stage").textContent =
         level + "단계" + (cleared ? " · 클리어" : "");
       btn.querySelector(".name").textContent = lv.name;
-      btn.querySelector(".tagline").textContent = locked
-        ? (level - 1) + "단계 " + objectParticle(LEVELS[i - 1].name) + " 꺾으면 해금됩니다."
-        : lv.tagline;
+      btn.querySelector(".boss-trait").textContent = "성향 · " + lv.tag;
+      btn.querySelector(".tagline").textContent = lv.tagline;
+      btn.querySelector(".initiative-note").textContent = lv.initiative
+        ? "선후공 · 보스 흑 선공 · 당신 백 후공"
+        : "선후공 · 당신 흑 선공";
 
-      if (lv.final && !locked) {
+      if (locked) {
+        const lockBadge = document.createElement("span");
+        lockBadge.className = "lock-badge";
+        lockBadge.textContent = "🔒";
+        btn.appendChild(lockBadge);
+        const unlockNote = document.createElement("p");
+        unlockNote.className = "unlock-note";
+        unlockNote.textContent = (level - 1) + "단계 " + objectParticle(LEVELS[i - 1].name) + " 꺾으면 해금됩니다.";
+        btn.appendChild(unlockNote);
+      }
+
+      if (lv.final) {
         const badge = document.createElement("span");
         badge.className = "final-badge";
-        badge.textContent = lv.realm === "divine" ? "신계 최종보스" : "인간계 최종보스";
+        badge.textContent = lv.realm === "war" ? "신들의 전쟁 최종보스" :
+          lv.realm === "divine" ? "신계 최종보스" : "인간계 최종보스";
         btn.appendChild(badge);
-      } else if (lv.realm === "divine" && !locked) {
+      } else if (lv.realm !== "human" && !locked) {
         const badge = document.createElement("span");
         badge.className = "realm-badge";
-        badge.textContent = "신계";
+        badge.textContent = lv.realm === "war" ? "신들의 전쟁" : "신계";
         btn.appendChild(badge);
       }
       if (!locked) btn.addEventListener("click", () => startBattle(level));
@@ -1884,11 +2874,15 @@
           '<h2 class="name"></h2>' +
         "</div>" +
       "</div>" +
+      '<p class="boss-profile"><b>성향</b><span class="boss-trait"></span></p>' +
+      '<p class="boss-behavior"></p>' +
       '<p class="quote"></p>';
     bossBannerEl.querySelector(".icon").textContent = lv.icon;
     bossBannerEl.querySelector(".stage").textContent =
-      level + "단계 · " + (lv.realm === "divine" ? "신계" : "인간계") + (lv.final ? " 최종보스" : "");
+      level + "단계" + (lv.final ? " · 최종보스" : "");
     bossBannerEl.querySelector(".name").textContent = lv.name;
+    bossBannerEl.querySelector(".boss-trait").textContent = lv.tag;
+    bossBannerEl.querySelector(".boss-behavior").textContent = lv.tagline;
     bossBannerEl.querySelector(".quote").textContent = "“" + lv.quote + "”";
     battleView.style.setProperty("--neon", lv.neon);
   }
@@ -1901,6 +2895,11 @@
         divider.className = "guide-realm-divider";
         divider.textContent = "✦ 신계 · 11단계부터";
         guideLevelsEl.appendChild(divider);
+      } else if (i === 20) {
+        const divider = document.createElement("h4");
+        divider.className = "guide-realm-divider";
+        divider.textContent = "⚔️ 신들의 전쟁 · 21단계부터";
+        guideLevelsEl.appendChild(divider);
       }
       const card = document.createElement("div");
       card.className = "level-card";
@@ -1912,13 +2911,13 @@
           '<span class="level-tag"></span>' +
         "</div>" +
         '<p class="level-quote"></p>' +
-        '<p class="level-desc"></p>' +
+        '<div class="level-analysis"><b>성향 분석</b><span></span></div>' +
         '<div class="level-tip"><b>공략 팁</b> · <span></span></div>';
       card.querySelector(".level-num").textContent = String(i + 1);
       card.querySelector("h3").textContent = (i + 1) + "단계 · " + lv.name;
       card.querySelector(".level-tag").textContent = lv.tag;
       card.querySelector(".level-quote").textContent = "“" + lv.quote + "”";
-      card.querySelector(".level-desc").textContent = lv.desc;
+      card.querySelector(".level-analysis span").textContent = lv.desc;
       card.querySelector(".level-tip span").textContent = lv.tip;
       guideLevelsEl.appendChild(card);
     });
@@ -1973,6 +2972,13 @@
 
   const THREAT_SCORE = 3000;   // 막힌 4 또는 열린 3 이상
   const FORK_BONUS = 40000;
+  const STRATEGIC_OPENING_CELLS = [
+    [7, 7],
+    [3, 3], [3, 7], [3, 11],
+    [7, 3], [7, 11],
+    [11, 3], [11, 7], [11, 11],
+    [5, 5], [5, 9], [9, 5], [9, 9],
+  ];
   /* 4목 이상은 성격과 무관하게 온전한 무게로 본다.
      공격형(defBias < 1)이 상대의 열린 4를 깎아서 보면, 몇 수 앞까지만 읽는 탐색이
      "맞불도 해볼 만하다"고 착각해 지는 수를 둔다. 취향은 작은 모양에서만 허용한다. */
@@ -2032,31 +3038,43 @@
     return score;
   }
 
-  function generateCandidateCells(bd) {
+  function generateCandidateCells(bd, includeStrategic) {
     const set = new Set();
     const result = [];
     let hasStone = false;
+    const add = (r, c) => {
+      if (!inBounds(r, c) || bd[r][c] !== EMPTY) return;
+      const key = r * SIZE + c;
+      if (!set.has(key)) { set.add(key); result.push([r, c]); }
+    };
     for (let r = 0; r < SIZE; r++) {
       for (let c = 0; c < SIZE; c++) {
         if (bd[r][c] === EMPTY) continue;
         hasStone = true;
         for (let dr = -2; dr <= 2; dr++) {
           for (let dc = -2; dc <= 2; dc++) {
-            const nr = r + dr, nc = c + dc;
-            if (!inBounds(nr, nc) || bd[nr][nc] !== EMPTY) continue;
-            const key = nr * SIZE + nc;
-            if (!set.has(key)) { set.add(key); result.push([nr, nc]); }
+            add(r + dr, c + dc);
           }
         }
       }
     }
     if (!hasStone) return [[7, 7]];
+    // 예전에는 이미 놓인 돌의 두 칸 안만 후보로 만들었다. 그래서 플레이어가 구석에
+    // 첫 수를 두면 '중앙 포석' 수치가 아무리 높아도 중앙은 후보에조차 들어오지 않았고,
+    // 신계 다섯이 모두 같은 구석 공략에 갇혔다. 신계 초반에는 천원·별점도 실제 후보로
+    // 넣어 보드 전체를 선택할 수 있게 한다.
+    if (includeStrategic) {
+      for (const [r, c] of STRATEGIC_OPENING_CELLS) add(r, c);
+    }
     return result;
   }
 
   function orderedCandidates(bd, player, limit) {
     const opp = player === BLACK ? WHITE : BLACK;
-    const cells = generateCandidateCells(bd);
+    const cells = generateCandidateCells(
+      bd,
+      (persona.centerWeight || 0) > 0 && history.length <= 7
+    );
     const scored = cells.map(([r, c]) => {
       bd[r][c] = player;
       const atk = evaluatePoint(bd, r, c, player);
@@ -2073,7 +3091,16 @@
     return scored.slice(0, limit).map((o) => [o.r, o.c]);
   }
 
+  let minimaxDeadline = Infinity;
+  let minimaxTimedOut = false;
+  let minimaxNodes = 0;
+
   function minimax(bd, depth, alpha, beta, currentPlayer, aiPlayer, candLimit, ply) {
+    minimaxNodes++;
+    if ((minimaxNodes & 127) === 0 && Date.now() >= minimaxDeadline) {
+      minimaxTimedOut = true;
+      return { score: evaluateBoard(bd, aiPlayer) };
+    }
     const candidates = orderedCandidates(bd, currentPlayer, candLimit);
     if (depth === 0 || candidates.length === 0) {
       return { score: evaluateBoard(bd, aiPlayer) };
@@ -2092,6 +3119,7 @@
         score = minimax(bd, depth - 1, alpha, beta, next, aiPlayer, candLimit, ply + 1).score;
       }
       bd[r][c] = EMPTY;
+      if (minimaxTimedOut) break;
       if (isMax) {
         if (score > bestScore) { bestScore = score; bestMove = [r, c]; }
         alpha = Math.max(alpha, score);
@@ -2148,8 +3176,200 @@
     return null;
   }
 
+  // 신들의 전쟁 전용: 공격자가 한 번 위협하고 끝나는 것이 아니라, 상대의 유일한
+  // 방어를 강제한 뒤 다시 위협하는 수순을 지정한 깊이까지 이어서 찾는다.
+  let warSearchDeadline = Infinity;
+  let warSearchTimedOut = false;
+
+  function forcingCacheKey(bd, player, limit, depth) {
+    let key = player + ":" + limit + ":" + depth + ":";
+    for (let r = 0; r < SIZE; r++) key += bd[r].join("");
+    return key;
+  }
+
+  function findForcingSequenceMove(bd, player, limit, depth, cache) {
+    if (depth <= 0) return null;
+    if (Date.now() >= warSearchDeadline) {
+      warSearchTimedOut = true;
+      return null;
+    }
+    const memo = cache || new Map();
+    const key = forcingCacheKey(bd, player, limit, depth);
+    if (memo.has(key)) {
+      const cached = memo.get(key);
+      return cached ? cached.slice() : null;
+    }
+
+    const opponent = player === BLACK ? WHITE : BLACK;
+    const candidates = orderedCandidates(bd, player, limit);
+    for (const [r, c] of candidates) {
+      if (Date.now() >= warSearchDeadline) {
+        warSearchTimedOut = true;
+        return null;
+      }
+      bd[r][c] = player;
+      let succeeds = !!findWinningLine(bd, r, c, player);
+
+      if (!succeeds) {
+        // 상대에게 이미 즉시 승리가 있다면 상대는 방어 대신 그 수를 두면 된다.
+        const opponentWins = immediateWinningMoves(bd, opponent);
+        if (opponentWins.length === 0) {
+          const forcedBlocks = immediateWinningMoves(bd, player);
+          if (forcedBlocks.length >= 2) {
+            succeeds = true;
+          } else if (forcedBlocks.length === 1 && depth > 1) {
+            const [br, bc] = forcedBlocks[0];
+            bd[br][bc] = opponent;
+            if (!findWinningLine(bd, br, bc, opponent)) {
+              const nextLimit = Math.min(limit, 14);
+              succeeds = !!findForcingSequenceMove(bd, player, nextLimit, depth - 1, memo);
+            }
+            bd[br][bc] = EMPTY;
+          }
+        }
+      }
+
+      bd[r][c] = EMPTY;
+      if (succeeds) {
+        const move = [r, c];
+        memo.set(key, move);
+        return move.slice();
+      }
+    }
+    if (!warSearchTimedOut) memo.set(key, null);
+    return null;
+  }
+
+  function chooseSafeDivineMove(bd, cfg, preferredMove, ordered) {
+    if (!cfg.divine || (!cfg.divine.safeFork && !cfg.divine.safeForcing)) return preferredMove;
+    const seen = new Set();
+    const candidates = [preferredMove].concat(ordered).filter((move) => {
+      if (!move) return false;
+      const key = move[0] * SIZE + move[1];
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const tacticalLimit = cfg.divine.tacticalCand;
+
+    for (const [r, c] of candidates) {
+      bd[r][c] = WHITE;
+      let dangerous = immediateWinningMoves(bd, BLACK).length > 0;
+      if (!dangerous && cfg.divine.safeFork) {
+        dangerous = !!findForkMove(bd, BLACK, tacticalLimit);
+      }
+      if (!dangerous && cfg.divine.safeForcing) {
+        dangerous = !!findForcingMove(bd, BLACK, tacticalLimit);
+      }
+      bd[r][c] = EMPTY;
+      if (!dangerous) return [r, c];
+    }
+    return preferredMove;
+  }
+
+  function uniqueMoves(moves) {
+    const seen = new Set();
+    return moves.filter((move) => {
+      if (!move) return false;
+      const key = move[0] * SIZE + move[1];
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function chooseSafeWarMove(bd, cfg, preferredMove, ordered, urgentMoves, cache) {
+    const candidates = uniqueMoves((urgentMoves || []).concat([preferredMove], ordered))
+      .slice(0, cfg.war.safeCandidates);
+    const tacticalLimit = cfg.divine.tacticalCand;
+
+    for (const [r, c] of candidates) {
+      bd[r][c] = WHITE;
+      let dangerous = immediateWinningMoves(bd, BLACK).length > 0;
+      if (!dangerous) dangerous = !!findForkMove(bd, BLACK, tacticalLimit);
+      if (!dangerous) {
+        warSearchTimedOut = false;
+        dangerous = !!findForcingSequenceMove(
+          bd, BLACK, tacticalLimit, cfg.war.defenseDepth, cache
+        );
+      }
+      bd[r][c] = EMPTY;
+      if (warSearchTimedOut) break;
+      if (!dangerous) return [r, c];
+    }
+    return (urgentMoves && urgentMoves[0]) || preferredMove;
+  }
+
+  function searchWarMinimax(bd, cfg, ordered) {
+    let bestMove = ordered[0] || null;
+    const firstDepth = Math.min(4, cfg.depth);
+    for (let depth = firstDepth; depth <= cfg.depth; depth++) {
+      minimaxTimedOut = false;
+      minimaxNodes = 0;
+      const result = minimax(bd, depth, -Infinity, Infinity, WHITE, WHITE, cfg.cand, 0);
+      if (minimaxTimedOut) break;
+      if (result.move) bestMove = result.move;
+    }
+    return bestMove;
+  }
+
+  function chooseWarMove(cfg) {
+    const started = Date.now();
+    const thinkMs = cfg.war.thinkMs;
+    const totalDeadline = started + thinkMs;
+    const cache = new Map();
+    const tacticalLimit = cfg.divine.tacticalCand;
+    const urgentMoves = [];
+
+    try {
+      // 전체 시간의 앞부분은 필승 연쇄 탐색, 중간은 미니맥스, 마지막은 후보 안전 검사에 남긴다.
+      warSearchDeadline = started + Math.floor(thinkMs * 0.42);
+      warSearchTimedOut = false;
+
+      const winningFork = findForkMove(board, WHITE, tacticalLimit);
+      if (winningFork) { lastAiDecisionReason = "fork"; return winningFork; }
+
+      const enemyFork = findForkMove(board, BLACK, tacticalLimit);
+      if (enemyFork) urgentMoves.push(enemyFork);
+
+      const forcingWin = findForcingSequenceMove(
+        board, WHITE, tacticalLimit, cfg.war.attackDepth, cache
+      );
+      if (forcingWin && !warSearchTimedOut) {
+        lastAiDecisionReason = "forcing";
+        return forcingWin;
+      }
+
+      warSearchTimedOut = false;
+      const enemyForcing = findForcingSequenceMove(
+        board, BLACK, tacticalLimit, cfg.war.defenseDepth, cache
+      );
+      if (enemyForcing && !warSearchTimedOut) urgentMoves.push(enemyForcing);
+
+      const ordered = orderedCandidates(board, WHITE, cfg.cand);
+      minimaxDeadline = started + Math.floor(thinkMs * 0.80);
+      let move = searchWarMinimax(board, cfg, ordered) || ordered[0];
+      const searchedMove = move;
+
+      warSearchDeadline = totalDeadline;
+      warSearchTimedOut = false;
+      move = chooseSafeWarMove(board, cfg, move, ordered, urgentMoves, cache);
+      const urgent = urgentMoves.some((candidate) => candidate && move &&
+        candidate[0] === move[0] && candidate[1] === move[1]);
+      lastAiDecisionReason = urgent ? "block-forcing" :
+        searchedMove && move && (searchedMove[0] !== move[0] || searchedMove[1] !== move[1]) ? "safe" : "search";
+      return move;
+    } finally {
+      warSearchDeadline = Infinity;
+      warSearchTimedOut = false;
+      minimaxDeadline = Infinity;
+      minimaxTimedOut = false;
+    }
+  }
+
   function chooseAiMove(level) {
     const cfg = LEVELS[level - 1];
+    lastAiDecisionReason = "search";
     setPersona(cfg.persona);
     const candidatesAll = generateCandidateCells(board);
     if (candidatesAll.length === 0) return null;
@@ -2158,7 +3378,7 @@
       board[r][c] = WHITE;
       const win = findWinningLine(board, r, c, WHITE);
       board[r][c] = EMPTY;
-      if (win) return [r, c];
+      if (win) { lastAiDecisionReason = "win"; return [r, c]; }
     }
 
     const blockingMoves = candidatesAll.filter(([r, c]) => {
@@ -2168,8 +3388,11 @@
       return !!win;
     });
     if (blockingMoves.length > 0 && Math.random() < cfg.blockChance) {
+      lastAiDecisionReason = "block";
       return blockingMoves[0];
     }
+
+    if (cfg.war) return chooseWarMove(cfg);
 
     if (cfg.divine) {
       const tacticalLimit = cfg.divine.tacticalCand;
@@ -2177,32 +3400,37 @@
 
       if (cfg.divine.forkAttack) {
         tacticalMove = findForkMove(board, WHITE, tacticalLimit);
-        if (tacticalMove) return tacticalMove;
+        if (tacticalMove) { lastAiDecisionReason = "fork"; return tacticalMove; }
       }
       if (cfg.divine.forkDefense) {
         tacticalMove = findForkMove(board, BLACK, tacticalLimit);
-        if (tacticalMove) return tacticalMove;
+        if (tacticalMove) { lastAiDecisionReason = "block-fork"; return tacticalMove; }
       }
       if (cfg.divine.forcingAttack) {
         tacticalMove = findForcingMove(board, WHITE, tacticalLimit);
-        if (tacticalMove) return tacticalMove;
+        if (tacticalMove) { lastAiDecisionReason = "forcing"; return tacticalMove; }
       }
       if (cfg.divine.forcingDefense) {
         tacticalMove = findForcingMove(board, BLACK, tacticalLimit);
-        if (tacticalMove) return tacticalMove;
+        if (tacticalMove) { lastAiDecisionReason = "block-forcing"; return tacticalMove; }
       }
 
       if (cfg.divine.opening && history.length <= 3) {
         const opening = orderedCandidates(board, WHITE, tacticalLimit).find(([r, c]) =>
           Math.abs(r - 7) + Math.abs(c - 7) <= 5
         );
-        if (opening) return opening;
+        if (opening) { lastAiDecisionReason = "opening"; return opening; }
       }
     }
 
     const ordered = orderedCandidates(board, WHITE, cfg.cand);
     const result = minimax(board, cfg.depth, -Infinity, Infinity, WHITE, WHITE, cfg.cand, 0);
     let move = result.move || ordered[0];
+    const searchedMove = move;
+    move = chooseSafeDivineMove(board, cfg, move, ordered);
+    if (searchedMove && move && (searchedMove[0] !== move[0] || searchedMove[1] !== move[1])) {
+      lastAiDecisionReason = "safe";
+    }
 
     if (cfg.randomChance > 0 && Math.random() < cfg.randomChance && ordered.length > 1) {
       const topN = ordered.slice(0, Math.min(cfg.randomTop + 1, ordered.length));
@@ -2211,12 +3439,114 @@
     return move;
   }
 
+  // 깊은 수읽기는 별도 스레드에서 실행해 2~3초 계산 중에도 애니메이션과 버튼이 멈추지 않게 한다.
+  // Web Worker를 쓸 수 없는 오래된 WebView나 테스트 환경에서는 같은 코어를 메인 스레드에서 실행한다.
+  function buildAiWorkerSource() {
+    const coreFunctions = [
+      inBounds, findWinningLine, setPersona, patternScore, evaluatePoint, evaluateBoard,
+      generateCandidateCells, orderedCandidates, minimax, immediateWinningMoves, findForkMove,
+      findForcingMove, forcingCacheKey, findForcingSequenceMove, chooseSafeDivineMove,
+      uniqueMoves, chooseSafeWarMove, searchWarMinimax, chooseWarMove, chooseAiMove,
+    ].map((fn) => fn.toString()).join("\n\n");
+    return [
+      '"use strict";',
+      "const SIZE = 15, EMPTY = 0, BLACK = 1, WHITE = 2;",
+      "const DIRS = [[0,1],[1,0],[1,1],[1,-1]];",
+      "const WIN_SCORE = 1e12, THREAT_SCORE = 3000, FORK_BONUS = 40000, CRITICAL_SCORE = 400000;",
+      "const STRATEGIC_OPENING_CELLS = " + JSON.stringify(STRATEGIC_OPENING_CELLS) + ";",
+      "const NEUTRAL_PERSONA = " + JSON.stringify(NEUTRAL_PERSONA) + ";",
+      "let LEVELS = [], board = [], history = [], persona = NEUTRAL_PERSONA, lastAiDecisionReason = 'search';",
+      "let minimaxDeadline = Infinity, minimaxTimedOut = false, minimaxNodes = 0;",
+      "let warSearchDeadline = Infinity, warSearchTimedOut = false;",
+      coreFunctions,
+      "self.onmessage = function (event) {",
+      "  const data = event.data;",
+      "  board = data.board; history = data.history; LEVELS = []; LEVELS[data.level - 1] = data.cfg;",
+      "  persona = data.cfg.persona || NEUTRAL_PERSONA; lastAiDecisionReason = 'search';",
+      "  const move = chooseAiMove(data.level);",
+      "  self.postMessage({ move: move, reason: lastAiDecisionReason });",
+      "};",
+    ].join("\n");
+  }
+
+  function disposeAiWorker(job) {
+    if (job.watchdog) clearTimeout(job.watchdog);
+    try { job.worker.terminate(); } catch (_) {}
+    try { URL.revokeObjectURL(job.url); } catch (_) {}
+  }
+
+  function cancelAiWorkerCalculation() {
+    if (!aiWorkerJob) return;
+    const job = aiWorkerJob;
+    aiWorkerJob = null;
+    disposeAiWorker(job);
+    job.resolve(null);
+  }
+
+  function calculateAiMove(level) {
+    const calculateOnMain = () => {
+      const move = chooseAiMove(level);
+      return { move: move, reason: lastAiDecisionReason, engine: "main" };
+    };
+    const workerAvailable = window.__OMOK_TEST_FAST__ !== true &&
+      typeof Worker === "function" && typeof Blob === "function" &&
+      typeof URL !== "undefined" && typeof URL.createObjectURL === "function";
+    if (!workerAvailable) return Promise.resolve(calculateOnMain());
+
+    let url;
+    let worker;
+    try {
+      url = URL.createObjectURL(new Blob([buildAiWorkerSource()], { type: "text/javascript" }));
+      worker = new Worker(url);
+    } catch (_) {
+      if (url) { try { URL.revokeObjectURL(url); } catch (_) {} }
+      return Promise.resolve(calculateOnMain());
+    }
+
+    return new Promise((resolve) => {
+      const job = { worker: worker, url: url, resolve: resolve, watchdog: null };
+      aiWorkerJob = job;
+      // WebView/브라우저의 Worker가 드물게 응답을 잃어도 대국이 영원히 멈추지 않게 한다.
+      const thinkBudget = (LEVELS[level - 1].war && LEVELS[level - 1].war.thinkMs) || 0;
+      job.watchdog = setTimeout(() => {
+        if (aiWorkerJob !== job) return;
+        aiWorkerJob = null;
+        disposeAiWorker(job);
+        resolve(calculateOnMain());
+      }, Math.max(5000, thinkBudget + 3000));
+      worker.onmessage = (event) => {
+        if (aiWorkerJob !== job) return;
+        aiWorkerJob = null;
+        disposeAiWorker(job);
+        const data = event.data || {};
+        resolve({ move: data.move || null, reason: data.reason || "search", engine: "worker" });
+      };
+      worker.onerror = (event) => {
+        if (event && typeof event.preventDefault === "function") event.preventDefault();
+        if (aiWorkerJob !== job) return;
+        aiWorkerJob = null;
+        disposeAiWorker(job);
+        resolve(calculateOnMain());
+      };
+      worker.postMessage({
+        level: level,
+        cfg: LEVELS[level - 1],
+        board: board.map((row) => row.slice()),
+        history: history.map((move) => ({ r: move.r, c: move.c, player: move.player })),
+      });
+    });
+  }
+
+  if (typeof window !== "undefined" && window.__OMOK_TEST_FAST__ === true) {
+    window.__OMOK_TEST_BUILD_AI_WORKER_SOURCE__ = buildAiWorkerSource;
+  }
+
   function placeStone(r, c, player, silent) {
     board[r][c] = player;
     const el = cellEls[r][c];
     el.classList.add("has-stone");
     const stone = document.createElement("div");
-    stone.className = "stone " + (player === BLACK ? "black" : "white");
+    stone.className = "stone placed " + stoneClassForPlayer(player, currentLevel);
     el.appendChild(stone);
     if (lastMoveEl) lastMoveEl.classList.remove("last");
     stone.classList.add("last");
@@ -2224,7 +3554,7 @@
     history.push({ r: r, c: c, player: player });
     moveCount++;
     liveMovesEl.textContent = moveCount;
-    if (!silent) { playEffect(player === BLACK ? "black" : "white"); vibrate(18); }
+    if (!silent) { playEffect(stoneClassForPlayer(player, currentLevel)); vibrate(18); }
   }
 
   /* ---------- 아이템 ---------- */
@@ -2244,6 +3574,9 @@
   };
   window.setOmokAdMessage = function (message) {
     if (typeof message === "string" && message) itemNoteEl.textContent = message;
+  };
+  window.setOmokPrivacyOptionsAvailable = function (available) {
+    privacyOptionsBtn.hidden = available !== true;
   };
 
   // 착수 기록으로 보드를 다시 그린다. 되돌리기가 DOM을 직접 손대지 않도록.
@@ -2310,8 +3643,11 @@
   }
 
   function startTimer() {
-    startedAt = Date.now();
     stopTimer();
+    startedAt = Date.now();
+    timerPausedAt = 0;
+    timerPausedTotal = 0;
+    liveTimeEl.textContent = "0초";
     tickTimer = setInterval(() => {
       liveTimeEl.textContent = formatTime(elapsedSeconds());
     }, 1000);
@@ -2320,6 +3656,36 @@
   function stopTimer() {
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   }
+
+  function pauseTimer() {
+    if (!startedAt || timerPausedAt || gameOver) return;
+    timerPausedAt = Date.now();
+    stopTimer();
+    liveTimeEl.textContent = formatTime(elapsedSeconds());
+  }
+
+  function resumeTimer() {
+    if (!startedAt || !timerPausedAt || gameOver) return;
+    timerPausedTotal += Date.now() - timerPausedAt;
+    timerPausedAt = 0;
+    stopTimer();
+    tickTimer = setInterval(() => {
+      liveTimeEl.textContent = formatTime(elapsedSeconds());
+    }, 1000);
+  }
+
+  window.pauseOmokGame = function () {
+    if (appPaused) return;
+    appPaused = true;
+    pauseTimer();
+    stopResultMusic();
+  };
+
+  window.resumeOmokGame = function () {
+    if (!appPaused) return;
+    appPaused = false;
+    resumeTimer();
+  };
 
   function isBoardFull() {
     for (let r = 0; r < SIZE; r++) {
@@ -2334,6 +3700,22 @@
     for (const [r, c] of line) cellEls[r][c].classList.add("win");
   }
 
+  function emphasizeFinalMove(result) {
+    if (!lastMoveEl || !history.length) return;
+    if (finalImpactTimer !== null) clearTimeout(finalImpactTimer);
+    const move = history[history.length - 1];
+    boardShellEl.style.setProperty("--impact-x", ((move.c + .5) / SIZE * 100).toFixed(2) + "%");
+    boardShellEl.style.setProperty("--impact-y", ((move.r + .5) / SIZE * 100).toFixed(2) + "%");
+    boardShellEl.classList.remove("finish-impact", "finish-win", "finish-lose", "finish-draw");
+    void boardShellEl.offsetWidth;
+    boardShellEl.classList.add("finish-impact", "finish-" + result);
+    lastMoveEl.classList.add("finisher");
+    finalImpactTimer = setTimeout(() => {
+      boardShellEl.classList.remove("finish-impact");
+      finalImpactTimer = null;
+    }, 900);
+  }
+
   function updateScoreDisplay() {
     scoreWinEl.textContent = scores.win;
     scoreDrawEl.textContent = scores.draw;
@@ -2341,7 +3723,10 @@
   }
 
   function endGame(winLine, winner) {
+    cancelPendingAiTurn();
+    aiThinking = false;
     gameOver = true;
+    boardEl.classList.remove("player-turn");
     stopTimer();
     clearSuggestions();
     updateItemButtons();
@@ -2358,13 +3743,11 @@
       scores.draw++;
     } else if (winner === BLACK) {
       result = "win";
-      playEffect("win"); vibrate([30, 50, 70]);
       highlightWin(winLine);
       statusEl.textContent = "🎉 " + lv.winLine;
       statusEl.className = "status win";
       scores.win++;
     } else {
-      playEffect("lose"); vibrate([80, 40, 80]);
       result = "lose";
       highlightWin(winLine);
       statusEl.textContent = "패배 · " + lv.name + "이(가) 먼저 다섯 개를 이었습니다.";
@@ -2374,6 +3757,10 @@
       void boardShellEl.offsetWidth;
       boardShellEl.classList.add("shake");
     }
+    emphasizeFinalMove(result);
+    playEffect("finish-" + result);
+    queueResultMusic(result);
+    vibrate(result === "win" ? [35, 45, 90] : result === "lose" ? [90, 45, 110] : [30, 40, 30]);
     updateScoreDisplay();
 
     const noItem = itemsUsed === 0;
@@ -2381,10 +3768,11 @@
     if (summary.unlockedLevel) renderBossGrid();
     renderRecords();
 
-    // 인간계 최종보스를 처음 꺾으면 결과 화면 전에 신계 개방을 보여준다.
+    // 각 세계의 최종보스를 처음 꺾으면 결과 화면 전에 다음 세계 개방을 보여준다.
     const showResultScreen = () => showResult(result, summary, seconds, noItem);
     setTimeout(() => {
-      if (summary.unlockedLevel === 11) showRealmGate(showResultScreen);
+      if (summary.unlockedLevel === 11) showRealmGate("divine", showResultScreen);
+      else if (summary.unlockedLevel === 21) showRealmGate("war", showResultScreen);
       else showResultScreen();
     }, result === "draw" ? 500 : 1100);
   }
@@ -2407,7 +3795,15 @@
   }
 
   /* ---------- 결과 오버레이 ---------- */
-  function showRealmGate(done) {
+  function showRealmGate(realm, done) {
+    const war = realm === "war";
+    realmGateEl.classList.toggle("war", war);
+    realmGateMarkEl.textContent = war ? "⚔️" : "✦";
+    realmGateEyebrowEl.textContent = war ? "신계의 끝에서 전쟁이 시작됐다" : "인간계의 끝을 넘었다";
+    realmGateTitleEl.textContent = war ? "신들의 전쟁 개방" : "신계 개방";
+    realmGateBodyEl.textContent = war
+      ? "연속 강제 수순을 읽는 열 명의 신이 기다립니다."
+      : "더 이상 실수하는 상대는 없습니다.";
     realmGateEl.hidden = false;
     let finished = false;
     const finish = () => {
@@ -2439,6 +3835,127 @@
     d.appendChild(document.createTextNode(body));
     parent.appendChild(d);
   }
+
+  function moveCoordinate(move) {
+    const columns = "ABCDEFGHJKLMNOP"; // 바둑판 좌표처럼 I는 건너뛴다.
+    return columns.charAt(move.c) + (SIZE - move.r);
+  }
+
+  function lossTurningPoint(moves) {
+    const bd = Array.from({ length: SIZE }, () => new Array(SIZE).fill(EMPTY));
+    const start = Math.max(0, moves.length - 10);
+    let firstThreat = null;
+    for (let i = 0; i < moves.length - 1; i++) {
+      const move = moves[i];
+      bd[move.r][move.c] = move.player;
+      if (i < start || move.player !== WHITE || firstThreat) continue;
+      const wins = immediateWinningMoves(bd, WHITE);
+      if (wins.length >= 2) {
+        firstThreat = { index: i, move: move, type: "fork" };
+      } else if (wins.length === 1) {
+        firstThreat = { index: i, move: move, type: "forcing" };
+      }
+    }
+    return firstThreat;
+  }
+
+  function buildLossReview(sourceMoves) {
+    const reviewMoves = (sourceMoves || history).map((move) => ({ r: move.r, c: move.c, player: move.player }));
+    const section = document.createElement("section");
+    section.className = "move-review";
+    const title = document.createElement("h3");
+    title.textContent = "🔎 패배 복기 · 전체 " + reviewMoves.length + "수";
+    section.appendChild(title);
+
+    const insight = document.createElement("p");
+    const turning = lossTurningPoint(reviewMoves);
+    if (turning) {
+      insight.textContent = (turning.index + 1) + "수 " + moveCoordinate(turning.move) + "에서 " +
+        (turning.type === "fork"
+          ? "두 곳을 동시에 막아야 하는 양수가 만들어졌습니다."
+          : "즉시 응수해야 하는 강제 수순이 시작됐습니다.");
+    } else {
+      const finalMove = reviewMoves[reviewMoves.length - 1];
+      insight.textContent = finalMove
+        ? "마지막 " + moveCoordinate(finalMove) + "에서 보스의 5목이 완성됐습니다. 직전 수들의 연결 방향을 확인해 보세요."
+        : "마지막 수순에서 보스의 연결을 끊지 못했습니다.";
+    }
+    section.appendChild(insight);
+
+    const replayBoard = document.createElement("div");
+    replayBoard.className = "review-board";
+    replayBoard.setAttribute("role", "img");
+    const replayCells = [];
+    for (let i = 0; i < SIZE * SIZE; i++) {
+      const cell = document.createElement("span");
+      cell.className = "review-cell";
+      replayBoard.appendChild(cell);
+      replayCells.push(cell);
+    }
+    section.appendChild(replayBoard);
+
+    const controls = document.createElement("div");
+    controls.className = "review-controls";
+    const prev = document.createElement("button");
+    prev.type = "button";
+    prev.className = "review-step";
+    prev.setAttribute("aria-label", "이전 수");
+    prev.textContent = "◀";
+    const status = document.createElement("span");
+    status.className = "review-status";
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "review-step";
+    next.setAttribute("aria-label", "다음 수");
+    next.textContent = "▶";
+    const range = document.createElement("input");
+    range.type = "range";
+    range.className = "review-range";
+    range.min = "0";
+    range.max = String(reviewMoves.length);
+    range.value = String(reviewMoves.length);
+    range.setAttribute("aria-label", "복기 수순 이동");
+    controls.append(prev, status, next, range);
+    section.appendChild(controls);
+
+    const renderReplay = (count) => {
+      const shown = Math.min(reviewMoves.length, Math.max(0, count));
+      replayCells.forEach((cell) => { cell.className = "review-cell"; });
+      for (let i = 0; i < shown; i++) {
+        const move = reviewMoves[i];
+        replayCells[move.r * SIZE + move.c].classList.add(stoneClassForPlayer(move.player, currentLevel));
+      }
+      if (shown > 0) {
+        const last = reviewMoves[shown - 1];
+        replayCells[last.r * SIZE + last.c].classList.add("last");
+        status.textContent = shown + "/" + reviewMoves.length + "수 · " +
+          (last.player === WHITE ? "AI" : "나") + " " + stoneSymbolForPlayer(last.player, currentLevel) + " " + moveCoordinate(last);
+      } else {
+        status.textContent = "0/" + reviewMoves.length + "수 · 대국 시작";
+      }
+      replayBoard.setAttribute("aria-label", status.textContent + "까지의 오목판");
+      range.value = String(shown);
+      prev.disabled = shown === 0;
+      next.disabled = shown === reviewMoves.length;
+    };
+    prev.addEventListener("click", () => renderReplay(Number(range.value) - 1));
+    next.addEventListener("click", () => renderReplay(Number(range.value) + 1));
+    range.addEventListener("input", () => renderReplay(Number(range.value)));
+    renderReplay(reviewMoves.length);
+
+    const list = document.createElement("div");
+    list.className = "move-review-list";
+    reviewMoves.slice(-6).forEach((move, offset) => {
+      const chip = document.createElement("span");
+      const number = reviewMoves.length - Math.min(6, reviewMoves.length) + offset + 1;
+      chip.className = "move-chip" + (move.player === WHITE ? " ai" : "");
+      chip.textContent = number + "수 " + (move.player === WHITE ? "AI" : "나") + " " + moveCoordinate(move);
+      list.appendChild(chip);
+    });
+    section.appendChild(list);
+    return section;
+  }
+  if (window.__OMOK_TEST_FAST__ === true) window.__OMOK_TEST_BUILD_LOSS_REVIEW__ = buildLossReview;
 
   function showResult(result, summary, seconds, noItem) {
     const lv = LEVELS[currentLevel - 1];
@@ -2488,6 +4005,8 @@
     }
     resultCardEl.appendChild(grid);
 
+    if (result === "lose") resultCardEl.appendChild(buildLossReview());
+
     const badges = document.createElement("div");
     badges.className = "badges";
 
@@ -2510,6 +4029,12 @@
         if (summary.unlockedLevel === 11) {
           addBadge(badges, "unlock", "신계의 문 개방",
             "11단계 문지기부터는 양수와 강제 수순을 읽는 신계 AI가 등장합니다.");
+        } else if (summary.unlockedLevel === 16) {
+          addBadge(badges, "unlock", "신계 심층 개방",
+            "16단계 선수신부터는 보스가 천원을 선점하고 대국을 시작합니다.");
+        } else if (summary.unlockedLevel === 21) {
+          addBadge(badges, "unlock", "신들의 전쟁 개방",
+            "21단계 전쟁의 전령부터는 연속 강제 수순과 후보 안전 검사가 시작됩니다.");
         } else if (next.final) {
           addBadge(badges, "unlock", "최종보스 해금",
             summary.unlockedLevel + "단계 " + next.name + "이(가) 당신을 기다립니다.");
@@ -2519,8 +4044,8 @@
         }
       }
       if (currentLevel === LEVELS.length) {
-        addBadge(badges, "record", "신을 넘어선 자",
-          LEVELS.length + "개의 관문을 모두 통과했습니다. 인간의 수가 신의 계산을 넘어섰습니다.");
+        addBadge(badges, "record", "전쟁을 끝낸 자",
+          LEVELS.length + "개의 관문을 모두 통과했습니다. 인간의 수가 신들의 전쟁을 끝냈습니다.");
       }
     } else if (result === "lose") {
       if (summary.attempts >= 3 && summary.totalWins === 0) {
@@ -2597,6 +4122,7 @@
   }
 
   function hideResult() {
+    stopResultMusic();
     overlayEl.hidden = true;
   }
 
@@ -2702,13 +4228,13 @@
     g.fillStyle = "#e6edf7";
     g.font = "800 36px " + FONT;
     g.fillText(
-      level === LEVELS.length ? "신의 계산을 넘어설 수 있는가?" : "이 기록을 깰 수 있나요?",
+      level === LEVELS.length ? "신들의 전쟁을 끝낼 수 있는가?" : "이 기록을 깰 수 있나요?",
       W / 2, 668
     );
 
     g.fillStyle = "#5b6b85";
     g.font = "500 22px " + FONT;
-    g.fillText(LEVELS.length + "명의 AI를 꺾고 오목신에 도전하라", W / 2, 716);
+    g.fillText(LEVELS.length + "명의 AI를 꺾고 " + LEVELS[LEVELS.length - 1].name + "에 도전하라", W / 2, 716);
 
     return cv;
   }
@@ -2743,7 +4269,7 @@
     if (summary && summary.totalWins > 1) {
       lines.push("내 " + level + "단계 기록 중 " + summary.rank + "위 / " + summary.totalWins + "승");
     }
-    lines.push(level === LEVELS.length ? "신의 계산을 넘어설 수 있는가?" : "이 기록을 깰 수 있나요?");
+    lines.push(level === LEVELS.length ? "신들의 전쟁을 끝낼 수 있는가?" : "이 기록을 깰 수 있나요?");
     return lines.join("\n");
   }
 
@@ -2850,6 +4376,8 @@
       ["인간계 정복자", LEVELS.slice(0, 10).every((_, i) => getStats(i + 1).wins.length), "인간계 10명 격파"],
       ["신계 입문자", getStats(11).wins.length > 0, "문지기 격파"],
       ["신을 넘어선 자", getStats(15).wins.length > 0, "오목신 격파"],
+      ["신계 정복자", getStats(20).wins.length > 0, "천원신 격파"],
+      ["전쟁을 끝낸 자", getStats(30).wins.length > 0, "절대신 격파"],
       ["순수 실력", noItemClears >= 10, "무아이템 10단계 클리어"],
       ["불패의 수읽기", (store.bestStreak || 0) >= 5, "최고 5연승 달성"],
     ];
@@ -2863,20 +4391,67 @@
   }
 
   function updateStatus() {
+    boardEl.classList.toggle("player-turn", currentTurn === BLACK && !gameOver && !aiThinking);
     if (currentTurn === BLACK) {
-      turnInfoEl.textContent = "당신(⚫) 차례입니다";
+      turnInfoEl.textContent = "당신(" + stoneSymbolForPlayer(BLACK, currentLevel) + ") 차례입니다";
       turnInfoEl.className = "turn-info";
     } else {
-      turnInfoEl.textContent = LEVELS[currentLevel - 1].name + "(⚪)이(가) 생각 중입니다...";
+      turnInfoEl.textContent = LEVELS[currentLevel - 1].name + "(" + stoneSymbolForPlayer(WHITE, currentLevel) + ")이(가) 생각 중입니다...";
       turnInfoEl.className = "turn-info thinking";
     }
   }
 
-  function onBoardClick(e) {
-    const cellEl = e.target.closest(".cell");
-    if (!cellEl) return;
-    const r = Number(cellEl.dataset.r);
-    const c = Number(cellEl.dataset.c);
+  function cancelPendingAiTurn() {
+    aiTurnToken++;
+    if (aiTimer !== null) clearTimeout(aiTimer);
+    aiTimer = null;
+    cancelAiWorkerCalculation();
+  }
+
+  function aiThinkTargetMs(level, moves, reason) {
+    if (window.__OMOK_TEST_FAST__ === true) return 20;
+    let base;
+    if (level <= 5) base = 480 + level * 35;
+    else if (level <= 10) base = 650 + (level - 5) * 42;
+    else if (level <= 15) base = 850 + (level - 10) * 48;
+    else if (level <= 20) base = 1050 + (level - 15) * 50;
+    else if (level <= 25) base = 1250 + (level - 20) * 58;
+    else base = 1500 + (level - 25) * 62;
+
+    const boardBonus = moves >= 26 ? 360 : moves >= 14 ? 190 : 0;
+    const tacticalBonus = reason === "forcing" || reason === "block-forcing" ? 430 :
+      reason === "fork" || reason === "block-fork" ? 260 : reason === "safe" ? 300 : 0;
+    const variation = (level * 37 + moves * 29) % 141;
+    let target = base + boardBonus + tacticalBonus + variation;
+    if (reason === "win" || reason === "block") target = Math.min(target, 760);
+    return Math.min(2700, Math.max(500, target));
+  }
+
+  function setAiThinkingMessage(reason, settled) {
+    const boss = LEVELS[currentLevel - 1];
+    let text;
+    if (!settled) {
+      text = boss.war ? "연속 강제 수순을 계산 중입니다" :
+        boss.divine ? "전술 후보를 검토 중입니다" : "다음 수를 읽는 중입니다";
+    } else {
+      const messages = {
+        win: "승부를 끝낼 수를 확정하는 중입니다",
+        block: "당신의 위협을 막을 자리를 확정하는 중입니다",
+        fork: "두 방향의 위협을 확정하는 중입니다",
+        "block-fork": "이중 위협을 차단할 자리를 확정하는 중입니다",
+        forcing: "강제 수순의 시작점을 확정하는 중입니다",
+        "block-forcing": "강제 수순을 끊을 자리를 확정하는 중입니다",
+        opening: "포석의 방향을 정하는 중입니다",
+        safe: "반격을 허용하지 않는 수를 확정하는 중입니다",
+        search: "후보 비교를 마치고 결정을 내리는 중입니다",
+      };
+      text = messages[reason] || messages.search;
+    }
+    turnInfoEl.textContent = boss.name + "(" + stoneSymbolForPlayer(WHITE, currentLevel) + ") · " + text;
+    turnInfoEl.className = "turn-info thinking";
+  }
+
+  function playHumanMove(r, c) {
     if (gameOver || aiThinking || currentTurn !== BLACK || board[r][c] !== EMPTY) return;
 
     clearSuggestions();
@@ -2888,26 +4463,168 @@
     currentTurn = WHITE;
     aiThinking = true;
     updateStatus();
+    setAiThinkingMessage("search", false);
+    delete turnInfoEl.dataset.engine;
     updateItemButtons();
 
-    setTimeout(() => {
-      const move = chooseAiMove(currentLevel);
-      aiThinking = false;
-      if (!move) { endGame(null, null); return; }
-      const [r2, c2] = move;
-      placeStone(r2, c2, WHITE);
-      const win2 = findWinningLine(board, r2, c2, WHITE);
-      if (win2) { endGame(win2, WHITE); return; }
-      if (isBoardFull()) { endGame(null, null); return; }
-      currentTurn = BLACK;
-      updateStatus();
-      updateItemButtons();
-    }, 300);
+    const token = ++aiTurnToken;
+    const thinkingStartedAt = performance.now();
+    const initialPause = window.__OMOK_TEST_FAST__ === true ? 0 : 120;
+    aiTimer = setTimeout(() => {
+      if (token !== aiTurnToken || gameOver || currentTurn !== WHITE) return;
+      aiTimer = null;
+      calculateAiMove(currentLevel).then((decision) => {
+        if (token !== aiTurnToken || gameOver || currentTurn !== WHITE) return;
+        if (!decision || !decision.move) { aiThinking = false; endGame(null, null); return; }
+        lastAiDecisionReason = decision.reason;
+        turnInfoEl.dataset.engine = decision.engine;
+        setAiThinkingMessage(lastAiDecisionReason, true);
+        const target = aiThinkTargetMs(currentLevel, moveCount, lastAiDecisionReason);
+        const remaining = Math.max(0, target - (performance.now() - thinkingStartedAt));
+        aiTimer = setTimeout(() => {
+          if (token !== aiTurnToken || gameOver || currentTurn !== WHITE) return;
+          aiTimer = null;
+          aiThinking = false;
+          const [r2, c2] = decision.move;
+          placeStone(r2, c2, WHITE);
+          const win2 = findWinningLine(board, r2, c2, WHITE);
+          if (win2) { endGame(win2, WHITE); return; }
+          if (isBoardFull()) { endGame(null, null); return; }
+          currentTurn = BLACK;
+          updateStatus();
+          updateItemButtons();
+        }, remaining);
+      });
+    }, initialPause);
+  }
+
+  function onBoardClick(e) {
+    if (performance.now() < suppressBoardClickUntil) return;
+    const cellEl = e.target.closest(".cell");
+    if (!cellEl) return;
+    playHumanMove(Number(cellEl.dataset.r), Number(cellEl.dataset.c));
+  }
+
+  function fittedBoardCellSize() {
+    const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    return Math.min(32, Math.max(20, (viewportWidth - 22) / 15));
+  }
+
+  function applyBoardZoom() {
+    boardEl.style.setProperty("--cell", (fittedBoardCellSize() * boardZoom).toFixed(2) + "px");
+    zoomResetBtn.textContent = Math.round(boardZoom * 100) + "%";
+    zoomOutBtn.disabled = boardZoom <= BOARD_ZOOM_MIN + 0.001;
+    zoomInBtn.disabled = boardZoom >= BOARD_ZOOM_MAX - 0.001;
+  }
+
+  function setBoardZoom(nextZoom, focusX, focusY) {
+    const next = Math.min(BOARD_ZOOM_MAX, Math.max(BOARD_ZOOM_MIN, nextZoom));
+    if (Math.abs(next - boardZoom) < 0.001) return;
+
+    const oldZoom = boardZoom;
+    const x = Number.isFinite(focusX) ? focusX : boardShellEl.clientWidth / 2;
+    const y = Number.isFinite(focusY) ? focusY : boardShellEl.clientHeight / 2;
+    const oldLeft = boardShellEl.scrollLeft;
+    const oldTop = boardShellEl.scrollTop;
+    const ratio = next / oldZoom;
+
+    boardZoom = next;
+    applyBoardZoom();
+
+    requestAnimationFrame(() => {
+      boardShellEl.scrollLeft = Math.max(0, (oldLeft + x) * ratio - x);
+      boardShellEl.scrollTop = Math.max(0, (oldTop + y) * ratio - y);
+    });
+  }
+
+  function resetBoardZoom() {
+    boardZoom = 1;
+    applyBoardZoom();
+    boardShellEl.scrollLeft = 0;
+    boardShellEl.scrollTop = 0;
+  }
+
+  function touchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  function boardTargetAt(clientX, clientY) {
+    const rect = boardEl.getBoundingClientRect();
+    if (clientX < rect.left || clientX >= rect.right || clientY < rect.top || clientY >= rect.bottom) return null;
+    return {
+      r: Math.min(14, Math.max(0, Math.floor((clientY - rect.top) / (rect.height / 15)))),
+      c: Math.min(14, Math.max(0, Math.floor((clientX - rect.left) / (rect.width / 15)))),
+    };
+  }
+
+  function renderMagnifier(target) {
+    magnifierGridEl.innerHTML = "";
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
+        const r = target.r + dr;
+        const c = target.c + dc;
+        const miniCell = document.createElement("div");
+        miniCell.className = "magnifier-cell" + (dr === 0 && dc === 0 ? " aim" : "");
+        if (r < 0 || r >= 15 || c < 0 || c >= 15) {
+          miniCell.classList.add("outside");
+        } else if (board[r][c] !== EMPTY) {
+          miniCell.classList.add("occupied");
+          const stone = document.createElement("span");
+          stone.className = "magnifier-stone " + stoneClassForPlayer(board[r][c], currentLevel);
+          miniCell.appendChild(stone);
+        }
+        magnifierGridEl.appendChild(miniCell);
+      }
+    }
+    boardMagnifierEl.classList.toggle("invalid", board[target.r][target.c] !== EMPTY);
+  }
+
+  function positionMagnifier(touch) {
+    const size = 154;
+    const gap = 42;
+    const left = Math.min(window.innerWidth - size - 8, Math.max(8, touch.clientX - size / 2));
+    let top = touch.clientY - size - gap;
+    if (top < 8) top = Math.min(window.innerHeight - size - 8, touch.clientY + gap);
+    boardMagnifierEl.style.left = left + "px";
+    boardMagnifierEl.style.top = top + "px";
+  }
+
+  function showMagnifier(touch, target) {
+    magnifierActive = true;
+    magnifierTarget = target;
+    renderMagnifier(target);
+    positionMagnifier(touch);
+    boardMagnifierEl.hidden = false;
+    requestAnimationFrame(() => boardMagnifierEl.classList.add("visible"));
+    suppressBoardClickUntil = performance.now() + 600;
+    vibrate(12);
+  }
+
+  function clearMagnifierTimer() {
+    if (magnifierTimer !== null) clearTimeout(magnifierTimer);
+    magnifierTimer = null;
+  }
+
+  function hideMagnifier() {
+    clearMagnifierTimer();
+    magnifierActive = false;
+    magnifierTarget = null;
+    magnifierStartPoint = null;
+    boardMagnifierEl.classList.remove("visible");
+    boardMagnifierEl.hidden = true;
   }
 
   function newGame() {
+    cancelPendingAiTurn();
+    hideMagnifier();
+    stopResultMusic();
+    if (finalImpactTimer !== null) clearTimeout(finalImpactTimer);
+    finalImpactTimer = null;
     buildBoard();
     renderBoard();
+    resetBoardZoom();
     currentTurn = BLACK;
     gameOver = false;
     aiThinking = false;
@@ -2923,10 +4640,20 @@
     itemNoteEl.textContent = "각 아이템은 판마다 1회 무료입니다.";
     liveMovesEl.textContent = "0";
     liveTimeEl.textContent = "0초";
-    boardShellEl.classList.remove("shake");
+    boardShellEl.classList.remove("shake", "finish-impact", "finish-win", "finish-lose", "finish-draw");
     statusEl.textContent = "";
     statusEl.className = "status";
     turnInfoEl.style.visibility = "visible";
+    const boss = LEVELS[currentLevel - 1];
+    if (boss.initiative) {
+      placeStone(7, 7, WHITE, true);
+      itemNoteEl.textContent = subjectParticle(boss.name) + " 흑돌로 선공해 천원을 차지했습니다.";
+      ruleNoteEl.textContent = "보스 흑 선공 · 당신 백 후공 · 자유룰 · 장목 승리 · 3-3/4-4 금수 없음";
+      gameHintEl.textContent = "당신은 백돌로 후공입니다. 보스의 천원 선공을 끊으면서 반격의 두 축을 만드세요.";
+    } else {
+      ruleNoteEl.textContent = "당신 흑 선공 · 자유룰 · 장목 승리 · 3-3/4-4 금수 없음";
+      gameHintEl.textContent = "당신은 흑돌로 선공입니다. 가로·세로·대각선 중 어느 방향이든 5개를 먼저 이으면 승리합니다.";
+    }
     startTimer();
     updateStatus();
     updateItemButtons();
@@ -2943,22 +4670,64 @@
     renderBossBanner(level);
     selectView.classList.remove("active");
     battleView.classList.add("active");
+    document.body.classList.toggle("battle-active", accountState.native);
     newGame();
     scrollTop();
   }
 
   function backToSelect() {
+    cancelPendingAiTurn();
+    aiThinking = false;
     stopTimer();
-    selectedRealm = currentLevel > 10 ? "divine" : "human";
+    stopResultMusic();
+    hideMagnifier();
+    selectedRealm = LEVELS[currentLevel - 1].realm;
     renderBossGrid();
     battleView.classList.remove("active");
     selectView.classList.add("active");
+    document.body.classList.remove("battle-active");
     scrollTop();
   }
+
+  function hasHumanMove() {
+    return history.some((move) => move.player === BLACK);
+  }
+
+  function requestRestart() {
+    if (!gameOver && hasHumanMove() && !window.confirm("현재 대국을 포기하고 처음부터 다시 시작할까요?")) return false;
+    hideResult();
+    newGame();
+    return true;
+  }
+
+  function requestBackToSelect() {
+    if (!gameOver && hasHumanMove() && !window.confirm("현재 대국을 포기하고 상대 선택으로 돌아갈까요?")) return false;
+    hideResult();
+    backToSelect();
+    return true;
+  }
+
+  // Android 하드웨어/제스처 뒤로가기는 웹 화면의 상태를 먼저 정리한다.
+  window.handleOmokAndroidBack = function () {
+    if (!settingsOverlayEl.hidden) {
+      settingsOverlayEl.hidden = true;
+      return true;
+    }
+    if (!overlayEl.hidden) {
+      hideResult();
+      return true;
+    }
+    if (battleView.classList.contains("active")) {
+      requestBackToSelect();
+      return true;
+    }
+    return false;
+  };
 
   const TABS = { game: "gameTab", records: "recordsTab", guide: "guideTab" };
 
   function switchTab(tabName) {
+    if (tabName !== "game") document.body.classList.remove("battle-active");
     document.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.tab === tabName);
     });
@@ -2981,15 +4750,100 @@
   goToGameBtn.addEventListener("click", () => switchTab("game"));
 
   boardEl.addEventListener("click", onBoardClick);
-  resetBtn.addEventListener("click", () => { hideResult(); newGame(); });
-  backBtn.addEventListener("click", () => { hideResult(); backToSelect(); });
+  document.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
+  boardEl.addEventListener("contextmenu", (e) => e.preventDefault());
+  boardEl.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || gameOver || aiThinking || currentTurn !== BLACK) {
+      hideMagnifier();
+      return;
+    }
+    const touch = e.touches[0];
+    const target = boardTargetAt(touch.clientX, touch.clientY);
+    if (!target) return;
+    clearMagnifierTimer();
+    magnifierStartPoint = { x: touch.clientX, y: touch.clientY };
+    magnifierTarget = target;
+    magnifierTimer = setTimeout(() => showMagnifier(touch, target), 180);
+  }, { passive: true });
+  boardEl.addEventListener("touchmove", (e) => {
+    if (e.touches.length !== 1) {
+      hideMagnifier();
+      return;
+    }
+    const touch = e.touches[0];
+    if (!magnifierActive) {
+      if (magnifierStartPoint && Math.hypot(touch.clientX - magnifierStartPoint.x, touch.clientY - magnifierStartPoint.y) > 8) {
+        clearMagnifierTimer();
+        magnifierStartPoint = null;
+      }
+      return;
+    }
+    e.preventDefault();
+    const target = boardTargetAt(touch.clientX, touch.clientY);
+    if (!target) return;
+    magnifierTarget = target;
+    renderMagnifier(target);
+    positionMagnifier(touch);
+  }, { passive: false });
+  boardEl.addEventListener("touchend", (e) => {
+    clearMagnifierTimer();
+    if (!magnifierActive || !magnifierTarget) {
+      magnifierStartPoint = null;
+      return;
+    }
+    e.preventDefault();
+    const target = magnifierTarget;
+    suppressBoardClickUntil = performance.now() + 350;
+    hideMagnifier();
+    playHumanMove(target.r, target.c);
+  }, { passive: false });
+  boardEl.addEventListener("touchcancel", hideMagnifier, { passive: true });
+  zoomOutBtn.addEventListener("click", () => setBoardZoom(boardZoom - BOARD_ZOOM_STEP));
+  zoomResetBtn.addEventListener("click", resetBoardZoom);
+  zoomInBtn.addEventListener("click", () => setBoardZoom(boardZoom + BOARD_ZOOM_STEP));
+  boardShellEl.addEventListener("wheel", (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const rect = boardShellEl.getBoundingClientRect();
+    setBoardZoom(boardZoom + (e.deltaY < 0 ? 0.1 : -0.1), e.clientX - rect.left, e.clientY - rect.top);
+  }, { passive: false });
+  boardShellEl.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 2) return;
+    hideMagnifier();
+    pinchStartDistance = touchDistance(e.touches);
+    pinchStartZoom = boardZoom;
+  }, { passive: true });
+  boardShellEl.addEventListener("touchmove", (e) => {
+    if (e.touches.length !== 2 || !pinchStartDistance) return;
+    e.preventDefault();
+    const rect = boardShellEl.getBoundingClientRect();
+    const focusX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+    const focusY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+    setBoardZoom(pinchStartZoom * touchDistance(e.touches) / pinchStartDistance, focusX, focusY);
+  }, { passive: false });
+  boardShellEl.addEventListener("touchend", (e) => {
+    if (e.touches.length < 2) pinchStartDistance = 0;
+  }, { passive: true });
+  window.addEventListener("resize", applyBoardZoom);
+  resetBtn.addEventListener("click", requestRestart);
+  backBtn.addEventListener("click", requestBackToSelect);
   hintBtn.addEventListener("click", useHint);
   undoBtn.addEventListener("click", useUndo);
   dangerBtn.addEventListener("click", useDanger);
   futureBtn.addEventListener("click", useFuture);
   settingsBtn.addEventListener("click", () => { syncSettingsUI(); settingsOverlayEl.hidden = false; });
   settingsCloseBtn.addEventListener("click", () => { settingsOverlayEl.hidden = true; settingsBtn.focus(); });
-  soundSettingEl.addEventListener("change", () => { settings.sound = soundSettingEl.checked; saveSettings(); if (settings.sound) playEffect("item"); });
+  privacyOptionsBtn.addEventListener("click", () => {
+    if (window.OmokAds && typeof window.OmokAds.showPrivacyOptions === "function") {
+      window.OmokAds.showPrivacyOptions();
+    }
+  });
+  soundSettingEl.addEventListener("change", () => {
+    settings.sound = soundSettingEl.checked;
+    saveSettings();
+    if (settings.sound) playEffect("item");
+    else stopResultMusic();
+  });
   vibrationSettingEl.addEventListener("change", () => { settings.vibration = vibrationSettingEl.checked; saveSettings(); if (settings.vibration) vibrate(25); });
   motionSettingEl.addEventListener("change", () => { settings.motion = motionSettingEl.checked; saveSettings(); });
   settingsOverlayEl.addEventListener("click", (e) => { if (e.target === settingsOverlayEl) settingsOverlayEl.hidden = true; });
@@ -3032,6 +4886,10 @@
     if (e.key === "Escape" && !overlayEl.hidden) hideResult();
     if (e.key === "Escape" && !settingsOverlayEl.hidden) settingsOverlayEl.hidden = true;
   });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) window.pauseOmokGame();
+    else window.resumeOmokGame();
+  });
 
   syncSettingsUI();
   renderAccountUI();
@@ -3042,6 +4900,7 @@
   renderGuideLevels();
   renderRecords();
   updateScoreDisplay();
+  applyBoardZoom();
   updateItemButtons();
   requestAnimationFrame(() => appLoaderEl.classList.add("hidden"));
 })();

@@ -39,3 +39,22 @@ assert.strictEqual(merged.bestStreak, 6, "best streak must use the maximum");
 assert.strictEqual(merged.title, "신계 입문자", "newer profile choice must win");
 
 console.log("Omok cloud merge checks passed (unlock, dedupe, attempts, streak, title)");
+
+const nativeDom = new JSDOM(html, {
+  runScripts: "dangerously",
+  pretendToBeVisual: true,
+  url: "file:///android_asset/web/omok.html",
+  beforeParse(window) {
+    window.__OMOK_TEST_FAST__ = true;
+    window.scrollTo = () => {};
+    window.OmokAccount = { getStatus() {} };
+  },
+});
+const nativeDoc = nativeDom.window.document;
+assert.ok(nativeDoc.body.classList.contains("native-app"), "native bridge must enable the Android-only layout");
+nativeDoc.querySelector(".boss-card").click();
+assert.ok(nativeDoc.body.classList.contains("battle-active"), "battle must switch to the compact board-first layout");
+nativeDoc.getElementById("backBtn").click();
+assert.ok(!nativeDoc.body.classList.contains("battle-active"), "leaving battle must restore native navigation");
+
+console.log("Omok Android layout checks passed (native shell, compact battle mode)");

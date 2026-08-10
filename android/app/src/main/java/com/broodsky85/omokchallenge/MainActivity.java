@@ -4,12 +4,17 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.CancellationSignal;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 
 import androidx.credentials.Credential;
 import androidx.credentials.CredentialManager;
@@ -26,6 +31,9 @@ import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.google.android.ump.ConsentInformation;
+import com.google.android.ump.ConsentRequestParameters;
+import com.google.android.ump.UserMessagingPlatform;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.firebase.auth.AuthCredential;
@@ -48,14 +56,15 @@ import java.util.Set;
 
 public class MainActivity extends Activity {
     private static final String GAME_URL = "file:///android_asset/web/omok.html";
-    private static final String LOCAL_ASSET_PREFIX = "file:///android_asset/web/";
     private static final String REWARDED_AD_UNIT_ID = BuildConfig.REWARDED_AD_UNIT_ID;
     private static final Set<String> ITEM_TYPES = new HashSet<>(Arrays.asList("hint", "undo", "danger", "future"));
 
     private WebView webView;
     private RewardedAd rewardedAd;
     private boolean adLoading;
+    private boolean mobileAdsStarted;
     private String pendingRewardType;
+    private ConsentInformation consentInformation;
     private FirebaseAuth firebaseAuth;
     private FirebaseFirestore firestore;
     private CredentialManager credentialManager;
@@ -64,6 +73,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        enterImmersiveMode();
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.game_web_view);
@@ -76,7 +87,7 @@ public class MainActivity extends Activity {
         webView.loadUrl(GAME_URL);
         ensureSignedIn();
 
-        MobileAds.initialize(this, status -> runOnUiThread(this::loadRewardedAd));
+        requestUserConsent();
     }
 
     private void configureWebView() {
@@ -88,13 +99,26 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
+        settings.setTextZoom(100);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(false);
+        settings.setSupportZoom(false);
+        settings.setBuiltInZoomControls(false);
+        settings.setDisplayZoomControls(false);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
+        webView.setVerticalScrollBarEnabled(false);
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (uri.toString().startsWith(LOCAL_ASSET_PREFIX)) return false;
+                if (uri.toString().startsWith(GAME_URL)) return false;
+                if ("file".equals(uri.getScheme())) {
+                    view.loadUrl(GAME_URL);
+                    return true;
+                }
                 if ("https".equals(uri.getScheme())) {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 }
@@ -104,10 +128,90 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                if (!url.startsWith(GAME_URL)) {
+                    view.loadUrl(GAME_URL);
+                    return;
+                }
                 notifyAccountStatus();
+                notifyPrivacyOptionsAvailability();
                 syncRecords();
             }
         });
+    }
+
+    private void requestUserConsent() {
+        consentInformation = UserMessagingPlatform.getConsentInformation(this);
+        ConsentRequestParameters parameters = new ConsentRequestParameters.Builder().build();
+        consentInformation.requestConsentInfoUpdate(
+                this,
+                parameters,
+                () -> {
+                    UserMessagingPlatform.loadAndShowConsentFormIfRequired(this, formError -> {
+                        notifyPrivacyOptionsAvailability();
+                        initializeMobileAdsIfAllowed();
+                    });
+                    notifyPrivacyOptionsAvailability();
+                    initializeMobileAdsIfAllowed();
+                },
+                requestError -> {
+                    notifyPrivacyOptionsAvailability();
+                    initializeMobileAdsIfAllowed();
+                }
+        );
+        // 이전 실행에서 이미 동의가 완료된 사용자는 폼 응답을 기다리지 않고 광고를 준비한다.
+        initializeMobileAdsIfAllowed();
+    }
+
+    private synchronized void initializeMobileAdsIfAllowed() {
+        if (mobileAdsStarted || consentInformation == null || !consentInformation.canRequestAds()) return;
+        mobileAdsStarted = true;
+        MobileAds.initialize(this, status -> runOnUiThread(this::loadRewardedAd));
+    }
+
+    private boolean privacyOptionsRequired() {
+        return consentInformation != null
+                && consentInformation.getPrivacyOptionsRequirementStatus()
+                == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED;
+    }
+
+    private void notifyPrivacyOptionsAvailability() {
+        if (webView == null) return;
+        String script = "window.setOmokPrivacyOptionsAvailable && window.setOmokPrivacyOptionsAvailable("
+                + privacyOptionsRequired() + ");";
+        webView.evaluateJavascript(script, null);
+    }
+
+    private void showPrivacyOptions() {
+        if (!privacyOptionsRequired()) {
+            sendAdMessage("현재 지역에서는 별도의 광고 개인정보 설정이 필요하지 않습니다.");
+            notifyPrivacyOptionsAvailability();
+            return;
+        }
+        UserMessagingPlatform.showPrivacyOptionsForm(this, formError -> {
+            notifyPrivacyOptionsAvailability();
+            initializeMobileAdsIfAllowed();
+        });
+    }
+
+    private void enterImmersiveMode() {
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                );
+            }
+        }
     }
 
     private void loadRewardedAd() {
@@ -134,6 +238,10 @@ public class MainActivity extends Activity {
 
     private void requestRewardedAd(String type) {
         if (!ITEM_TYPES.contains(type)) return;
+        if (consentInformation == null || !consentInformation.canRequestAds()) {
+            sendAdMessage("광고 개인정보 확인이 끝난 뒤 보상형 광고를 이용할 수 있습니다.");
+            return;
+        }
         pendingRewardType = type;
         if (rewardedAd == null) {
             sendAdMessage("보상형 광고를 준비하고 있습니다…");
@@ -377,6 +485,11 @@ public class MainActivity extends Activity {
         public void showRewarded(String type) {
             runOnUiThread(() -> requestRewardedAd(type));
         }
+
+        @JavascriptInterface
+        public void showPrivacyOptions() {
+            runOnUiThread(MainActivity.this::showPrivacyOptions);
+        }
     }
 
     public class AccountBridge {
@@ -416,12 +529,27 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
+        if (webView.getUrl() == null || !webView.getUrl().startsWith(GAME_URL)) {
+            webView.loadUrl(GAME_URL);
+            return;
+        }
+        webView.evaluateJavascript(
+                "window.handleOmokAndroidBack ? window.handleOmokAndroidBack() : false",
+                result -> {
+                    if (!"true".equals(result)) MainActivity.super.onBackPressed();
+                }
+        );
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) enterImmersiveMode();
     }
 
     @Override
     protected void onPause() {
+        if (webView != null) webView.evaluateJavascript("window.pauseOmokGame && window.pauseOmokGame();", null);
         webView.onPause();
         super.onPause();
     }
@@ -429,7 +557,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        enterImmersiveMode();
         webView.onResume();
+        webView.evaluateJavascript("window.resumeOmokGame && window.resumeOmokGame();", null);
     }
 
     @Override

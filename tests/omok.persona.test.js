@@ -27,12 +27,21 @@ const prelude = `
   const SIZE = 15, EMPTY = 0, BLACK = 1, WHITE = 2;
   const DIRS = [[0,1],[1,0],[1,1],[1,-1]];
   const WIN_SCORE = 1e12;
-  let board = [], cellEls = [], history = [];
+  let board = [], cellEls = [], history = [], lastAiDecisionReason = "search";
   const boardEl = { innerHTML: "", appendChild() {} };
   const document = { createElement: () => ({ classList: { add() {} }, dataset: {}, appendChild() {} }) };
 `;
 const api = new Function("LEVELS",
-  prelude + core + "; return { chooseAiMove, setBoard: (b) => { board = b; } };"
+  prelude + core + `; return {
+    chooseAiMove,
+    orderedCandidates,
+    findWinningLine,
+    findForcingMove,
+    findForcingSequenceMove,
+    setPersona,
+    setBoard: (b) => { board = b; },
+    setHistory: (h) => { history = h; }
+  };`
 )(LEVELS);
 
 const empty = () => Array.from({ length: 15 }, () => new Array(15).fill(0));
@@ -73,6 +82,19 @@ const t = [];
 const check = (name, cond, detail) =>
   t.push((cond ? "OK  " : "X   ") + name + (detail ? " → " + detail : ""));
 const g = (rows, n) => rows.find((r) => r.lv.name === n).tally;
+
+const copyIssues = [];
+LEVELS.forEach((lv, i) => {
+  for (const field of ["tag", "tagline", "desc", "tip"]) {
+    if (typeof lv[field] !== "string" || !lv[field].trim()) copyIssues.push(`${i + 1}단계:${field}`);
+  }
+  if (lv.desc === lv.tagline || (typeof lv.desc === "string" && lv.desc.trim().length < 40)) {
+    copyIssues.push(`${i + 1}단계:공략집 전용 desc`);
+  }
+});
+check("30단계 성향·소개·분석·공략 데이터가 모두 정의됨",
+  LEVELS.length === 30 && copyIssues.length === 0,
+  copyIssues.join(", "));
 
 /* ---------- 가: 조용한 판. 급한 위협이 없으니 성격이 드러난다 ---------- */
 const 흑돌 = [[7, 7], [7, 8]];
@@ -146,11 +168,32 @@ check("새싹은 이중 위협을 잘 못 본다", (새싹다.이중위협 || 0)
   `새싹 ${새싹다.이중위협 || 0} vs 함정술사 ${함정다.이중위협 || 0}`);
 
 /* ---------- 라: 신계는 완성 직전의 양수를 반드시 만들고 막는다 ---------- */
-const divineNames = ["문지기", "천리안", "파괴신", "운명신", "오목신"];
-check("신계 보스 5명이 모두 정의됨",
+const divineNames = ["문지기", "천리안", "파괴신", "운명신", "오목신", "선수신", "변화신", "봉쇄신", "인과신", "천원신"];
+check("신계 보스 10명이 모두 정의됨",
   divineNames.every((name, i) => LEVELS[10 + i] && LEVELS[10 + i].name === name));
+const warNames = ["전쟁의 전령", "창조신", "거울신", "시간신", "전쟁신", "공허신", "질서신", "혼돈신", "종말신", "절대신"];
+check("신들의 전쟁 보스 10명이 모두 정의됨",
+  warNames.every((name, i) => LEVELS[20 + i] && LEVELS[20 + i].name === name));
+check("신들의 전쟁은 무작위 실수 없이 연속 강제 수순을 읽음",
+  LEVELS.slice(20).every((lv) => lv.randomChance === 0 && lv.war &&
+    lv.war.attackDepth >= 3 && lv.war.defenseDepth >= 3 && lv.war.safeCandidates >= 4));
+const warLevels = LEVELS.slice(20);
+const neverDrops = (pick) => warLevels.every((lv, i) => i === 0 || pick(lv) >= pick(warLevels[i - 1]));
+check("21~30단계 난이도 손잡이가 뒤 단계에서 약해지지 않음",
+  neverDrops((lv) => lv.depth) && neverDrops((lv) => lv.divine.tacticalCand) &&
+  neverDrops((lv) => lv.war.attackDepth) && neverDrops((lv) => lv.war.defenseDepth) &&
+  neverDrops((lv) => lv.war.safeCandidates) && neverDrops((lv) => lv.war.thinkMs));
+check("21단계는 20단계보다 재귀 연쇄·안전 후보 검사가 추가됨",
+  !LEVELS[19].war && LEVELS[20].war.attackDepth === 3 &&
+  LEVELS[20].war.defenseDepth === 3 && LEVELS[20].war.safeCandidates === 4);
+check("30단계 절대신이 전쟁 영역의 모든 탐색 상한을 사용함",
+  LEVELS[29].depth === Math.max(...warLevels.map((lv) => lv.depth)) &&
+  LEVELS[29].divine.tacticalCand === Math.max(...warLevels.map((lv) => lv.divine.tacticalCand)) &&
+  LEVELS[29].war.attackDepth === Math.max(...warLevels.map((lv) => lv.war.attackDepth)) &&
+  LEVELS[29].war.defenseDepth === Math.max(...warLevels.map((lv) => lv.war.defenseDepth)) &&
+  LEVELS[29].war.safeCandidates === Math.max(...warLevels.map((lv) => lv.war.safeCandidates)));
 
-for (let L = 11; L <= 15; L++) {
+for (let L = 11; L <= 30; L++) {
   const attack = empty();
   [[7, 4], [7, 5], [7, 6], [4, 7], [5, 7], [6, 7]].forEach(([r, c]) => (attack[r][c] = 2));
   attack[0][0] = 1; attack[0][1] = 1;
@@ -170,8 +213,8 @@ for (let L = 11; L <= 15; L++) {
     defenseMove ? defenseMove.join(",") : "착수 없음");
 }
 
-/* ---------- 마: 신계 일반 탐색 응답시간 ---------- */
-for (let L = 11; L <= 15; L++) {
+/* ---------- 마: 신계와 신들의 전쟁 일반 탐색 응답시간 ---------- */
+for (let L = 11; L <= 30; L++) {
   const bd = empty();
   [[7, 7], [6, 6], [8, 8], [6, 8]].forEach(([r, c], i) => (bd[r][c] = i % 2 ? 2 : 1));
   api.setBoard(bd);
@@ -180,6 +223,79 @@ for (let L = 11; L <= 15; L++) {
   const elapsed = Date.now() - started;
   check(`${LEVELS[L - 1].name} 일반 탐색은 3초 안에 응답한다`, !!move && elapsed < 3000, `${elapsed}ms`);
 }
+
+/* ---------- 바: 한 번짜리 검사로 안 보이는 3단계 강제 연쇄 ---------- */
+const chainBoard = empty();
+[
+  [7, 4], [7, 5], [4, 7], [5, 7],
+  [8, 6], [9, 6], [10, 6], [8, 5], [9, 4],
+].forEach(([r, c]) => (chainBoard[r][c] = 2));
+[[11, 6], [10, 3], [7, 3], [3, 7], [6, 3], [11, 8], [4, 8], [0, 0]]
+  .forEach(([r, c]) => (chainBoard[r][c] = 1));
+api.setPersona(LEVELS[20].persona);
+const shallowChain = api.findForcingMove(chainBoard, 2, 28);
+const deepChain = api.findForcingSequenceMove(chainBoard, 2, 28, 3);
+check("21단계부터 얕은 검사에 안 보이는 3단계 강제 연쇄를 찾는다",
+  !shallowChain && !!deepChain,
+  `얕은 수 ${shallowChain ? shallowChain.join(",") : "없음"} · 깊은 수 ${deepChain ? deepChain.join(",") : "없음"}`);
+
+/* ---------- 사: 구석 첫수로 AI 후보를 구석에 가둘 수 없어야 한다 ---------- */
+for (let L = 11; L <= 15; L++) {
+  const bd = empty();
+  bd[0][0] = 1;
+  api.setBoard(bd);
+  api.setHistory([{ r: 0, c: 0, player: 1 }]);
+  const move = api.chooseAiMove(L);
+  const escapedCorner = move && move[0] >= 3 && move[0] <= 11 && move[1] >= 3 && move[1] <= 11;
+  check(`${LEVELS[L - 1].name}은(는) 구석 첫수에 갇히지 않고 중앙권을 고른다`,
+    escapedCorner, move ? move.join(",") : "착수 없음");
+}
+
+/* ---------- 아: 실제 한 판 반복 공략에서 최종 보스가 무너지지 않는다 ---------- */
+function playHeuristicMatch(level, policy, maxTurns) {
+  const bd = empty();
+  const moves = [];
+  const cfg = LEVELS[level - 1];
+  if (cfg.initiative) {
+    bd[7][7] = 2;
+    moves.push({ r: 7, c: 7, player: 2 });
+  }
+
+  for (let turn = 0; turn < maxTurns; turn++) {
+    api.setBoard(bd);
+    api.setHistory(moves);
+    api.setPersona(policy);
+    const blackMove = !cfg.initiative && turn === 0
+      ? [0, 0]
+      : api.orderedCandidates(bd, 1, 16)[0];
+    if (!blackMove) return { winner: 0, plies: moves.length };
+    bd[blackMove[0]][blackMove[1]] = 1;
+    moves.push({ r: blackMove[0], c: blackMove[1], player: 1 });
+    if (api.findWinningLine(bd, blackMove[0], blackMove[1], 1)) {
+      return { winner: 1, plies: moves.length };
+    }
+
+    api.setBoard(bd);
+    api.setHistory(moves);
+    const whiteMove = api.chooseAiMove(level);
+    if (!whiteMove) return { winner: 0, plies: moves.length };
+    bd[whiteMove[0]][whiteMove[1]] = 2;
+    moves.push({ r: whiteMove[0], c: whiteMove[1], player: 2 });
+    if (api.findWinningLine(bd, whiteMove[0], whiteMove[1], 2)) {
+      return { winner: 2, plies: moves.length };
+    }
+  }
+  return { winner: 0, plies: moves.length };
+}
+
+const cornerPolicy = { defBias: 0.55, forkWeight: 2.2, centerWeight: 0 };
+const patientPolicy = { defBias: 1.5, forkWeight: 1.5, centerWeight: 0 };
+const oldFinalMatch = playHeuristicMatch(15, cornerPolicy, 60);
+check("오목신은 구석 시작 반복 공략 한 판을 끝까지 방어한다",
+  oldFinalMatch.winner !== 1, `승자 ${oldFinalMatch.winner || "없음"} · ${oldFinalMatch.plies}수`);
+const finalMatch = playHeuristicMatch(20, patientPolicy, 24);
+check("천원신은 후공형 반복 공략 한 판을 끝까지 방어한다",
+  finalMatch.winner !== 1, `승자 ${finalMatch.winner || "없음"} · ${finalMatch.plies}수`);
 
 console.log("\n===== 판정 =====");
 t.forEach((s) => console.log("  " + s));
