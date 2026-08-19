@@ -29,8 +29,14 @@ assert.match(activity, /controller\.hide\(WindowInsets\.Type\.statusBars\(\) \| 
 assert.match(activity, /setTextZoom\(100\)/, "Android WebView text scale must stay at the intended mobile size");
 assert.match(activity, /setVerticalScrollBarEnabled\(false\)/, "native WebView scrollbar must not cover the game");
 assert.match(activity, /FLAG_KEEP_SCREEN_ON/, "the screen must stay awake during a match");
-assert.match(activity, /evaluateJavascript\([\s\S]*handleOmokAndroidBack[\s\S]*MainActivity\.super\.onBackPressed/,
+assert.match(activity, /setWebChromeClient\([\s\S]*onJsConfirm[\s\S]*result\.confirm\(\)[\s\S]*result\.cancel\(\)/,
+  "Android must show the confirmation dialogs used by restart and opponent selection");
+assert.match(activity, /extends ComponentActivity[\s\S]*getOnBackPressedDispatcher\(\)\.addCallback[\s\S]*handleSystemBack/,
+  "Android back buttons and predictive back gestures must use the backward-compatible dispatcher");
+assert.match(activity, /evaluateJavascript\([\s\S]*handleOmokAndroidBack[\s\S]*showExitConfirmation/,
   "Android back must give the web game a chance to close overlays or leave a match");
+assert.match(activity, /showExitConfirmation\(\)[\s\S]*게임을 종료할까요\?[\s\S]*finish\(\)/,
+  "Android back on the main screen must ask before exiting");
 assert.match(activity, /onPause\(\)[\s\S]*pauseOmokGame[\s\S]*onResume\(\)[\s\S]*resumeOmokGame/,
   "Android lifecycle must pause and resume the web match timer");
 assert.match(activity, /if \("file"\.equals\(uri\.getScheme\(\)\)\)[\s\S]*view\.loadUrl\(GAME_URL\)/,
@@ -43,6 +49,10 @@ assert.match(html, /body\.native-app\.battle-active #battleView \.board-shell \{
   "the Android battle layout must place the board after the items");
 assert.match(html, /body\.native-app\.battle-active #battleView \.board-zoom \{[\s\S]*order: 6;/,
   "the Android battle layout must place board-size controls directly after the board");
+assert.match(html, /body\.native-app\.battle-active \.battle-wrap \{[^}]*padding-top: max\(44px/,
+  "native battle controls must stay below temporarily visible system bars");
+assert.match(html, /body\.native-app\.battle-active \{[^}]*padding-bottom: max\(44px/,
+  "native battle content must stay above temporarily visible navigation bars");
 assert.match(html, /#board \{[\s\S]*box-sizing: content-box;/,
   "the 15x15 grid must stay inside the wooden board border");
 assert.match(activity, /BuildConfig\.REWARDED_AD_UNIT_ID/, "rewarded ads must use the build-specific unit ID");
@@ -53,11 +63,12 @@ for (const type of ["hint", "undo", "danger", "future"]) {
 assert.match(manifest, /\$\{admobAppId\}/, "manifest must use the build-specific AdMob app ID");
 assert.match(manifest, /android\.permission\.INTERNET/, "ads require internet permission");
 assert.match(build, /play-services-ads:25\.4\.0/, "Google Mobile Ads dependency must be pinned");
+assert.match(build, /androidx\.activity:activity:1\.13\.0/, "predictive back support must use a pinned AndroidX Activity version");
 assert.match(build, /user-messaging-platform:4\.0\.0/, "Google UMP dependency must be pinned");
 assert.match(activity, /requestConsentInfoUpdate[\s\S]*loadAndShowConsentFormIfRequired[\s\S]*canRequestAds\(\)/,
   "ads must wait for the current UMP consent state");
-assert.match(build, /versionCode = 5[\s\S]*versionName = "1\.2\.2"/,
-  "the next Play upload must use version code 5 and version name 1.2.2");
+assert.match(build, /versionCode = 6[\s\S]*versionName = "1\.2\.3"/,
+  "the next Play upload must use version code 6 and version name 1.2.3");
 assert.match(build, /ca-app-pub-3940256099942544\/5224354917/, "debug builds must use Google's rewarded test unit");
 assert.match(build, /ca-app-pub-7962806628383813\/6058105442/, "release builds must use the production rewarded unit");
 assert.match(build, /ca-app-pub-7962806628383813~6236666471/, "release builds must use the production AdMob app ID");

@@ -1,21 +1,25 @@
 package com.broodsky85.omokchallenge;
 
-import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
 import android.os.CancellationSignal;
+import android.webkit.JsResult;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebChromeClient;
 import android.webkit.WebViewClient;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
 import androidx.credentials.Credential;
 import androidx.credentials.CredentialManager;
 import androidx.credentials.CredentialManagerCallback;
@@ -23,6 +27,7 @@ import androidx.credentials.CustomCredential;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
+import androidx.credentials.exceptions.NoCredentialException;
 
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
@@ -54,7 +59,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class MainActivity extends Activity {
+public class MainActivity extends ComponentActivity {
     private static final String GAME_URL = "file:///android_asset/web/omok.html";
     private static final String REWARDED_AD_UNIT_ID = BuildConfig.REWARDED_AD_UNIT_ID;
     private static final Set<String> ITEM_TYPES = new HashSet<>(Arrays.asList("hint", "undo", "danger", "future"));
@@ -69,6 +74,9 @@ public class MainActivity extends Activity {
     private FirebaseFirestore firestore;
     private CredentialManager credentialManager;
     private boolean syncInProgress;
+    private AlertDialog jsConfirmDialog;
+    private JsResult pendingJsResult;
+    private AlertDialog exitDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +94,13 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new AccountBridge(), "OmokAccount");
         webView.loadUrl(GAME_URL);
         ensureSignedIn();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleSystemBack();
+            }
+        });
 
         requestUserConsent();
     }
@@ -109,6 +124,27 @@ public class MainActivity extends Activity {
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+
+        // 대국 중단과 재시작에 쓰는 window.confirm()을 Android에서도 실제로 표시한다.
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                dismissJsConfirm();
+                pendingJsResult = result;
+                jsConfirmDialog = new AlertDialog.Builder(MainActivity.this)
+                        .setMessage(message)
+                        .setPositiveButton("확인", (dialog, which) -> resolveJsConfirm(true))
+                        .setNegativeButton("취소", (dialog, which) -> resolveJsConfirm(false))
+                        .setOnCancelListener(dialog -> resolveJsConfirm(false))
+                        .create();
+                jsConfirmDialog.setOnDismissListener(dialog -> {
+                    if (pendingJsResult == result) resolveJsConfirm(false);
+                    if (jsConfirmDialog == dialog) jsConfirmDialog = null;
+                });
+                jsConfirmDialog.show();
+                return true;
+            }
+        });
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -160,6 +196,21 @@ public class MainActivity extends Activity {
         );
         // 이전 실행에서 이미 동의가 완료된 사용자는 폼 응답을 기다리지 않고 광고를 준비한다.
         initializeMobileAdsIfAllowed();
+    }
+
+    private void resolveJsConfirm(boolean confirmed) {
+        JsResult result = pendingJsResult;
+        pendingJsResult = null;
+        if (result == null) return;
+        if (confirmed) result.confirm();
+        else result.cancel();
+    }
+
+    private void dismissJsConfirm() {
+        AlertDialog dialog = jsConfirmDialog;
+        resolveJsConfirm(false);
+        jsConfirmDialog = null;
+        if (dialog != null && dialog.isShowing()) dialog.dismiss();
     }
 
     private synchronized void initializeMobileAdsIfAllowed() {
@@ -325,7 +376,11 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void onError(GetCredentialException error) {
-                        sendAccountMessage("Google 로그인이 취소되었거나 완료되지 않았습니다.");
+                        if (error instanceof NoCredentialException) {
+                            sendAccountMessage("사용할 수 있는 Google 계정을 찾지 못했습니다.");
+                        } else {
+                            sendAccountMessage("Google 로그인이 취소되었거나 완료되지 않았습니다.");
+                        }
                     }
                 }
         );
@@ -527,8 +582,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
+    private void handleSystemBack() {
         if (webView.getUrl() == null || !webView.getUrl().startsWith(GAME_URL)) {
             webView.loadUrl(GAME_URL);
             return;
@@ -536,9 +590,22 @@ public class MainActivity extends Activity {
         webView.evaluateJavascript(
                 "window.handleOmokAndroidBack ? window.handleOmokAndroidBack() : false",
                 result -> {
-                    if (!"true".equals(result)) MainActivity.super.onBackPressed();
+                    if (!"true".equals(result)) showExitConfirmation();
                 }
         );
+    }
+
+    private void showExitConfirmation() {
+        if (isFinishing() || isDestroyed()) return;
+        if (exitDialog != null && exitDialog.isShowing()) return;
+        exitDialog = new AlertDialog.Builder(this)
+                .setTitle("오목 챌린지")
+                .setMessage("게임을 종료할까요?")
+                .setNegativeButton("계속하기", null)
+                .setPositiveButton("종료", (dialog, which) -> finish())
+                .create();
+        exitDialog.setOnDismissListener(dialog -> exitDialog = null);
+        exitDialog.show();
     }
 
     @Override
@@ -564,6 +631,11 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        dismissJsConfirm();
+        if (exitDialog != null) {
+            exitDialog.dismiss();
+            exitDialog = null;
+        }
         webView.removeJavascriptInterface("OmokAds");
         webView.removeJavascriptInterface("OmokAccount");
         webView.destroy();
