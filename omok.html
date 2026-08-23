@@ -3875,7 +3875,11 @@
   }
 
   function updateItemButtons() {
-    const playable = !gameOver && !aiThinking && currentTurn === BLACK;
+    // 온라인에서는 AI 차례라는 개념이 없다. 내 차례인지는 서버가 알려준 값으로 본다.
+    const online = typeof onlineState !== "undefined" && onlineState.active;
+    const playable = online
+      ? (onlineState.phase === "playing" && !gameOver && onlineState.myTurn)
+      : (!gameOver && !aiThinking && currentTurn === BLACK);
     [
       [hintBtn, hintCountEl, "hint", "유리한 수가 있는 위치를 표시합니다"],
       [undoBtn, undoCountEl, "undo", "당신과 AI의 마지막 수를 함께 되돌립니다"],
@@ -3885,7 +3889,8 @@
       const left = itemsLeft[type];
       const adLeft = adRefillsLeft(type);
       // 되돌릴 수가 없으면 광고를 봐도 쓸 데가 없다. 그런 광고는 애초에 열지 않는다.
-      const meaningful = type !== "undo" || history.length >= 2;
+      // 온라인 대국에서는 상대가 이미 본 수라 되돌리기 자체가 없다.
+      const meaningful = type !== "undo" || (!online && history.length >= 2);
       countEl.textContent = left;
       button.classList.toggle("ad-refill", left <= 0 && adLeft > 0);
       button.classList.toggle("ad-exhausted", left <= 0 && adLeft <= 0);
@@ -4923,6 +4928,7 @@
   }
 
   function playHumanMove(r, c) {
+    if (onlineState.active) { playOnlineMove(r, c); return; }
     if (gameOver || aiThinking || currentTurn !== BLACK || board[r][c] !== EMPTY) return;
 
     clearSuggestions();
@@ -4968,6 +4974,335 @@
       });
     }, initialPause);
   }
+
+  /* ---------- 온라인 대국 ----------
+     판은 서버 문서 하나가 전부다. 내 착수는 서버에 올리고,
+     화면은 서버가 돌려준 수순으로 다시 그린다. 그래야 양쪽이 같은 판을 본다.
+     승패 판정은 여기서 한다 — 판정 코드가 이미 있고 양쪽이 같은 수순을 보므로 결과도 같다. */
+  const ONLINE_TURN_SECONDS = 60;
+  const onlineState = {
+    active: false,        // 온라인 대국 화면에 있는지
+    phase: "idle",        // idle / searching / waiting / playing / done
+    myColor: "black",
+    myTurn: false,
+    moves: [],
+    opponent: "",
+    inviteCode: null,
+    turnStartedAt: 0,
+    clockOffset: 0,       // 서버 시각 - 내 시각
+    turnSeconds: ONLINE_TURN_SECONDS,
+    adPaused: null,       // null / "me" / "opponent"
+    adPauseLeft: 3,
+    result: null,
+    endReason: null,
+    reportedWin: false,   // 같은 판을 두 번 신고하지 않는다
+    timeoutClaimed: false,
+  };
+  let onlineClockTimer = null;
+
+  function onlineBridgeReady() {
+    return !!(window.OmokOnline && typeof window.OmokOnline.findRandom === "function");
+  }
+
+  function setOnlineStatus(message) {
+    onlineStatusEl.textContent = message || "";
+  }
+
+  function openOnlineLobby() {
+    if (!onlineBridgeReady()) {
+      setOnlineStatus("온라인 대국은 Android 앱에서 이용할 수 있습니다.");
+    }
+    selectView.classList.remove("active");
+    battleView.classList.remove("active");
+    onlineView.classList.add("active");
+    document.body.classList.remove("battle-active");
+    updateBannerVisibility();
+    scrollTop();
+  }
+
+  function closeOnlineLobby() {
+    onlineView.classList.remove("active");
+    selectView.classList.add("active");
+    updateBannerVisibility();
+    scrollTop();
+  }
+
+  function requireOnlineNickname() {
+    const name = (hallState.nickname || readNickname() || "").trim();
+    if (name.length < 2) {
+      setOnlineStatus("먼저 기록실에서 닉네임을 정해 주세요. 상대에게 보일 이름입니다.");
+      return null;
+    }
+    if (!(accountState.signedIn && !accountState.anonymous)) {
+      setOnlineStatus("온라인 대국은 Google 계정을 연결한 뒤에 이용할 수 있습니다.");
+      return null;
+    }
+    return name;
+  }
+
+  function startOnlineBattle() {
+    onlineState.active = true;
+    currentLevel = 1;                 // 돌 색 표현만 빌려 쓴다. 온라인에는 보스가 없다.
+    onlineView.classList.remove("active");
+    selectView.classList.remove("active");
+    battleView.classList.add("active");
+    document.body.classList.toggle("battle-active", accountState.native);
+    onlineBarEl.hidden = false;
+    bossBannerEl.hidden = true;
+    hideResult();
+    resetOnlineBoard();
+    updateBannerVisibility();
+    scrollTop();
+  }
+
+  function resetOnlineBoard() {
+    gameOver = false;
+    aiThinking = false;
+    history = [];
+    moveCount = 0;
+    lastMoveEl = null;
+    buildBoard();
+    renderBoard();
+    resetItems();
+    itemsUsed = 0;
+    adRefills = 0;
+    liveMovesEl.textContent = "0";
+    updateItemButtons();
+  }
+
+  // 서버가 준 수순으로 판을 다시 그린다. 흑이 먼저이므로 짝수번째가 흑이다.
+  function renderOnlineMoves(moves) {
+    history = [];
+    moveCount = 0;
+    lastMoveEl = null;
+    buildBoard();
+    renderBoard();
+    moves.forEach((m, index) => {
+      placeStone(m.r, m.c, index % 2 === 0 ? BLACK : WHITE, true);
+    });
+    liveMovesEl.textContent = moveCount;
+  }
+
+  function leaveOnline(silent) {
+    onlineState.active = false;
+    onlineState.phase = "idle";
+    onlineState.moves = [];
+    onlineState.result = null;
+    onlineState.reportedWin = false;
+    onlineState.timeoutClaimed = false;
+    onlineState.inviteCode = null;
+    onlineBarEl.hidden = true;
+    bossBannerEl.hidden = false;
+    stopOnlineClock();
+    onlineInviteCodeEl.hidden = true;
+    onlineCancelWrap.hidden = true;
+    if (!silent && onlineBridgeReady()) {
+      try { window.OmokOnline.leave(); } catch (e) { /* 이미 끝난 판일 수 있다 */ }
+    }
+  }
+
+  function stopOnlineClock() {
+    if (onlineClockTimer) { clearInterval(onlineClockTimer); onlineClockTimer = null; }
+  }
+
+  function startOnlineClock() {
+    stopOnlineClock();
+    onlineClockTimer = setInterval(updateOnlineClock, 400);
+    updateOnlineClock();
+  }
+
+  function onlineSecondsLeft() {
+    if (!onlineState.turnStartedAt) return onlineState.turnSeconds;
+    const serverNow = Date.now() + onlineState.clockOffset;
+    const spent = (serverNow - onlineState.turnStartedAt) / 1000;
+    return Math.max(0, onlineState.turnSeconds - spent);
+  }
+
+  function updateOnlineClock() {
+    if (!onlineState.active || onlineState.phase !== "playing") return;
+
+    if (onlineState.adPaused) {
+      onlineClockEl.className = "online-clock paused";
+      onlineClockEl.textContent = onlineState.adPaused === "me"
+        ? "광고 보는 중 · 시계 멈춤"
+        : "상대가 광고 시청 중…";
+      return;
+    }
+
+    const left = onlineSecondsLeft();
+    onlineClockEl.className = "online-clock" + (left <= 10 ? " urgent" : "");
+    onlineClockEl.textContent = Math.ceil(left) + "초";
+
+    // 내 차례가 아닌데 상대의 시간이 다 됐으면 한 번만 알린다.
+    if (left <= 0 && !onlineState.myTurn && !onlineState.timeoutClaimed) {
+      onlineState.timeoutClaimed = true;
+      if (onlineBridgeReady()) {
+        try { window.OmokOnline.claimTimeout(); } catch (e) { /* 곧 상태가 온다 */ }
+      }
+    }
+  }
+
+  function renderOnlineBar() {
+    const colorLabel = onlineState.myColor === "black" ? "흑 선공" : "백 후공";
+    const turnLabel = onlineState.phase !== "playing" ? ""
+      : (onlineState.myTurn ? " · 내 차례" : " · 상대 차례");
+    onlineWhoEl.innerHTML = "";
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = colorLabel;
+    onlineWhoEl.appendChild(tag);
+    onlineWhoEl.appendChild(document.createTextNode(
+      (onlineState.opponent || "상대") + turnLabel));
+  }
+
+  // 마지막 수로 승패를 가린다. 내가 이겼으면 내가 신고한다.
+  function checkOnlineResult() {
+    if (onlineState.reportedWin || onlineState.phase !== "playing") return;
+    const moves = onlineState.moves;
+    if (!moves.length) return;
+    const last = moves[moves.length - 1];
+    const player = (moves.length - 1) % 2 === 0 ? BLACK : WHITE;
+    const line = findWinningLine(board, last.r, last.c, player);
+    if (line) {
+      onlineState.reportedWin = true;
+      if (onlineBridgeReady()) {
+        try { window.OmokOnline.finish(last.mine ? "me" : "opponent", "five"); } catch (e) { }
+      }
+      return;
+    }
+    if (isBoardFull()) {
+      onlineState.reportedWin = true;
+      if (onlineBridgeReady()) {
+        try { window.OmokOnline.finish("draw", "full"); } catch (e) { }
+      }
+    }
+  }
+
+  function showOnlineResult() {
+    stopOnlineClock();
+    gameOver = true;
+    const reasonText = {
+      five: "다섯 줄을 먼저 이었습니다.",
+      resign: "기권으로 판이 끝났습니다.",
+      timeout: "제한 시간을 넘겨 판이 끝났습니다.",
+      leave: "상대가 대국을 떠났습니다.",
+      full: "판이 가득 차 무승부입니다.",
+    }[onlineState.endReason] || "";
+    const title = onlineState.result === "win" ? "승리"
+      : onlineState.result === "lose" ? "패배" : "무승부";
+    setOnlineStatus("");
+    turnInfoEl.className = "turn-info";
+    turnInfoEl.textContent = title + " — " + reasonText;
+    onlineClockEl.className = "online-clock";
+    onlineClockEl.textContent = title;
+    updateItemButtons();
+  }
+
+  window.onOmokMatchState = function (payload) {
+    const data = payload || {};
+    if (data.phase) onlineState.phase = data.phase;
+    if (typeof data.turnSeconds === "number") onlineState.turnSeconds = data.turnSeconds;
+    if (typeof data.adPauseLeft === "number") onlineState.adPauseLeft = data.adPauseLeft;
+    if (typeof data.inviteCode === "string") onlineState.inviteCode = data.inviteCode;
+    if (data.message) setOnlineStatus(data.message);
+
+    if (onlineState.inviteCode) {
+      onlineInviteCodeEl.hidden = false;
+      onlineInviteCodeEl.textContent = onlineState.inviteCode;
+    }
+    onlineCancelWrap.hidden = !(onlineState.phase === "waiting" || onlineState.phase === "searching");
+
+    if (onlineState.phase === "playing" || onlineState.phase === "done") {
+      if (typeof data.myColor === "string") onlineState.myColor = data.myColor;
+      if (typeof data.opponent === "string") onlineState.opponent = data.opponent;
+      onlineState.myTurn = !!data.myTurn;
+      onlineState.adPaused = data.adPaused === "me" || data.adPaused === "opponent" ? data.adPaused : null;
+      if (typeof data.turnStartedAt === "number" && typeof data.now === "number") {
+        onlineState.turnStartedAt = data.turnStartedAt;
+        onlineState.clockOffset = data.now - Date.now();
+      }
+      const moves = Array.isArray(data.moves) ? data.moves : [];
+      const changed = moves.length !== onlineState.moves.length;
+      onlineState.moves = moves;
+
+      if (!onlineState.active) startOnlineBattle();
+      if (changed) {
+        onlineState.timeoutClaimed = false;
+        renderOnlineMoves(moves);
+      }
+      renderOnlineBar();
+      updateItemButtons();
+
+      if (onlineState.phase === "playing") {
+        gameOver = false;
+        startOnlineClock();
+        turnInfoEl.textContent = onlineState.myTurn
+          ? "당신 차례입니다"
+          : (onlineState.adPaused === "opponent" ? "상대가 광고를 보는 중입니다" : "상대가 두는 중입니다…");
+        turnInfoEl.className = "turn-info";
+        checkOnlineResult();
+      } else {
+        onlineState.result = data.result || null;
+        onlineState.endReason = data.endReason || null;
+        showOnlineResult();
+      }
+    }
+  };
+
+  window.onOmokMatchMessage = function (message) {
+    setOnlineStatus(message || "");
+    if (onlineState.active && message) {
+      turnInfoEl.textContent = message;
+      turnInfoEl.className = "turn-info";
+    }
+  };
+
+  function playOnlineMove(r, c) {
+    if (onlineState.phase !== "playing" || gameOver) return;
+    if (!onlineState.myTurn) {
+      turnInfoEl.textContent = "상대 차례입니다. 기다려 주세요.";
+      return;
+    }
+    if (board[r][c] !== EMPTY) return;
+    clearSuggestions();
+    if (onlineBridgeReady()) {
+      try { window.OmokOnline.move(r, c); } catch (e) { turnInfoEl.textContent = "착수를 보내지 못했습니다."; }
+    }
+  }
+
+  onlineEnterBtn.addEventListener("click", openOnlineLobby);
+  onlineBackBtn.addEventListener("click", () => { leaveOnline(false); closeOnlineLobby(); });
+  onlineRandomBtn.addEventListener("click", () => {
+    const name = requireOnlineNickname();
+    if (!name) return;
+    onlineInviteCodeEl.hidden = true;
+    setOnlineStatus("상대를 찾는 중입니다…");
+    window.OmokOnline.findRandom(name);
+  });
+  onlineInviteBtn.addEventListener("click", () => {
+    const name = requireOnlineNickname();
+    if (!name) return;
+    setOnlineStatus("초대 방을 만드는 중입니다…");
+    window.OmokOnline.createInvite(name);
+  });
+  onlineJoinBtn.addEventListener("click", () => {
+    const name = requireOnlineNickname();
+    if (!name) return;
+    const code = (onlineCodeInputEl.value || "").trim().toUpperCase();
+    if (code.length !== 6) { setOnlineStatus("초대 코드는 여섯 자리입니다."); return; }
+    setOnlineStatus("방을 찾는 중입니다…");
+    window.OmokOnline.joinInvite(code, name);
+  });
+  onlineCancelBtn.addEventListener("click", () => {
+    leaveOnline(false);
+    setOnlineStatus("기다리기를 취소했습니다.");
+  });
+  onlineResignBtn.addEventListener("click", () => {
+    if (!window.confirm("이 대국을 기권할까요?")) return;
+    if (onlineBridgeReady()) {
+      try { window.OmokOnline.finish("opponent", "resign"); } catch (e) { }
+    }
+  });
 
   function onBoardClick(e) {
     if (performance.now() < suppressBoardClickUntil) return;
@@ -5196,6 +5531,18 @@
       hideResult();
       return true;
     }
+    if (onlineState.active && battleView.classList.contains("active")) {
+      if (onlineState.phase === "playing"
+          && !window.confirm("대국 중입니다. 나가면 기권으로 처리됩니다. 나갈까요?")) return true;
+      leaveOnline(false);
+      closeOnlineLobby();
+      return true;
+    }
+    if (onlineView.classList.contains("active")) {
+      leaveOnline(false);
+      closeOnlineLobby();
+      return true;
+    }
     if (battleView.classList.contains("active")) {
       requestBackToSelect();
       return true;
@@ -5207,6 +5554,10 @@
 
   function switchTab(tabName) {
     if (tabName !== "game") document.body.classList.remove("battle-active");
+    if (tabName !== "game" && onlineView.classList.contains("active")) {
+      onlineView.classList.remove("active");
+      selectView.classList.add("active");
+    }
     document.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.tab === tabName);
     });
