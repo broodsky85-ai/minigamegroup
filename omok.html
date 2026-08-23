@@ -1166,6 +1166,42 @@
   }
   .item-note { min-height:20px; text-align:center; color:var(--muted); font-size:12px; }
 
+  /* 온라인 대국 */
+  .online-entry { display:flex; justify-content:center; margin:0 0 14px; }
+  .online-entry .btn { min-height:44px; padding:0 18px; }
+  .online-lobby { max-width:460px; margin:0 auto; }
+  .online-card {
+    padding:18px 16px; margin-bottom:12px; border:1px solid var(--border);
+    border-radius:14px; background:var(--panel);
+  }
+  .online-card h3 { margin:0 0 6px; font-size:15px; }
+  .online-card p { margin:0 0 12px; color:var(--muted); font-size:12.5px; line-height:1.6; word-break:keep-all; }
+  .online-card .btn { width:100%; min-height:46px; }
+  .online-code-row { display:flex; gap:8px; }
+  .online-code-row input {
+    flex:1 1 auto; min-width:0; min-height:46px; padding:0 12px;
+    border:1px solid var(--border); border-radius:10px; background:var(--panel2);
+    color:var(--text); font-size:17px; font-weight:900; letter-spacing:.16em; text-align:center;
+    text-transform:uppercase;
+  }
+  .online-code-row .btn { width:auto; flex:0 0 auto; padding:0 16px; }
+  .online-status { min-height:20px; margin:10px 0 0; color:var(--gold); font-size:12.5px; line-height:1.6; word-break:keep-all; text-align:center; }
+  .invite-code {
+    margin:10px 0 0; padding:12px; border:1px dashed var(--gold); border-radius:11px;
+    color:var(--gold); font-size:26px; font-weight:900; letter-spacing:.22em; text-align:center;
+  }
+  .online-bar {
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;
+    padding:9px 12px; margin-bottom:10px; border:1px solid var(--border);
+    border-radius:11px; background:var(--panel2);
+  }
+  .online-bar .who { font-size:13px; font-weight:800; word-break:keep-all; }
+  .online-bar .who .tag { margin-right:6px; color:var(--muted); font-size:11px; font-weight:700; }
+  .online-clock { font-size:19px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .online-clock.urgent { color:#fb7185; }
+  .online-clock.paused { color:var(--gold); font-size:13px; }
+  .online-bar .btn { min-height:34px; padding:0 12px; font-size:12px; }
+
   /* 전체 명예의 전당 */
   .hall-global { margin-bottom:10px; }
   .hall-note { margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.6; word-break:keep-all; }
@@ -1678,6 +1714,9 @@
 
   <!-- 보스 선택 화면 -->
   <div id="selectView" class="view active">
+    <div class="online-entry">
+      <button class="btn btn-neon" id="onlineEnterBtn" type="button">🌐 온라인 대국</button>
+    </div>
     <div class="hero-main">
       <div class="eyebrow" id="challengeEyebrow">AI 보스전</div>
       <h1>오목 챌린지</h1>
@@ -1701,8 +1740,48 @@
   </div>
 
   <!-- 대국 화면 -->
+  <div id="onlineView" class="view">
+    <div class="online-lobby">
+      <div class="toolbar">
+        <button class="btn btn-ghost" id="onlineBackBtn" type="button">← 상대 선택</button>
+      </div>
+
+      <div class="online-card">
+        <h3>🎲 아무나와 겨루기</h3>
+        <p>기다리는 사람이 있으면 바로 이어지고, 없으면 상대가 올 때까지 기다립니다.</p>
+        <button class="btn btn-neon" id="onlineRandomBtn" type="button">상대 찾기</button>
+      </div>
+
+      <div class="online-card">
+        <h3>🤝 친구 초대하기</h3>
+        <p>방을 만들면 여섯 자리 코드가 나옵니다. 그 코드를 친구에게 알려주세요.</p>
+        <button class="btn" id="onlineInviteBtn" type="button">초대 코드 만들기</button>
+        <div class="invite-code" id="onlineInviteCode" hidden></div>
+      </div>
+
+      <div class="online-card">
+        <h3>🔑 코드로 들어가기</h3>
+        <p>친구에게 받은 초대 코드를 넣으면 그 방으로 들어갑니다.</p>
+        <div class="online-code-row">
+          <input id="onlineCodeInput" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" spellcheck="false">
+          <button class="btn" id="onlineJoinBtn" type="button">참가</button>
+        </div>
+      </div>
+
+      <p class="online-status" id="onlineStatus"></p>
+      <div class="cta" id="onlineCancelWrap" hidden>
+        <button class="btn btn-ghost" id="onlineCancelBtn" type="button">기다리기 취소</button>
+      </div>
+    </div>
+  </div>
+
   <div id="battleView" class="view">
     <div class="battle-wrap">
+      <div class="online-bar" id="onlineBar" hidden>
+        <span class="who" id="onlineWho"></span>
+        <span class="online-clock" id="onlineClock">--</span>
+        <button class="btn btn-ghost" id="onlineResignBtn" type="button">기권</button>
+      </div>
       <div class="boss-banner" id="bossBanner"></div>
 
       <div class="panel">
@@ -2294,6 +2373,21 @@
   const dangerCountEl = document.getElementById("dangerCount");
   const futureCountEl = document.getElementById("futureCount");
   const itemNoteEl = document.getElementById("itemNote");
+  const onlineView = document.getElementById("onlineView");
+  const onlineEnterBtn = document.getElementById("onlineEnterBtn");
+  const onlineBackBtn = document.getElementById("onlineBackBtn");
+  const onlineRandomBtn = document.getElementById("onlineRandomBtn");
+  const onlineInviteBtn = document.getElementById("onlineInviteBtn");
+  const onlineInviteCodeEl = document.getElementById("onlineInviteCode");
+  const onlineCodeInputEl = document.getElementById("onlineCodeInput");
+  const onlineJoinBtn = document.getElementById("onlineJoinBtn");
+  const onlineStatusEl = document.getElementById("onlineStatus");
+  const onlineCancelWrap = document.getElementById("onlineCancelWrap");
+  const onlineCancelBtn = document.getElementById("onlineCancelBtn");
+  const onlineBarEl = document.getElementById("onlineBar");
+  const onlineWhoEl = document.getElementById("onlineWho");
+  const onlineClockEl = document.getElementById("onlineClock");
+  const onlineResignBtn = document.getElementById("onlineResignBtn");
   const hallGridEl = document.getElementById("hallGrid");
   const hallNoteEl = document.getElementById("hallNote");
   const hallNickRowEl = document.getElementById("hallNickRow");
