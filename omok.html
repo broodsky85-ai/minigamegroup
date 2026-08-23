@@ -751,6 +751,28 @@
     animation: fadeIn 0.25s ease;
   }
   .overlay[hidden] { display: none; }
+  /* 첫 실행 때 한 번 묻는 로그인 선택 화면 */
+  .account-gate { position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:20px; background:rgba(3,5,15,.94); }
+  .account-gate[hidden] { display:none; }
+  .account-gate .gate-card {
+    width:min(100%,380px); padding:26px 22px; border:1px solid var(--border); border-radius:16px;
+    background:var(--panel); text-align:center; box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .account-gate .gate-mark { font-size:34px; line-height:1; }
+  .account-gate h2 { margin:10px 0 6px; font-size:20px; word-break:keep-all; }
+  .account-gate .gate-lead { margin:0 0 18px; color:var(--muted); font-size:13px; line-height:1.6; word-break:keep-all; }
+  .account-gate .gate-btn {
+    display:block; width:100%; min-height:48px; margin-top:9px; padding:9px 12px;
+    border:1px solid var(--border); border-radius:11px; background:var(--panel2);
+    color:var(--text); font-weight:800; font-size:14px; cursor:pointer; word-break:keep-all;
+  }
+  .account-gate .gate-btn .gate-sub { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:600; }
+  .account-gate .gate-btn.primary { border-color:#4ade80aa; color:#4ade80; }
+  .account-gate .gate-btn.primary .gate-sub { color:#4ade8099; }
+  .account-gate .gate-btn:disabled { opacity:.55; cursor:default; }
+  .account-gate .gate-message { min-height:18px; margin:14px 0 0; color:var(--gold); font-size:12px; line-height:1.5; word-break:keep-all; }
+  .account-gate .gate-foot { margin:8px 0 0; color:var(--muted); font-size:11px; line-height:1.5; word-break:keep-all; }
+
   .settings-overlay { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:20px; background:rgba(3,5,15,.82); }
   .settings-overlay[hidden] { display:none; }
   .settings-card { width:min(420px,100%); max-height:88vh; overflow-y:auto; padding:22px; border:1px solid var(--border); border-radius:16px; background:var(--panel); box-shadow:0 20px 60px #0008; }
@@ -1812,6 +1834,24 @@
   </div>
 </div>
 
+<div class="account-gate" id="accountGate" hidden role="dialog" aria-modal="true" aria-labelledby="accountGateTitle">
+  <div class="gate-card">
+    <div class="gate-mark">⚫</div>
+    <h2 id="accountGateTitle">오목 챌린지</h2>
+    <p class="gate-lead">기록을 어떻게 남길지 먼저 고르세요.<br>나중에 설정에서 언제든 바꿀 수 있습니다.</p>
+    <button class="gate-btn primary" id="gateGoogleBtn" type="button">
+      Google 계정으로 시작
+      <span class="gate-sub">기기를 바꿔도 기록이 이어지고, 명예의 전당에 오를 수 있습니다</span>
+    </button>
+    <button class="gate-btn" id="gateGuestBtn" type="button">
+      로그인 없이 시작
+      <span class="gate-sub">기록은 이 기기에만 저장됩니다</span>
+    </button>
+    <p class="gate-message" id="gateMessage"></p>
+    <p class="gate-foot">로그인해도 게임 기록 외의 정보는 저장하지 않습니다.</p>
+  </div>
+</div>
+
 <div class="settings-overlay" id="settingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="settings-card">
     <h2 id="settingsTitle">⚙️ 게임 설정</h2>
@@ -1831,7 +1871,7 @@
       </div>
     </section>
     <button class="btn" id="settingsCloseBtn">설정 완료</button>
-    <p class="hint" style="margin:12px auto 0;">오목 챌린지 v1.2.2</p>
+    <p class="hint" style="margin:12px auto 0;">오목 챌린지 v1.3.0</p>
   </div>
 </div>
 <div class="update-banner" id="updateBanner" hidden><span>새 버전이 준비되었습니다.</span><button class="btn" id="updateBtn">업데이트</button></div>
@@ -2211,6 +2251,10 @@
   const soundSettingEl = document.getElementById("soundSetting");
   const vibrationSettingEl = document.getElementById("vibrationSetting");
   const motionSettingEl = document.getElementById("motionSetting");
+  const accountGateEl = document.getElementById("accountGate");
+  const gateGoogleBtn = document.getElementById("gateGoogleBtn");
+  const gateGuestBtn = document.getElementById("gateGuestBtn");
+  const gateMessageEl = document.getElementById("gateMessage");
   const accountStatusEl = document.getElementById("accountStatus");
   const accountMessageEl = document.getElementById("accountMessage");
   const googleSignInBtn = document.getElementById("googleSignInBtn");
@@ -2493,6 +2537,47 @@
   function vibrate(pattern) { if (settings.vibration && navigator.vibrate) navigator.vibrate(pattern); }
   function syncSettingsUI() { soundSettingEl.checked=settings.sound; vibrationSettingEl.checked=settings.vibration; motionSettingEl.checked=settings.motion; saveSettings(); }
 
+  /* ---------- 첫 실행 로그인 선택 ----------
+     앱을 처음 켰을 때 한 번만 묻는다. 고른 값은 남겨서 다음부터 건너뛴다.
+     어느 쪽도 자동으로 골라주지 않는다 — 사용자가 직접 누른 것만 선택으로 친다. */
+  const ACCOUNT_CHOICE_KEY = "omok-account-choice-v1";
+
+  function readAccountChoice() {
+    try { return localStorage.getItem(ACCOUNT_CHOICE_KEY) || ""; } catch (e) { return ""; }
+  }
+  function writeAccountChoice(choice) {
+    try { localStorage.setItem(ACCOUNT_CHOICE_KEY, choice); } catch (e) { /* 저장이 막혀도 이번 실행은 진행된다 */ }
+  }
+
+  function closeAccountGate() {
+    accountGateEl.hidden = true;
+    gateGoogleBtn.disabled = false;
+    gateMessageEl.textContent = "";
+  }
+
+  function maybeShowAccountGate() {
+    // 계정 기능이 없는 웹에서는 물을 것이 없다.
+    if (!accountState.native) { accountGateEl.hidden = true; return; }
+    if (accountState.signedIn && !accountState.anonymous) { writeAccountChoice("google"); closeAccountGate(); return; }
+    if (readAccountChoice()) { closeAccountGate(); return; }
+    accountGateEl.hidden = false;
+  }
+
+  gateGoogleBtn.addEventListener("click", () => {
+    if (!window.OmokAccount || typeof window.OmokAccount.signInWithGoogle !== "function") {
+      gateMessageEl.textContent = "이 버전에서는 Google 로그인을 쓸 수 없습니다. 로그인 없이 시작해 주세요.";
+      return;
+    }
+    gateGoogleBtn.disabled = true;
+    gateMessageEl.textContent = "Google 계정 선택 창을 여는 중입니다…";
+    window.OmokAccount.signInWithGoogle();
+  });
+
+  gateGuestBtn.addEventListener("click", () => {
+    writeAccountChoice("guest");
+    closeAccountGate();
+  });
+
   function renderAccountUI() {
     if (!accountState.native) {
       accountStatusEl.textContent = "이 기기에 기록 저장 중";
@@ -2519,11 +2604,17 @@
     accountState = Object.assign(accountState, status || {}, { native: true });
     delete accountMessageEl.dataset.custom;
     renderAccountUI();
+    maybeShowAccountGate();
   };
 
   window.setOmokAccountMessage = function (message) {
     accountMessageEl.dataset.custom = "1";
     accountMessageEl.textContent = message || "";
+    // 첫 화면에서 로그인하다 실패하면 그 자리에서 이유가 보여야 한다.
+    if (!accountGateEl.hidden) {
+      gateMessageEl.textContent = message || "";
+      gateGoogleBtn.disabled = false;
+    }
   };
 
   /* ---------- 기록 저장소 ----------
@@ -4940,6 +5031,7 @@
   syncSettingsUI();
   renderAccountUI();
   if (window.OmokAccount && window.OmokAccount.getStatus) window.OmokAccount.getStatus();
+  maybeShowAccountGate();
   updateBannerVisibility();
   setupPwa();
   renderChallengeCopy();
