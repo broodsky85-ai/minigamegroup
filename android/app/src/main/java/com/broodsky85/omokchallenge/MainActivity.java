@@ -735,14 +735,23 @@ public class MainActivity extends ComponentActivity {
                     + JSONObject.quote(kind == null ? "level" : kind) + ",\"rows\":[]}");
             return;
         }
-        final String mode = "time".equals(kind) ? "time" : "level";
+        final String mode = "time".equals(kind) ? "time" : ("rating".equals(kind) ? "rating" : "level");
         final int wanted = Math.max(1, Math.min(level, MAX_LEVEL));
-        Query query = "time".equals(mode)
-                ? levelRankCollection(wanted).orderBy("seconds", Query.Direction.ASCENDING).limit(LEADERBOARD_LIMIT)
-                : leaderboardCollection()
-                        .orderBy("maxLevel", Query.Direction.DESCENDING)
-                        .orderBy("clears", Query.Direction.DESCENDING)
-                        .limit(LEADERBOARD_LIMIT);
+        Query query;
+        if ("time".equals(mode)) {
+            query = levelRankCollection(wanted)
+                    .orderBy("seconds", Query.Direction.ASCENDING)
+                    .limit(LEADERBOARD_LIMIT);
+        } else if ("rating".equals(mode)) {
+            query = leaderboardCollection()
+                    .orderBy("rating", Query.Direction.DESCENDING)
+                    .limit(LEADERBOARD_LIMIT);
+        } else {
+            query = leaderboardCollection()
+                    .orderBy("maxLevel", Query.Direction.DESCENDING)
+                    .orderBy("clears", Query.Direction.DESCENDING)
+                    .limit(LEADERBOARD_LIMIT);
+        }
 
         String myUid = firebaseAuth.getCurrentUser() == null ? "" : firebaseAuth.getCurrentUser().getUid();
         query.get().addOnCompleteListener(this, task -> {
@@ -767,6 +776,9 @@ public class MainActivity extends ComponentActivity {
                             Object moves = doc.get("moves");
                             row.put("seconds", seconds instanceof Number ? ((Number) seconds).doubleValue() : 0);
                             row.put("moves", moves instanceof Number ? ((Number) moves).intValue() : 0);
+                        } else if ("rating".equals(mode)) {
+                            Object rating = doc.get("rating");
+                            row.put("rating", rating instanceof Number ? ((Number) rating).intValue() : 0);
                         } else {
                             Object maxLevel = doc.get("maxLevel");
                             Object clears = doc.get("clears");

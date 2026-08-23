@@ -10,6 +10,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -45,6 +46,9 @@ class OnlineMatch {
 
     static final int TURN_SECONDS = 60;      // 한 수에 주는 시간
     static final int AD_PAUSE_LIMIT = 3;     // 광고로 시계를 멈출 수 있는 판당 횟수
+    static final double START_RATING = 1200; // 처음 등급
+    static final double ELO_K = 32;          // 한 판에 움직이는 폭 (보안 규칙의 ±40 안)
+    static final double RATING_TOLERANCE = 200;  // "비슷한 등급"으로 치는 범위
     private static final int INVITE_CODE_LENGTH = 6;
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 헷갈리는 O,0,I,1 제외
 
@@ -60,6 +64,9 @@ class OnlineMatch {
     private String phase = "idle";           // idle / searching / waiting / playing / done
     private boolean queued;                  // 랜덤 매칭 대기열에 내 줄을 올려 뒀는지
     private int myAdPauses;
+    private double myRating = START_RATING;
+    private boolean ranked;                  // 등급에 반영하는 판인지 (친구 초대전은 아니다)
+    private boolean ratingApplied;           // 한 판의 결과를 두 번 반영하지 않는다
 
     OnlineMatch(FirebaseFirestore db, FirebaseAuth auth, Bridge bridge) {
         this.db = db;
@@ -93,6 +100,24 @@ class OnlineMatch {
         return true;
     }
 
+    private DocumentReference leaderboardRef() {
+        String me = uid();
+        return me == null ? null : db.collection("leaderboard").document(me);
+    }
+
+    /** 내 등급을 먼저 읽고 나서 하려던 일을 이어간다. 없으면 기본값으로 시작한다. */
+    private void withMyRating(Runnable next) {
+        DocumentReference ref = leaderboardRef();
+        if (ref == null) { next.run(); return; }
+        ref.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                Object raw = task.getResult().get("rating");
+                if (raw instanceof Number) myRating = ((Number) raw).doubleValue();
+            }
+            next.run();
+        });
+    }
+
     private DocumentReference matchRef() {
         return matchId == null ? null : db.collection("matches").document(matchId);
     }
@@ -112,28 +137,48 @@ class OnlineMatch {
         if (!requireLinkedUser() || !requireNickname(rawNickname)) return;
         leaveQuietly();
         phase = "searching";
+        ranked = true;
         emitLocalState("상대를 찾는 중입니다…");
+        withMyRating(this::searchQueue);
+    }
 
+    /* 비슷한 등급을 먼저 찾고, 그런 사람이 없으면 기다리는 사람 중 아무나 바로 잡는다.
+       사람이 적을 때 등급만 고집하면 아무도 못 만나고 하염없이 기다리게 된다. */
+    private void searchQueue() {
         final String me = uid();
         db.collection("matchQueue")
                 .orderBy("createdAt", Query.Direction.ASCENDING)
-                .limit(10)
+                .limit(20)
                 .get()
                 .addOnCompleteListener(task -> {
-                    String foundMatch = null;
-                    String foundUid = null;
+                    String nearMatch = null, nearUid = null;    // 등급이 가까운 상대
+                    String anyMatch = null, anyUid = null;      // 가장 오래 기다린 상대
                     if (task.isSuccessful() && task.getResult() != null) {
                         for (QueryDocumentSnapshot doc : task.getResult()) {
                             if (doc.getId().equals(me)) continue;
                             String candidate = doc.getString("matchId");
                             if (candidate == null || candidate.isEmpty()) continue;
-                            foundMatch = candidate;
-                            foundUid = doc.getId();
-                            break;
+
+                            if (anyMatch == null) {             // 시간순이라 첫 줄이 가장 오래 기다린 사람
+                                anyMatch = candidate;
+                                anyUid = doc.getId();
+                            }
+                            Object raw = doc.get("rating");
+                            double theirs = raw instanceof Number ? ((Number) raw).doubleValue() : START_RATING;
+                            if (nearMatch == null && Math.abs(theirs - myRating) <= RATING_TOLERANCE) {
+                                nearMatch = candidate;
+                                nearUid = doc.getId();
+                            }
                         }
                     }
-                    if (foundMatch != null) joinExisting(foundMatch, foundUid);
-                    else hostMatch(null);
+                    String targetMatch = nearMatch != null ? nearMatch : anyMatch;
+                    String targetUid = nearMatch != null ? nearUid : anyUid;
+                    if (targetMatch != null) {
+                        if (nearMatch == null) bridge.sendMatchMessage("등급이 비슷한 상대가 없어 기다리던 분과 붙습니다.");
+                        joinExisting(targetMatch, targetUid);
+                    } else {
+                        hostMatch(null);
+                    }
                 });
     }
 
@@ -142,8 +187,10 @@ class OnlineMatch {
         if (!requireLinkedUser() || !requireNickname(rawNickname)) return;
         leaveQuietly();
         phase = "searching";
+        // 친구끼리 짜고 점수를 올리는 것을 막기 위해 초대전은 등급에 넣지 않는다.
+        ranked = false;
         emitLocalState("초대 방을 만드는 중입니다…");
-        hostMatch(newInviteCode());
+        withMyRating(() -> hostMatch(newInviteCode()));
     }
 
     /** 친구가 준 코드로 그 방에 들어간다. */
@@ -156,6 +203,7 @@ class OnlineMatch {
         }
         leaveQuietly();
         phase = "searching";
+        ranked = false;
         emitLocalState("초대 방을 찾는 중입니다…");
 
         db.collection("invites").document(code).get().addOnCompleteListener(task -> {
@@ -171,7 +219,7 @@ class OnlineMatch {
                 return;
             }
             inviteCode = code;
-            joinExisting(target, null);
+            withMyRating(() -> joinExisting(target, null));
         });
     }
 
@@ -194,6 +242,11 @@ class OnlineMatch {
         data.put("adPausedUntil", null);
         data.put("turnStartedAt", FieldValue.serverTimestamp());
         data.put("createdAt", FieldValue.serverTimestamp());
+        data.put("claims", new HashMap<String, Object>());
+        data.put("ranked", code == null);
+        Map<String, Object> ratings = new HashMap<>();
+        ratings.put(me, myRating);
+        data.put("ratings", ratings);
         if (code != null) data.put("inviteCode", code);
 
         ref.set(data).addOnCompleteListener(task -> {
@@ -218,6 +271,7 @@ class OnlineMatch {
                 Map<String, Object> queue = new HashMap<>();
                 queue.put("nickname", nickname);
                 queue.put("matchId", ref.getId());
+                queue.put("rating", myRating);
                 queue.put("createdAt", FieldValue.serverTimestamp());
                 db.collection("matchQueue").document(me).set(queue);
                 queued = true;
@@ -255,6 +309,7 @@ class OnlineMatch {
             update.put("status", "playing");
             update.put("turn", host);        // 흑(방을 연 사람)이 먼저 둔다
             update.put("turnStartedAt", FieldValue.serverTimestamp());
+            update.put("ratings." + me, myRating);
             transaction.update(ref, update);
             return null;
         }).addOnCompleteListener(task -> {
@@ -350,7 +405,15 @@ class OnlineMatch {
         ref.get().addOnCompleteListener(task -> {
             if (!task.isSuccessful() || task.getResult() == null || !task.getResult().exists()) return;
             DocumentSnapshot snap = task.getResult();
-            if ("done".equals(snap.getString("status"))) return;   // 상대가 먼저 끝냈다
+            if ("done".equals(snap.getString("status"))) {
+                // 상대가 먼저 끝냈다. 판은 그대로 두고 내 신고만 남긴다.
+                String settled = snap.getString("winner");
+                String mine = "draw".equals(settled) ? "draw" : (me.equals(settled) ? "win" : "lose");
+                Map<String, Object> claimOnly = new HashMap<>();
+                claimOnly.put("claims." + me, mine);
+                ref.update(claimOnly);
+                return;
+            }
 
             String winnerUid;
             if ("draw".equals(winner)) winnerUid = "draw";
@@ -361,6 +424,9 @@ class OnlineMatch {
             update.put("status", "done");
             update.put("winner", winnerUid);
             update.put("endReason", reason == null ? "five" : reason);
+            // 내 몫의 결과 신고. 양쪽 신고가 맞아떨어져야 등급에 반영된다.
+            update.put("claims." + me, "draw".equals(winnerUid) ? "draw"
+                    : (me.equals(winnerUid) ? "win" : "lose"));
             ref.update(update);
         });
         clearMyQueueEntry();
@@ -430,6 +496,7 @@ class OnlineMatch {
         matchId = null;
         inviteCode = null;
         myAdPauses = 0;
+        ratingApplied = false;
     }
 
     private void clearMyQueueEntry() {
@@ -450,6 +517,8 @@ class OnlineMatch {
             out.put("nickname", nickname);
             out.put("turnSeconds", TURN_SECONDS);
             out.put("adPauseLeft", Math.max(0, AD_PAUSE_LIMIT - myAdPauses));
+            out.put("myRating", Math.round(myRating));
+            out.put("ranked", ranked);
             if (message != null) out.put("message", message);
         } catch (Exception ignored) { }
         bridge.sendMatchState(out.toString());
@@ -478,6 +547,16 @@ class OnlineMatch {
             out.put("myTurn", me.equals(turn));
             out.put("turnSeconds", TURN_SECONDS);
             out.put("adPauseLeft", Math.max(0, AD_PAUSE_LIMIT - myAdPauses));
+            out.put("ranked", Boolean.TRUE.equals(snap.getBoolean("ranked")));
+            out.put("myRating", Math.round(myRating));
+
+            double shownOpponentRating = START_RATING;
+            Object rawRatings = snap.get("ratings");
+            if (rawRatings instanceof Map) {
+                Object value = ((Map<?, ?>) rawRatings).get(otherPlayer(snap, me));
+                if (value instanceof Number) shownOpponentRating = ((Number) value).doubleValue();
+            }
+            out.put("opponentRating", Math.round(shownOpponentRating));
 
             String opponentName = iAmBlack ? snap.getString("whiteName") : snap.getString("blackName");
             out.put("opponent", opponentName == null ? "" : opponentName);
@@ -513,6 +592,68 @@ class OnlineMatch {
             if (message != null) out.put("message", message);
         } catch (Exception ignored) { }
         bridge.sendMatchState(out.toString());
+        maybeApplyRating(snap);
+    }
+
+    /* 양쪽 신고가 맞아떨어질 때만 등급을 움직인다.
+       한쪽만 신고했거나 서로 다르게 신고했으면 아무 일도 일어나지 않는다.
+       서버 판정이 없는 동안 조작을 억제하는 장치다 — 혼자서는 점수를 올릴 수 없다. */
+    private void maybeApplyRating(DocumentSnapshot snap) {
+        if (ratingApplied) return;
+        if (!"done".equals(snap.getString("status"))) return;
+        if (!Boolean.TRUE.equals(snap.getBoolean("ranked"))) return;   // 친구 초대전은 등급 밖이다
+
+        final String me = uid();
+        if (me == null) return;
+        String opponent = otherPlayer(snap, me);
+        if (opponent.equals(me)) return;
+
+        Object rawClaims = snap.get("claims");
+        if (!(rawClaims instanceof Map)) return;
+        Map<?, ?> claims = (Map<?, ?>) rawClaims;
+        Object mineRaw = claims.get(me);
+        Object theirsRaw = claims.get(opponent);
+        if (mineRaw == null || theirsRaw == null) return;              // 아직 둘 다 신고하지 않았다
+
+        String mine = String.valueOf(mineRaw);
+        String theirs = String.valueOf(theirsRaw);
+        boolean agreed = ("win".equals(mine) && "lose".equals(theirs))
+                || ("lose".equals(mine) && "win".equals(theirs))
+                || ("draw".equals(mine) && "draw".equals(theirs));
+        if (!agreed) {
+            ratingApplied = true;
+            bridge.sendMatchMessage("양쪽 결과가 달라 이 판은 등급에 반영하지 않습니다.");
+            return;
+        }
+
+        double theirRating = START_RATING;
+        Object rawRatings = snap.get("ratings");
+        if (rawRatings instanceof Map) {
+            Object value = ((Map<?, ?>) rawRatings).get(opponent);
+            if (value instanceof Number) theirRating = ((Number) value).doubleValue();
+            Object mineValue = ((Map<?, ?>) rawRatings).get(me);
+            if (mineValue instanceof Number) myRating = ((Number) mineValue).doubleValue();
+        }
+
+        double score = "win".equals(mine) ? 1 : ("draw".equals(mine) ? 0.5 : 0);
+        double expected = 1 / (1 + Math.pow(10, (theirRating - myRating) / 400));
+        double updated = myRating + ELO_K * (score - expected);
+        if (updated < 0) updated = 0;
+        if (updated > 4000) updated = 4000;
+        final double next = Math.round(updated);
+        final double delta = next - myRating;
+
+        ratingApplied = true;
+        DocumentReference ref = leaderboardRef();
+        if (ref == null) return;
+        Map<String, Object> update = new HashMap<>();
+        update.put("rating", next);
+        update.put("updatedAt", FieldValue.serverTimestamp());
+        ref.set(update, SetOptions.merge()).addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) return;
+            myRating = next;
+            bridge.sendMatchMessage(String.format(Locale.KOREA, "등급 %+.0f (%.0f점)", delta, next));
+        });
     }
 
     @SuppressWarnings("unchecked")
