@@ -104,8 +104,9 @@ check("보스 배너에 이름", $("bossBanner").textContent.includes("새싹"))
 check("대국 배너에 성향과 행동 설명", $("bossBanner").querySelector(".boss-trait").textContent === LEVELS[0].tag &&
   $("bossBanner").querySelector(".boss-behavior").textContent === LEVELS[0].tagline);
 check("보드 225칸", doc.querySelectorAll("#board .cell").length === 225);
-check("아이템 4종 각 1회", ["hintCount","undoCount","dangerCount","futureCount"].every((id) => $(id).textContent === "1"));
-check("되돌리기는 처음엔 비활성", $("undoBtn").disabled === true);
+check("무료 아이템 3종은 1회씩", ["hintCount","dangerCount","futureCount"].every((id) => $(id).textContent === "1"));
+check("되돌리기는 무료분 없음", $("undoCount").textContent === "0");
+check("되돌릴 수가 없으면 되돌리기 비활성", $("undoBtn").disabled === true);
 check("수읽기는 처음엔 활성", $("hintBtn").disabled === false);
 check("자유룰과 금수 없음 안내", doc.querySelector(".rule-note").textContent.includes("장목 승리") &&
   doc.querySelector(".rule-note").textContent.includes("금수 없음"));
@@ -163,13 +164,18 @@ check("1단계부터 AI 생각 연출", $("turnInfo").classList.contains("thinki
   check("차 있는 칸에는 잘못 놓이지 않음", stones() === 2, stones() + "개");
   await new Promise((res) => setTimeout(res, 380));
 
-  // ---------- 5. 되돌리기 ----------
+  // ---------- 5. 되돌리기 — 무료분이 없고 광고 보상으로만 얻는다 ----------
+  check("되돌릴 수가 생기면 광고 충전 버튼", $("undoBtn").classList.contains("ad-refill") &&
+    $("undoBtn").textContent.includes("광고 보고"));
+  $("undoBtn").click();
+  check("충전 전에는 되돌아가지 않음", stones() === 2, stones() + "개");
+  window.grantOmokItemReward("undo");
+  check("광고 보상으로 되돌리기 1회 충전", $("undoCount").textContent === "1");
   $("undoBtn").click();
   check("되돌리기 후 돌 0개", stones() === 0, stones() + "개");
   check("되돌리기 후 착수 0", $("liveMoves").textContent === "0", $("liveMoves").textContent);
   check("되돌리기 잔여 0", $("undoCount").textContent === "0");
-  check("소진된 되돌리기에 광고 충전 표시", $("undoBtn").classList.contains("ad-refill") && $("undoBtn").textContent.includes("광고 보고"));
-  check("소진 후 광고 충전 버튼 유지", $("undoBtn").disabled === false);
+  check("되돌릴 수가 없으면 광고 버튼도 열리지 않음", $("undoBtn").disabled === true);
   check("되돌리기 안내 문구", $("turnInfo").textContent.includes("이전 차례로"));
 
   cell(7, 7).click();
@@ -180,6 +186,7 @@ check("1단계부터 AI 생각 연출", $("turnInfo").classList.contains("thinki
   // ---------- 6. 반복 되돌리기에도 상태가 어긋나지 않는지 ----------
   let sane = true;
   for (let i = 0; i < 2; i++) {
+    window.grantOmokItemReward("undo");   // 되돌릴 때마다 광고 한 번
     $("undoBtn").click();
     if (stones() !== Number($("liveMoves").textContent)) sane = false;
     let placed = false;
@@ -194,7 +201,18 @@ check("1단계부터 AI 생각 연출", $("turnInfo").classList.contains("thinki
   }
   check("반복 되돌리기 후 돌 수 = 착수 수", sane);
   check("되돌리기 소진", $("undoCount").textContent === "0", "잔여 " + $("undoCount").textContent);
-  check("소진되어도 광고 충전 가능", $("undoBtn").disabled === false);
+  // 되돌리기는 판당 광고 3회까지. 위에서 이미 3회를 썼으므로 네 번째는 거부된다.
+  window.grantOmokItemReward("undo");
+  check("광고 한도를 넘겨 충전되지 않음", $("undoCount").textContent === "0", "잔여 " + $("undoCount").textContent);
+  check("한도 소진 안내", $("itemNote").textContent.includes("한도"));
+  check("한도 소진 버튼 표시", $("undoBtn").classList.contains("ad-exhausted") &&
+    !$("undoBtn").classList.contains("ad-refill"));
+  check("한도 소진 후 버튼 비활성", $("undoBtn").disabled === true);
+  // 수읽기는 상한이 5회로 더 넉넉하다 — 되돌리기가 소진된 뒤에도 아직 충전된다.
+  window.grantOmokItemReward("hint");
+  check("수읽기는 아직 충전 가능", $("hintCount").textContent === "1", "잔여 " + $("hintCount").textContent);
+  $("hintBtn").click();
+  check("충전한 수읽기 사용됨", $("hintCount").textContent === "0");
 
   $("hintBtn").click();
   check("소진 아이템은 광고 안내", $("itemNote").textContent.includes("안드로이드 배포판"));
