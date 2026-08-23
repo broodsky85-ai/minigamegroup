@@ -50,15 +50,22 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +75,8 @@ public class MainActivity extends ComponentActivity {
     private static final String REWARDED_AD_UNIT_ID = BuildConfig.REWARDED_AD_UNIT_ID;
     private static final String BANNER_AD_UNIT_ID = BuildConfig.BANNER_AD_UNIT_ID;
     private static final Set<String> ITEM_TYPES = new HashSet<>(Arrays.asList("hint", "undo", "danger", "future"));
+    private static final int LEADERBOARD_LIMIT = 50;
+    private static final int MAX_LEVEL = 30;
 
     private WebView webView;
     private FrameLayout bannerContainer;
@@ -485,6 +494,7 @@ public class MainActivity extends ComponentActivity {
         notifyAccountStatus();
         sendAccountMessage("Google 계정이 연결되었습니다. 기록을 동기화합니다.");
         syncRecords();
+        fetchProfile();
     }
 
     private void notifyAccountStatus() {
@@ -573,6 +583,182 @@ public class MainActivity extends ComponentActivity {
         });
     }
 
+    /* ---------- 명예의 전당 ----------
+       게스트(익명)는 올리지 않는다. 닉네임으로 겨루는 자리라 계정을 연결한 사람만 쓴다.
+       보안 규칙도 같은 조건이라, 여기서 막지 않아도 서버가 거절한다. */
+    private boolean isLinkedUser() {
+        FirebaseUser user = firebaseAuth.getCurrentUser();
+        return user != null && !user.isAnonymous();
+    }
+
+    private CollectionReference leaderboardCollection() {
+        return firestore.collection("leaderboard");
+    }
+
+    private CollectionReference levelRankCollection(int level) {
+        return firestore.collection("levelRanks").document(String.valueOf(level)).collection("entries");
+    }
+
+    private void sendLeaderboard(String payload) {
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "window.onOmokLeaderboard && window.onOmokLeaderboard(" + payload + ");", null);
+    }
+
+    private void sendProfile(String payload) {
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "window.onOmokProfile && window.onOmokProfile(" + payload + ");", null);
+    }
+
+    // 내 랭킹 줄을 읽어 온다. 기기를 바꿔도 닉네임을 되찾을 수 있어야 한다.
+    private void fetchProfile() {
+        FirebaseUser user = firebaseAuth.getCurrentUser();
+        if (user == null || user.isAnonymous()) {
+            sendProfile("{\"linked\":false,\"nickname\":\"\"}");
+            return;
+        }
+        leaderboardCollection().document(user.getUid()).get().addOnCompleteListener(this, task -> {
+            JSONObject out = new JSONObject();
+            try {
+                out.put("linked", true);
+                String nickname = "";
+                if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                    Object raw = task.getResult().get("nickname");
+                    if (raw != null) nickname = String.valueOf(raw);
+                }
+                out.put("nickname", nickname);
+                out.put("ok", task.isSuccessful());
+            } catch (Exception ignored) { }
+            sendProfile(out.toString());
+        });
+    }
+
+    /* 웹이 만들어 준 요약을 그대로 올린다.
+       {nickname, maxLevel, clears, noItemClears, levels:{"7":{seconds,moves}, ...}} */
+    private void publishProfile(String json) {
+        FirebaseUser user = firebaseAuth.getCurrentUser();
+        if (user == null || user.isAnonymous()) {
+            sendAccountMessage("명예의 전당은 Google 계정을 연결한 뒤에 참여할 수 있습니다.");
+            return;
+        }
+        JSONObject payload;
+        try {
+            payload = new JSONObject(json);
+        } catch (Exception error) {
+            sendAccountMessage("기록을 올리지 못했습니다.");
+            return;
+        }
+        String nickname = payload.optString("nickname", "").trim();
+        if (nickname.length() < 2 || nickname.length() > 12) {
+            sendAccountMessage("닉네임은 2자 이상 12자 이하로 정해 주세요.");
+            return;
+        }
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("nickname", nickname);
+        summary.put("maxLevel", clampLevel(payload.optInt("maxLevel", 0)));
+        summary.put("clears", clampLevel(payload.optInt("clears", 0)));
+        summary.put("noItemClears", clampLevel(payload.optInt("noItemClears", 0)));
+        summary.put("updatedAt", FieldValue.serverTimestamp());
+
+        leaderboardCollection().document(user.getUid())
+                .set(summary, SetOptions.merge())
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) sendAccountMessage("명예의 전당에 기록을 올렸습니다.");
+                    else sendAccountMessage("명예의 전당 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+                    fetchProfile();
+                });
+
+        // 단계별 최고 기록은 타임어택 순위에 따로 올린다.
+        JSONObject levels = payload.optJSONObject("levels");
+        if (levels == null) return;
+        for (java.util.Iterator<String> it = levels.keys(); it.hasNext(); ) {
+            String key = it.next();
+            int level;
+            try {
+                level = Integer.parseInt(key);
+            } catch (Exception error) {
+                continue;
+            }
+            if (level < 1 || level > MAX_LEVEL) continue;
+            JSONObject best = levels.optJSONObject(key);
+            if (best == null) continue;
+            double seconds = best.optDouble("seconds", 0);
+            int moves = best.optInt("moves", 0);
+            if (seconds <= 0 || moves < 5 || moves > 225) continue;
+
+            Map<String, Object> row = new HashMap<>();
+            row.put("nickname", nickname);
+            row.put("seconds", seconds);
+            row.put("moves", moves);
+            row.put("updatedAt", FieldValue.serverTimestamp());
+            levelRankCollection(level).document(user.getUid()).set(row, SetOptions.merge());
+        }
+    }
+
+    private int clampLevel(int value) {
+        if (value < 0) return 0;
+        return Math.min(value, MAX_LEVEL);
+    }
+
+    /* kind = "level"  → 도달 단계 순위
+       kind = "time"   → 해당 단계 타임어택 순위 */
+    private void fetchLeaderboard(String kind, int level) {
+        if (!isLinkedUser()) {
+            sendLeaderboard("{\"ok\":false,\"reason\":\"guest\",\"kind\":"
+                    + JSONObject.quote(kind == null ? "level" : kind) + ",\"rows\":[]}");
+            return;
+        }
+        final String mode = "time".equals(kind) ? "time" : "level";
+        final int wanted = Math.max(1, Math.min(level, MAX_LEVEL));
+        Query query = "time".equals(mode)
+                ? levelRankCollection(wanted).orderBy("seconds", Query.Direction.ASCENDING).limit(LEADERBOARD_LIMIT)
+                : leaderboardCollection()
+                        .orderBy("maxLevel", Query.Direction.DESCENDING)
+                        .orderBy("clears", Query.Direction.DESCENDING)
+                        .limit(LEADERBOARD_LIMIT);
+
+        String myUid = firebaseAuth.getCurrentUser() == null ? "" : firebaseAuth.getCurrentUser().getUid();
+        query.get().addOnCompleteListener(this, task -> {
+            JSONObject out = new JSONObject();
+            JSONArray rows = new JSONArray();
+            try {
+                out.put("kind", mode);
+                out.put("level", wanted);
+                out.put("ok", task.isSuccessful());
+                if (!task.isSuccessful()) {
+                    out.put("reason", "network");
+                } else {
+                    QuerySnapshot snapshot = task.getResult();
+                    List<DocumentSnapshot> docs = snapshot == null
+                            ? new ArrayList<>() : snapshot.getDocuments();
+                    for (DocumentSnapshot doc : docs) {
+                        JSONObject row = new JSONObject();
+                        row.put("nickname", String.valueOf(doc.get("nickname")));
+                        row.put("me", doc.getId().equals(myUid));
+                        if ("time".equals(mode)) {
+                            Object seconds = doc.get("seconds");
+                            Object moves = doc.get("moves");
+                            row.put("seconds", seconds instanceof Number ? ((Number) seconds).doubleValue() : 0);
+                            row.put("moves", moves instanceof Number ? ((Number) moves).intValue() : 0);
+                        } else {
+                            Object maxLevel = doc.get("maxLevel");
+                            Object clears = doc.get("clears");
+                            Object noItem = doc.get("noItemClears");
+                            row.put("maxLevel", maxLevel instanceof Number ? ((Number) maxLevel).intValue() : 0);
+                            row.put("clears", clears instanceof Number ? ((Number) clears).intValue() : 0);
+                            row.put("noItemClears", noItem instanceof Number ? ((Number) noItem).intValue() : 0);
+                        }
+                        rows.put(row);
+                    }
+                }
+                out.put("rows", rows);
+            } catch (Exception ignored) { }
+            sendLeaderboard(out.toString());
+        });
+    }
+
     private void signOutToGuest() {
         firebaseAuth.signOut();
         ensureSignedIn();
@@ -583,6 +769,11 @@ public class MainActivity extends ComponentActivity {
         FirebaseUser user = firebaseAuth.getCurrentUser();
         if (user == null) return;
         DocumentReference document = recordDocument(user);
+        // 공개 순위에 남은 줄도 함께 지운다. 지우지 않으면 사라진 계정의 닉네임이 순위표에 남는다.
+        leaderboardCollection().document(user.getUid()).delete();
+        for (int level = 1; level <= MAX_LEVEL; level++) {
+            levelRankCollection(level).document(user.getUid()).delete();
+        }
         document.delete().continueWithTask(task -> user.delete()).addOnCompleteListener(this, task -> {
             if (task.isSuccessful()) {
                 webView.evaluateJavascript("window.OmokRecords && window.OmokRecords.clearAll();", null);
@@ -634,6 +825,21 @@ public class MainActivity extends ComponentActivity {
         @JavascriptInterface
         public void recordsChanged() {
             runOnUiThread(MainActivity.this::syncRecords);
+        }
+
+        @JavascriptInterface
+        public void publishProfile(String json) {
+            runOnUiThread(() -> MainActivity.this.publishProfile(json));
+        }
+
+        @JavascriptInterface
+        public void fetchProfile() {
+            runOnUiThread(MainActivity.this::fetchProfile);
+        }
+
+        @JavascriptInterface
+        public void fetchLeaderboard(String kind, int level) {
+            runOnUiThread(() -> MainActivity.this.fetchLeaderboard(kind, level));
         }
 
         @JavascriptInterface
