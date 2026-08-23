@@ -4698,6 +4698,15 @@
     window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   }
 
+  /* 하단 배너는 보스 선택 화면과 기록실에서만 띄운다.
+     대국 중에는 오목판을 밀어 올리고 잘못 눌릴 위험도 있어 내린다. */
+  function updateBannerVisibility() {
+    if (!window.OmokAds || typeof window.OmokAds.setBannerVisible !== "function") return;
+    const onSelect = document.getElementById("gameTab").classList.contains("active") && selectView.classList.contains("active");
+    const onRecords = document.getElementById("recordsTab").classList.contains("active");
+    try { window.OmokAds.setBannerVisible(onSelect || onRecords); } catch (e) { /* 구버전 앱은 배너를 모른다 */ }
+  }
+
   function startBattle(level) {
     hideResult();
     currentLevel = level;
@@ -4706,6 +4715,7 @@
     battleView.classList.add("active");
     document.body.classList.toggle("battle-active", accountState.native);
     newGame();
+    updateBannerVisibility();
     scrollTop();
   }
 
@@ -4720,6 +4730,7 @@
     battleView.classList.remove("active");
     selectView.classList.add("active");
     document.body.classList.remove("battle-active");
+    updateBannerVisibility();
     scrollTop();
   }
 
@@ -4769,6 +4780,7 @@
       document.getElementById(TABS[key]).classList.toggle("active", key === tabName);
     }
     if (tabName === "records") renderRecords();
+    updateBannerVisibility();
     scrollTop();
   }
 
@@ -4928,6 +4940,7 @@
   syncSettingsUI();
   renderAccountUI();
   if (window.OmokAccount && window.OmokAccount.getStatus) window.OmokAccount.getStatus();
+  updateBannerVisibility();
   setupPwa();
   renderChallengeCopy();
   renderBossGrid();

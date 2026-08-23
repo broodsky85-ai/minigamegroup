@@ -26,8 +26,8 @@ android {
         minSdk = 23
         targetSdk = 36
         // versionCode 1~5는 Play 테스트 트랙에 업로드되어 소진됐다. 같은 값은 두 번 못 올린다.
-        versionCode = 6
-        versionName = "1.2.3"
+        versionCode = 7
+        versionName = "1.3.0"
     }
 
     signingConfigs {
@@ -45,12 +45,16 @@ android {
         debug {
             manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
             buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"ca-app-pub-3940256099942544/5224354917\"")
+            buildConfigField("String", "BANNER_AD_UNIT_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
         }
         release {
             if (hasKeystore) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             manifestPlaceholders["admobAppId"] = "ca-app-pub-7962806628383813~6236666471"
             buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"ca-app-pub-7962806628383813/6058105442\"")
+            // TODO: AdMob에서 배너 광고 단위를 만들어 여기에 넣는다.
+            // 빈 문자열이면 배너를 아예 만들지 않으므로, 값이 없는 채로 출시해도 앱은 정상이다.
+            buildConfigField("String", "BANNER_AD_UNIT_ID", "\"\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

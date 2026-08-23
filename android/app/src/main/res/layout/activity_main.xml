@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WebView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/game_web_view"
+<!-- 배너는 게임 화면을 덮지 않고 아래에 따로 자리를 잡는다.
+     보스 선택과 기록실에서만 보이고, 대국 중에는 웹이 내려달라고 알린다. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <WebView
+        android:id="@+id/game_web_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <FrameLayout
+        android:id="@+id/banner_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#0B0E1A"
+        android:visibility="gone" />
+
+</LinearLayout>

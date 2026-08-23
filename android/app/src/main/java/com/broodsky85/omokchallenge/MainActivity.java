@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
 import android.os.CancellationSignal;
+import android.util.DisplayMetrics;
 import android.webkit.JsResult;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
@@ -15,6 +16,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebViewClient;
 import android.view.View;
 import android.view.WindowInsets;
+import android.widget.FrameLayout;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 
@@ -31,6 +33,8 @@ import androidx.credentials.exceptions.NoCredentialException;
 
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
@@ -62,9 +66,14 @@ import java.util.Set;
 public class MainActivity extends ComponentActivity {
     private static final String GAME_URL = "file:///android_asset/web/omok.html";
     private static final String REWARDED_AD_UNIT_ID = BuildConfig.REWARDED_AD_UNIT_ID;
+    private static final String BANNER_AD_UNIT_ID = BuildConfig.BANNER_AD_UNIT_ID;
     private static final Set<String> ITEM_TYPES = new HashSet<>(Arrays.asList("hint", "undo", "danger", "future"));
 
     private WebView webView;
+    private FrameLayout bannerContainer;
+    private AdView bannerAdView;
+    private boolean bannerWanted;       // 웹 화면이 배너를 원하는 상태인지
+    private boolean bannerLoaded;       // 실제로 채워진 배너가 있는지
     private RewardedAd rewardedAd;
     private boolean adLoading;
     private boolean mobileAdsStarted;
@@ -86,6 +95,7 @@ public class MainActivity extends ComponentActivity {
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.game_web_view);
+        bannerContainer = findViewById(R.id.banner_container);
         firebaseAuth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
         credentialManager = CredentialManager.create(this);
@@ -216,7 +226,10 @@ public class MainActivity extends ComponentActivity {
     private synchronized void initializeMobileAdsIfAllowed() {
         if (mobileAdsStarted || consentInformation == null || !consentInformation.canRequestAds()) return;
         mobileAdsStarted = true;
-        MobileAds.initialize(this, status -> runOnUiThread(this::loadRewardedAd));
+        MobileAds.initialize(this, status -> runOnUiThread(() -> {
+            loadRewardedAd();
+            setupBannerAd();
+        }));
     }
 
     private boolean privacyOptionsRequired() {
@@ -263,6 +276,53 @@ public class MainActivity extends ComponentActivity {
                 );
             }
         }
+    }
+
+    /* ---------- 하단 배너 ----------
+       광고 단위 ID가 비어 있으면 배너를 만들지 않는다. 실제 단위를 넣기 전에 출시해도 앱은 그대로 돈다. */
+    private void setupBannerAd() {
+        if (bannerAdView != null || bannerContainer == null) return;
+        if (BANNER_AD_UNIT_ID == null || BANNER_AD_UNIT_ID.isEmpty()) return;
+        if (consentInformation == null || !consentInformation.canRequestAds()) return;
+
+        AdView adView = new AdView(this);
+        adView.setAdUnitId(BANNER_AD_UNIT_ID);
+        adView.setAdSize(adaptiveBannerSize());
+        adView.setAdListener(new com.google.android.gms.ads.AdListener() {
+            @Override
+            public void onAdLoaded() {
+                bannerLoaded = true;
+                applyBannerVisibility();
+            }
+
+            @Override
+            public void onAdFailedToLoad(LoadAdError error) {
+                // 못 불러온 배너는 빈 칸으로 남기지 않고 접는다.
+                bannerLoaded = false;
+                applyBannerVisibility();
+            }
+        });
+        bannerAdView = adView;
+        bannerContainer.addView(adView);
+        adView.loadAd(new AdRequest.Builder().build());
+    }
+
+    private AdSize adaptiveBannerSize() {
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int widthDp = Math.max(320, (int) (metrics.widthPixels / metrics.density));
+        return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, widthDp);
+    }
+
+    private void setBannerVisible(boolean visible) {
+        bannerWanted = visible;
+        if (visible) setupBannerAd();   // 동의가 늦게 끝난 경우를 위해 여기서도 준비한다
+        applyBannerVisibility();
+    }
+
+    private void applyBannerVisibility() {
+        if (bannerContainer == null) return;
+        boolean show = bannerWanted && bannerLoaded && bannerAdView != null;
+        bannerContainer.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void loadRewardedAd() {
@@ -545,6 +605,11 @@ public class MainActivity extends ComponentActivity {
         public void showPrivacyOptions() {
             runOnUiThread(MainActivity.this::showPrivacyOptions);
         }
+
+        @JavascriptInterface
+        public void setBannerVisible(boolean visible) {
+            runOnUiThread(() -> MainActivity.this.setBannerVisible(visible));
+        }
     }
 
     public class AccountBridge {
@@ -617,6 +682,7 @@ public class MainActivity extends ComponentActivity {
     @Override
     protected void onPause() {
         if (webView != null) webView.evaluateJavascript("window.pauseOmokGame && window.pauseOmokGame();", null);
+        if (bannerAdView != null) bannerAdView.pause();
         webView.onPause();
         super.onPause();
     }
@@ -626,6 +692,7 @@ public class MainActivity extends ComponentActivity {
         super.onResume();
         enterImmersiveMode();
         webView.onResume();
+        if (bannerAdView != null) bannerAdView.resume();
         webView.evaluateJavascript("window.resumeOmokGame && window.resumeOmokGame();", null);
     }
 
@@ -635,6 +702,10 @@ public class MainActivity extends ComponentActivity {
         if (exitDialog != null) {
             exitDialog.dismiss();
             exitDialog = null;
+        }
+        if (bannerAdView != null) {
+            bannerAdView.destroy();
+            bannerAdView = null;
         }
         webView.removeJavascriptInterface("OmokAds");
         webView.removeJavascriptInterface("OmokAccount");
