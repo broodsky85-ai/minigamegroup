@@ -23,11 +23,14 @@
 | `tictactoe.html` | 틱택토 |
 | `tests/` | 검증 스크립트 |
 | `android/` | 오목 챌린지 Android WebView 배포판 (아래 참고) |
+| `android-kingdom30/` | 멸망까지 30일 Android WebView 배포판 (아래 참고) |
 | `manifest.webmanifest`, `sw.js`, `icons/` | PWA. 설치하면 `omok.html`이 앱처럼 뜬다 |
 | `firestore.rules` | 기록 동기화 보안 규칙. 본인 uid 문서만 읽고 쓴다 |
 
-루트 HTML과 PWA 파일, 아이콘은 Android 빌드 때 `android/app/src/main/assets/web`으로
-자동 복사된다. **웹 파일을 고치면 앱에도 그대로 반영된다.**
+**Android 앱은 둘이고 완전히 별개다.** `android/`는 오목만, `android-kingdom30/`은
+멸망까지 30일만 담는다. 각자 자기 `syncWebAssets`가 필요한 HTML만 골라
+자기 `app/src/main/assets/web`으로 복사한다. **웹 파일을 고치면 앱에도 그대로 반영된다.**
+한쪽 프로젝트를 고칠 때 다른 쪽을 건드리지 말 것 — 패키지명도 서명 대상도 다르다.
 
 ## 오목 챌린지 (`omok.html`)
 
@@ -288,6 +291,30 @@ Elo 한 점수(`rating`, 시작 1200)로 관리하고, 보여줄 때만 `TIERS` 
 사망의 56%가 국고 0이었다. 국고 지출을 일괄 ×0.7 하니 이번엔 무작위 생존율이 43%로
 너무 쉬워져서, 전체 진폭을 ×1.3 해 14.1%로 맞췄다. 수치는 ±18을 넘기지 않는다.
 
+### Android 배포판 (`android-kingdom30/`)
+
+Play 스토어에 **오목과 별개인 앱**으로 올린다 (`com.broodsky85.kingdom30`).
+게임이 파일 하나로 완결되고 기록도 localStorage에만 남으므로 **계정도 광고도 네트워크도 없다.**
+`MainActivity.java`가 하는 일은 셋뿐이다 — 자산에서 게임을 띄우고, 뒤로가기를 웹에 넘기고,
+웹이 여는 다이얼로그를 실제로 보여준다. 인터넷 권한조차 받지 않는다.
+
+**웹에서 열릴 때와 앱에서 열릴 때가 다른 지점이 둘 있고, 둘 다 웹 쪽 코드에 있다.**
+
+- **도전장 링크** — WebView는 `file://`로 열려 `location.origin`이 `"null"`이 된다.
+  그대로 쓰면 아무도 못 여는 링크가 나오므로, http/https가 아니면 `WEB_URL`을 쓴다.
+  **여기를 `location.origin`으로 되돌리지 말 것.**
+- **뒤로가기** — 네이티브가 `window.handleKingdomAndroidBack()`을 먼저 부른다.
+  `true`면 웹이 처리한 것이고, `false`면 앱이 종료할지 묻는다.
+  도감에서는 앞 화면으로 돌아가고, **타이틀과 재위 중에는 `false`를 돌려준다** —
+  진행 중인 30일이 뒤로가기 한 번에 조용히 사라지면 안 되기 때문이다.
+
+빌드는 `android-kingdom30`에서 `./gradlew bundleRelease`. `JAVA_HOME`이 없으면
+Android Studio의 JBR(`C:\Program Files\Android\Android Studio\jbr`)을 쓰면 된다.
+서명 키는 오목과 같은 업로드 키를 재사용하고 `keystore.properties`에 있다(커밋 금지).
+**Play에 올린 `versionCode`는 두 번 못 쓴다. 새로 올릴 때마다 1씩 올릴 것.**
+
+이 계약은 `tests/kingdom30.android.test.js`가 고정한다.
+
 ## 여명의 서약 (`hero.html`)
 
 격자 위에서 싸우는 도트 SRPG. 3부 10장짜리 원정.
@@ -381,6 +408,10 @@ npm test
   돌린다. 생존율·사망 편중 외에 **죽은 플래그**(아무도 안 세우는 플래그를 기다리는
   카드 = 영원히 안 나옴)와 순이득 선택지도 여기서 잡는다.
 
+- `kingdom30.android.test.js` — 웹과 앱이 맞물리는 이름(`handleKingdomAndroidBack`)과
+  앱 껍데기의 약속을 고정한다. 오목과 **패키지명이 다른지**, 패키지에 `kingdom30.html`
+  **하나만** 들어가는지, 진행 중인 판을 뒤로가기가 버리지 않는지, 도전장 링크가 앱에서도
+  웹 주소로 나가는지, 오프라인 게임이 인터넷 권한을 안 받는지를 본다. 빌드 불필요.
 - `hero.smoke.test.js` — jsdom으로 `hero.html`을 띄워 **1장부터 10장까지 실제로 완주**한다.
   대사·선택·전투·저장·엔딩이 한 번에 이어지는지 보는 게 본 목적이고, 데이터 검사도 여기서 한다:
   스프라이트·초상화가 전부 16×16인지, 지도가 14×10이고 아는 지형만 쓰는지,
