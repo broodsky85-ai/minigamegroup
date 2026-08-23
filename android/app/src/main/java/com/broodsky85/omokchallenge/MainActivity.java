@@ -91,6 +91,7 @@ public class MainActivity extends ComponentActivity {
     private FirebaseAuth firebaseAuth;
     private FirebaseFirestore firestore;
     private CredentialManager credentialManager;
+    private OnlineMatch onlineMatch;
     private boolean syncInProgress;
     private AlertDialog jsConfirmDialog;
     private JsResult pendingJsResult;
@@ -109,8 +110,28 @@ public class MainActivity extends ComponentActivity {
         firestore = FirebaseFirestore.getInstance();
         credentialManager = CredentialManager.create(this);
         configureWebView();
+        onlineMatch = new OnlineMatch(firestore, firebaseAuth, new OnlineMatch.Bridge() {
+            @Override
+            public void sendMatchState(String json) {
+                if (webView == null) return;
+                webView.evaluateJavascript("window.onOmokMatchState && window.onOmokMatchState(" + json + ");", null);
+            }
+
+            @Override
+            public void sendMatchMessage(String message) {
+                if (webView == null) return;
+                webView.evaluateJavascript(
+                        "window.onOmokMatchMessage && window.onOmokMatchMessage(" + JSONObject.quote(message) + ");", null);
+            }
+
+            @Override
+            public void runOnUi(Runnable action) {
+                runOnUiThread(action);
+            }
+        });
         webView.addJavascriptInterface(new AdsBridge(), "OmokAds");
         webView.addJavascriptInterface(new AccountBridge(), "OmokAccount");
+        webView.addJavascriptInterface(new OnlineBridge(), "OmokOnline");
         webView.loadUrl(GAME_URL);
         ensureSignedIn();
 
@@ -373,6 +394,8 @@ public class MainActivity extends ComponentActivity {
 
     private void showLoadedRewardedAd() {
         if (rewardedAd == null || pendingRewardType == null) return;
+        // 온라인 대국 중이라면 광고를 보는 동안 내 시계를 멈춘다. 광고를 볼수록 불리하면 아무도 안 본다.
+        final boolean pausedForAd = onlineMatch != null && onlineMatch.beginAdPause();
         String rewardType = pendingRewardType;
         pendingRewardType = null;
         RewardedAd ad = rewardedAd;
@@ -382,12 +405,14 @@ public class MainActivity extends ComponentActivity {
         ad.setFullScreenContentCallback(new FullScreenContentCallback() {
             @Override
             public void onAdDismissedFullScreenContent() {
+                if (pausedForAd && onlineMatch != null) onlineMatch.endAdPause();
                 if (!rewardGranted[0]) sendAdMessage("광고가 종료되어 아이템이 충전되지 않았습니다.");
                 loadRewardedAd();
             }
 
             @Override
             public void onAdFailedToShowFullScreenContent(AdError error) {
+                if (pausedForAd && onlineMatch != null) onlineMatch.endAdPause();
                 sendAdMessage("광고를 표시하지 못했습니다. 다시 시도해 주세요.");
                 loadRewardedAd();
             }
@@ -803,6 +828,43 @@ public class MainActivity extends ComponentActivity {
         }
     }
 
+    public class OnlineBridge {
+        @JavascriptInterface
+        public void findRandom(String nickname) {
+            runOnUiThread(() -> onlineMatch.findRandom(nickname));
+        }
+
+        @JavascriptInterface
+        public void createInvite(String nickname) {
+            runOnUiThread(() -> onlineMatch.createInvite(nickname));
+        }
+
+        @JavascriptInterface
+        public void joinInvite(String code, String nickname) {
+            runOnUiThread(() -> onlineMatch.joinInvite(code, nickname));
+        }
+
+        @JavascriptInterface
+        public void move(int r, int c) {
+            runOnUiThread(() -> onlineMatch.move(r, c));
+        }
+
+        @JavascriptInterface
+        public void finish(String winner, String reason) {
+            runOnUiThread(() -> onlineMatch.finish(winner, reason));
+        }
+
+        @JavascriptInterface
+        public void claimTimeout() {
+            runOnUiThread(() -> onlineMatch.claimTimeout());
+        }
+
+        @JavascriptInterface
+        public void leave() {
+            runOnUiThread(() -> onlineMatch.leave());
+        }
+    }
+
     public class AccountBridge {
         @JavascriptInterface
         public void getStatus() {
@@ -913,8 +975,10 @@ public class MainActivity extends ComponentActivity {
             bannerAdView.destroy();
             bannerAdView = null;
         }
+        if (onlineMatch != null) onlineMatch.dispose();
         webView.removeJavascriptInterface("OmokAds");
         webView.removeJavascriptInterface("OmokAccount");
+        webView.removeJavascriptInterface("OmokOnline");
         webView.destroy();
         super.onDestroy();
     }
