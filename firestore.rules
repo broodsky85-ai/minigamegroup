@@ -2,9 +2,58 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // 게스트(익명 로그인)는 기록 백업만 되고 공개 순위에는 오르지 않는다.
+    // 닉네임으로 겨루는 자리라 계정을 실제로 연결한 사람만 쓸 수 있다.
+    function isLinkedUser() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function isMe(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // 내 기록 백업 — 예전부터 있던 자리. 본인만 읽고 쓴다.
     match /users/{userId}/records/{recordId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+      allow read, write: if isMe(userId);
+    }
+
+    // 명예의 전당(종합) — 로그인한 사람은 모두 볼 수 있고, 자기 줄만 고칠 수 있다.
+    match /leaderboard/{userId} {
+      allow read: if isLinkedUser();
+      allow delete: if isMe(userId);
+      allow write: if isMe(userId)
+        && isLinkedUser()
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 12
+        && request.resource.data.maxLevel is int
+        && request.resource.data.maxLevel >= 0
+        && request.resource.data.maxLevel <= 30
+        && request.resource.data.clears is int
+        && request.resource.data.clears >= 0
+        && request.resource.data.clears <= 30
+        && request.resource.data.noItemClears is int
+        && request.resource.data.noItemClears >= 0
+        && request.resource.data.noItemClears <= 30;
+    }
+
+    // 타임어택 — 단계별로 한 줄씩. 수와 시간은 사람이 낼 수 있는 범위 안이어야 한다.
+    match /levelRanks/{level}/entries/{userId} {
+      allow read: if isLinkedUser();
+      allow delete: if isMe(userId);
+      allow write: if isMe(userId)
+        && isLinkedUser()
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 12
+        && request.resource.data.seconds is number
+        && request.resource.data.seconds > 0
+        && request.resource.data.seconds <= 36000
+        && request.resource.data.moves is int
+        && request.resource.data.moves >= 5
+        && request.resource.data.moves <= 225;
     }
   }
 }

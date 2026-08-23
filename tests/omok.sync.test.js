@@ -40,6 +40,11 @@ assert.strictEqual(merged.title, "신계 입문자", "newer profile choice must 
 
 console.log("Omok cloud merge checks passed (unlock, dedupe, attempts, streak, title)");
 
+// 브릿지가 없는 웹에서는 로그인 선택 화면 자체가 뜨지 않아야 한다.
+assert.ok(dom.window.document.getElementById("accountGate").hidden,
+  "the web build must never show the account gate");
+
+const bannerCalls = [];
 const nativeDom = new JSDOM(html, {
   runScripts: "dangerously",
   pretendToBeVisual: true,
@@ -48,13 +53,70 @@ const nativeDom = new JSDOM(html, {
     window.__OMOK_TEST_FAST__ = true;
     window.scrollTo = () => {};
     window.OmokAccount = { getStatus() {} };
+    window.OmokAds = { setBannerVisible(visible) { bannerCalls.push(visible); } };
   },
 });
+const nativeDom_window = nativeDom.window;
 const nativeDoc = nativeDom.window.document;
 assert.ok(nativeDoc.body.classList.contains("native-app"), "native bridge must enable the Android-only layout");
+
+// ---- 첫 실행 로그인 선택 ----
+const gate = nativeDoc.getElementById("accountGate");
+assert.ok(!gate.hidden, "the app must ask how to keep records on first launch");
+assert.ok(nativeDoc.getElementById("gateGoogleBtn") && nativeDoc.getElementById("gateGuestBtn"),
+  "both signing in and playing without an account must be offered");
+nativeDoc.getElementById("gateGuestBtn").click();
+assert.ok(gate.hidden, "choosing guest play must close the gate");
+
+// 로그인이 되면 게이트는 다시 묻지 않는다.
+nativeDom_window.onOmokAccountChanged({ signedIn: true, anonymous: false, name: "테스터", email: "" });
+assert.ok(gate.hidden, "a linked account must not be asked again");
+
+// ---- 하단 배너는 대국 중에만 사라진다 ----
+assert.strictEqual(bannerCalls[0], true, "the banner must be requested on the boss select screen");
+bannerCalls.length = 0;
 nativeDoc.querySelector(".boss-card").click();
 assert.ok(nativeDoc.body.classList.contains("battle-active"), "battle must switch to the compact board-first layout");
+assert.strictEqual(bannerCalls.pop(), false, "the banner must be hidden while a match is on the board");
 nativeDoc.getElementById("backBtn").click();
 assert.ok(!nativeDoc.body.classList.contains("battle-active"), "leaving battle must restore native navigation");
+assert.strictEqual(bannerCalls.pop(), true, "leaving a match must bring the banner back");
 
-console.log("Omok Android layout checks passed (native shell, compact battle mode)");
+nativeDoc.querySelector('.tab-btn[data-tab="records"]').click();
+assert.strictEqual(bannerCalls.pop(), true, "the records room must show the banner");
+nativeDoc.querySelector('.tab-btn[data-tab="guide"]').click();
+assert.strictEqual(bannerCalls.pop(), false, "other tabs must not show the banner");
+
+// 앱이 file:// 로 열리면 jsdom에는 localStorage가 없다(게임은 try/catch로 버틴다).
+// 선택을 실제로 기억하는지는 저장이 되는 오리진에서 따로 확인한다.
+const storedDom = new JSDOM(html, {
+  runScripts: "dangerously",
+  pretendToBeVisual: true,
+  url: "https://omok.test/app",
+  beforeParse(window) {
+    window.__OMOK_TEST_FAST__ = true;
+    window.scrollTo = () => {};
+    window.OmokAccount = { getStatus() {} };
+  },
+});
+const storedGate = storedDom.window.document.getElementById("accountGate");
+assert.ok(!storedGate.hidden, "the gate must open when no choice has been stored yet");
+storedDom.window.document.getElementById("gateGuestBtn").click();
+assert.strictEqual(storedDom.window.localStorage.getItem("omok-account-choice-v1"), "guest",
+  "the choice must be remembered so the gate is asked only once");
+
+const returningDom = new JSDOM(html, {
+  runScripts: "dangerously",
+  pretendToBeVisual: true,
+  url: "https://omok.test/app",
+  beforeParse(window) {
+    window.__OMOK_TEST_FAST__ = true;
+    window.scrollTo = () => {};
+    window.OmokAccount = { getStatus() {} };
+    window.localStorage.setItem("omok-account-choice-v1", "guest");
+  },
+});
+assert.ok(returningDom.window.document.getElementById("accountGate").hidden,
+  "a returning player must not be asked again");
+
+console.log("Omok Android layout checks passed (native shell, account gate, banner, compact battle mode)");
