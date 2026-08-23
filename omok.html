@@ -1166,6 +1166,25 @@
   }
   .item-note { min-height:20px; text-align:center; color:var(--muted); font-size:12px; }
 
+  /* 닉네임 정하기 — 로그인 직후와 온라인 진입 때 그 자리에서 뜬다 */
+  .nick-overlay { position:fixed; inset:0; z-index:62; display:grid; place-items:center; padding:20px; background:rgba(3,5,15,.9); }
+  .nick-overlay[hidden] { display:none; }
+  .nick-card {
+    width:min(100%,360px); padding:24px 20px; border:1px solid var(--border);
+    border-radius:16px; background:var(--panel); text-align:center; box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .nick-card .mark { font-size:30px; line-height:1; }
+  .nick-card h2 { margin:8px 0 6px; font-size:18px; }
+  .nick-card p { margin:0 0 14px; color:var(--muted); font-size:12.5px; line-height:1.6; word-break:keep-all; }
+  .nick-card input {
+    width:100%; min-height:48px; padding:0 13px; margin-bottom:10px;
+    border:1px solid var(--border); border-radius:11px; background:var(--panel2);
+    color:var(--text); font-size:17px; font-weight:800; text-align:center;
+  }
+  .nick-card .nick-hint { min-height:18px; margin:0 0 12px; color:var(--gold); font-size:12px; line-height:1.5; }
+  .nick-card .nick-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .nick-card .nick-actions .btn { width:100%; min-height:46px; }
+
   /* 온라인 대국 */
   .online-entry { display:flex; justify-content:center; margin:0 0 14px; }
   .online-entry .btn { min-height:44px; padding:0 18px; }
@@ -1963,6 +1982,20 @@
   </div>
 </div>
 
+<div class="nick-overlay" id="nickOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="nickTitle">
+  <div class="nick-card">
+    <div class="mark">🏷️</div>
+    <h2 id="nickTitle">닉네임 정하기</h2>
+    <p id="nickLead">명예의 전당과 온라인 대국에서 상대에게 보일 이름입니다.<br>2~12자로 정해 주세요.</p>
+    <input id="nickInput" type="text" maxlength="12" placeholder="예: 돌부처" autocomplete="off" spellcheck="false">
+    <p class="nick-hint" id="nickHint"></p>
+    <div class="nick-actions">
+      <button class="btn btn-ghost" id="nickLaterBtn" type="button">나중에</button>
+      <button class="btn btn-neon" id="nickSaveBtn" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="account-gate" id="accountGate" hidden role="dialog" aria-modal="true" aria-labelledby="accountGateTitle">
   <div class="gate-card">
     <div class="gate-mark">⚫</div>
@@ -1996,6 +2029,7 @@
         <button id="syncRecordsBtn" hidden>지금 동기화</button>
         <button id="accountSignOutBtn" hidden>로그아웃</button>
         <button class="danger" id="deleteAccountBtn" hidden>계정 삭제</button>
+        <button id="nickChangeBtn" hidden>닉네임 변경</button>
         <button id="privacyOptionsBtn" hidden>광고 개인정보 설정</button>
       </div>
     </section>
@@ -2407,6 +2441,13 @@
   const soundSettingEl = document.getElementById("soundSetting");
   const vibrationSettingEl = document.getElementById("vibrationSetting");
   const motionSettingEl = document.getElementById("motionSetting");
+  const nickOverlayEl = document.getElementById("nickOverlay");
+  const nickInputEl = document.getElementById("nickInput");
+  const nickHintEl = document.getElementById("nickHint");
+  const nickLeadEl = document.getElementById("nickLead");
+  const nickSaveBtn = document.getElementById("nickSaveBtn");
+  const nickLaterBtn = document.getElementById("nickLaterBtn");
+  const nickChangeBtn = document.getElementById("nickChangeBtn");
   const accountGateEl = document.getElementById("accountGate");
   const gateGoogleBtn = document.getElementById("gateGoogleBtn");
   const gateGuestBtn = document.getElementById("gateGuestBtn");
@@ -2739,6 +2780,7 @@
       accountStatusEl.textContent = "이 기기에 기록 저장 중";
       accountMessageEl.textContent = "Google 기록 백업은 Android 앱에서 사용할 수 있습니다.";
       googleSignInBtn.hidden = syncRecordsBtn.hidden = accountSignOutBtn.hidden = deleteAccountBtn.hidden = true;
+      nickChangeBtn.hidden = true;
       return;
     }
     const linked = accountState.signedIn && !accountState.anonymous;
@@ -2751,6 +2793,8 @@
         : "지금 기록은 유지됩니다. Google 계정을 연결하면 다른 기기에서도 이어할 수 있습니다.";
     }
     googleSignInBtn.hidden = linked;
+    nickChangeBtn.hidden = !linked;
+    nickChangeBtn.textContent = hasNickname() ? "닉네임 변경" : "닉네임 정하기";
     syncRecordsBtn.hidden = false;
     accountSignOutBtn.hidden = !linked;
     deleteAccountBtn.hidden = !linked;
@@ -4740,7 +4784,8 @@
     if (data.nickname) { hallState.nickname = data.nickname; writeNickname(data.nickname); }
     else if (!hallState.nickname) hallState.nickname = readNickname();
     renderGlobalHall();
-    if (hallState.linked) requestLeaderboard();
+    renderAccountUI();
+    if (hallState.linked) { requestLeaderboard(); maybeAskNickname(); }
   };
 
   window.onOmokLeaderboard = function (payload) {
@@ -4832,7 +4877,78 @@
     });
   }
 
-  hallPublishBtn.addEventListener("click", publishMyRecords);
+  /* 닉네임 창 — 필요한 자리에서 바로 뜬다.
+     "나중에"로 언제든 닫을 수 있다. 닫았다고 게임이 막히지는 않는다. */
+  let nickAfterSave = null;      // 저장 후 이어서 할 일 (온라인 진입 등)
+  let nickAskedThisSession = false;
+
+  function openNicknameDialog(lead, afterSave) {
+    if (!(accountState.signedIn && !accountState.anonymous)) {
+      window.setOmokAccountMessage("닉네임은 Google 계정을 연결한 뒤에 정할 수 있습니다.");
+      return false;
+    }
+    nickAfterSave = typeof afterSave === "function" ? afterSave : null;
+    nickLeadEl.innerHTML = lead || "명예의 전당과 온라인 대국에서 상대에게 보일 이름입니다.<br>2~12자로 정해 주세요.";
+    nickHintEl.textContent = "";
+    nickInputEl.value = hallState.nickname || readNickname() || "";
+    nickOverlayEl.hidden = false;
+    setTimeout(() => { try { nickInputEl.focus(); } catch (e) { } }, 30);
+    return true;
+  }
+
+  function closeNicknameDialog() {
+    nickOverlayEl.hidden = true;
+    nickAfterSave = null;
+  }
+
+  function saveNicknameFromDialog() {
+    const name = (nickInputEl.value || "").trim();
+    if (name.length < 2 || name.length > 12) {
+      nickHintEl.textContent = "닉네임은 2자 이상 12자 이하로 정해 주세요.";
+      return;
+    }
+    writeNickname(name);
+    hallState.nickname = name;
+    hallNickInputEl.value = name;
+    // 닉네임만 바뀌어도 순위표의 내 줄을 함께 갱신한다.
+    if (hallBridgeReady() && hallState.linked) {
+      try { window.OmokAccount.publishProfile(JSON.stringify(buildLeaderboardPayload(name))); }
+      catch (e) { /* 실패하면 다음 등록 때 올라간다 */ }
+    }
+    const next = nickAfterSave;
+    closeNicknameDialog();
+    renderGlobalHall();
+    renderAccountUI();
+    if (next) next();
+  }
+
+  function hasNickname() {
+    return ((hallState.nickname || readNickname() || "").trim().length >= 2);
+  }
+
+  // 계정을 막 연결했는데 이름이 없으면 그 자리에서 한 번 묻는다.
+  function maybeAskNickname() {
+    if (nickAskedThisSession) return;
+    if (!(accountState.signedIn && !accountState.anonymous)) return;
+    if (hasNickname()) return;
+    nickAskedThisSession = true;
+    openNicknameDialog("계정이 연결되었습니다.<br>명예의 전당과 온라인 대국에서 쓸 이름을 정해 주세요.");
+  }
+
+  nickSaveBtn.addEventListener("click", saveNicknameFromDialog);
+  nickLaterBtn.addEventListener("click", closeNicknameDialog);
+  nickInputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); saveNicknameFromDialog(); }
+  });
+  nickChangeBtn.addEventListener("click", () => openNicknameDialog());
+
+  hallPublishBtn.addEventListener("click", () => {
+    if (!(hallNickInputEl.value || "").trim()) {
+      openNicknameDialog(null, publishMyRecords);
+      return;
+    }
+    publishMyRecords();
+  });
   hallRefreshBtn.addEventListener("click", requestLeaderboard);
   [hallKindLevelBtn, hallKindTimeBtn].forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -5027,14 +5143,16 @@
     scrollTop();
   }
 
-  function requireOnlineNickname() {
-    const name = (hallState.nickname || readNickname() || "").trim();
-    if (name.length < 2) {
-      setOnlineStatus("먼저 기록실에서 닉네임을 정해 주세요. 상대에게 보일 이름입니다.");
-      return null;
-    }
+  function requireOnlineNickname(retry) {
     if (!(accountState.signedIn && !accountState.anonymous)) {
       setOnlineStatus("온라인 대국은 Google 계정을 연결한 뒤에 이용할 수 있습니다.");
+      return null;
+    }
+    const name = (hallState.nickname || readNickname() || "").trim();
+    if (name.length < 2) {
+      // 기록실까지 다녀오게 하지 않는다. 여기서 정하고 하던 일을 이어서 한다.
+      setOnlineStatus("");
+      openNicknameDialog("온라인 대국에서 상대에게 보일 이름입니다.<br>2~12자로 정해 주세요.", retry);
       return null;
     }
     return name;
@@ -5272,21 +5390,23 @@
 
   onlineEnterBtn.addEventListener("click", openOnlineLobby);
   onlineBackBtn.addEventListener("click", () => { leaveOnline(false); closeOnlineLobby(); });
-  onlineRandomBtn.addEventListener("click", () => {
-    const name = requireOnlineNickname();
+  function startRandomMatch() {
+    const name = requireOnlineNickname(startRandomMatch);
     if (!name) return;
     onlineInviteCodeEl.hidden = true;
     setOnlineStatus("상대를 찾는 중입니다…");
     window.OmokOnline.findRandom(name);
-  });
-  onlineInviteBtn.addEventListener("click", () => {
-    const name = requireOnlineNickname();
+  }
+  function startInviteRoom() {
+    const name = requireOnlineNickname(startInviteRoom);
     if (!name) return;
     setOnlineStatus("초대 방을 만드는 중입니다…");
     window.OmokOnline.createInvite(name);
-  });
-  onlineJoinBtn.addEventListener("click", () => {
-    const name = requireOnlineNickname();
+  }
+  onlineRandomBtn.addEventListener("click", startRandomMatch);
+  onlineInviteBtn.addEventListener("click", startInviteRoom);
+  onlineJoinBtn.addEventListener("click", function joinByCode() {
+    const name = requireOnlineNickname(joinByCode);
     if (!name) return;
     const code = (onlineCodeInputEl.value || "").trim().toUpperCase();
     if (code.length !== 6) { setOnlineStatus("초대 코드는 여섯 자리입니다."); return; }
@@ -5523,6 +5643,10 @@
 
   // Android 하드웨어/제스처 뒤로가기는 웹 화면의 상태를 먼저 정리한다.
   window.handleOmokAndroidBack = function () {
+    if (!nickOverlayEl.hidden) {
+      closeNicknameDialog();
+      return true;
+    }
     if (!settingsOverlayEl.hidden) {
       settingsOverlayEl.hidden = true;
       return true;
