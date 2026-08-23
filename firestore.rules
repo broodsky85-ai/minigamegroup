@@ -25,20 +25,44 @@ service cloud.firestore {
 
     // 명예의 전당(종합) — 로그인한 사람은 모두 볼 수 있고, 자기 줄만 고칠 수 있다.
     match /leaderboard/{userId} {
+      function summaryOk() {
+        return nicknameOk(request.resource.data.nickname)
+          && request.resource.data.maxLevel is int
+          && request.resource.data.maxLevel >= 0
+          && request.resource.data.maxLevel <= 30
+          && request.resource.data.clears is int
+          && request.resource.data.clears >= 0
+          && request.resource.data.clears <= 30
+          && request.resource.data.noItemClears is int
+          && request.resource.data.noItemClears >= 0
+          && request.resource.data.noItemClears <= 30;
+      }
+
+      // 온라인 등급. 판정이 클라이언트에 있는 동안에는 한 번에 크게 못 움직이게 막는다.
+      // Elo K=32라 정상적인 한 판은 32점을 넘지 않는다.
+      function ratingShapeOk() {
+        return !('rating' in request.resource.data) || (
+          request.resource.data.rating is number
+          && request.resource.data.rating >= 0
+          && request.resource.data.rating <= 4000
+        );
+      }
+
+      function ratingStepOk() {
+        return !('rating' in request.resource.data)
+          || !('rating' in resource.data)
+          || (
+            request.resource.data.rating - resource.data.rating <= 40
+            && resource.data.rating - request.resource.data.rating <= 40
+          );
+      }
+
       allow read: if isLinkedUser();
       allow delete: if isMe(userId);
-      allow write: if isMe(userId)
-        && isLinkedUser()
-        && nicknameOk(request.resource.data.nickname)
-        && request.resource.data.maxLevel is int
-        && request.resource.data.maxLevel >= 0
-        && request.resource.data.maxLevel <= 30
-        && request.resource.data.clears is int
-        && request.resource.data.clears >= 0
-        && request.resource.data.clears <= 30
-        && request.resource.data.noItemClears is int
-        && request.resource.data.noItemClears >= 0
-        && request.resource.data.noItemClears <= 30;
+      allow create: if isMe(userId) && isLinkedUser() && summaryOk() && ratingShapeOk()
+        && (!('rating' in request.resource.data) || request.resource.data.rating <= 1240);
+      allow update: if isMe(userId) && isLinkedUser() && summaryOk()
+        && ratingShapeOk() && ratingStepOk();
     }
 
     // 타임어택 — 단계별로 한 줄씩. 수와 시간은 사람이 낼 수 있는 범위 안이어야 한다.
@@ -118,10 +142,28 @@ service cloud.firestore {
           && request.resource.data.moves.size() == 0;
       }
 
+      /* 결과 신고는 각자 자기 칸에만 쓴다.
+         양쪽 신고가 맞아떨어질 때만 등급에 반영하므로, 남의 칸을 건드리지 못하게 막는다. */
+      function claimsOk() {
+        return request.resource.data.get('claims', {})
+          .diff(resource.data.get('claims', {}))
+          .affectedKeys()
+          .hasOnly([request.auth.uid]);
+      }
+
       // 판을 끝낸다 — 이겼거나, 졌다고 인정했거나, 상대가 시간을 넘겼거나.
       function isFinish() {
         return request.resource.data.status == 'done'
-          && historyKept();
+          && historyKept()
+          && claimsOk();
+      }
+
+      /* 이미 끝난 판에 내 결과만 뒤늦게 적는다.
+         claims 말고는 어떤 칸도 손대지 못한다 — 하나라도 더 바뀌면 거절된다.
+         (이 검사를 느슨하게 두면 "신고하는 척"하며 다른 칸을 고칠 수 있다.) */
+      function isClaimOnly() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claims'])
+          && claimsOk();
       }
 
       // 광고를 보는 동안 시계를 멈춘다. 판 자체는 하나도 건드리지 못한다.
@@ -142,13 +184,15 @@ service cloud.firestore {
         && request.resource.data.moves.size() == 0
         && request.resource.data.status == 'waiting'
         && nicknameOk(request.resource.data.hostName);
-      allow update: if resource.data.status != 'done'
-        && (
+      allow update: if
+        (resource.data.status != 'done' && (
           (isLinkedUser() && isJoin())
           || (joined() && historyKept() && isMyMove())
           || (joined() && isAdPause())
           || (joined() && isFinish())
-        );
+        ))
+        // 결과가 난 뒤에도 내 신고 한 줄은 남길 수 있다. 그래야 양쪽 합의가 성립한다.
+        || (joined() && isClaimOnly());
       allow delete: if joined() && resource.data.status != 'playing';
     }
   }

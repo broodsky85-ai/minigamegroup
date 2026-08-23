@@ -143,6 +143,44 @@ case("있을 수 없는 단계는 거절", "DENY", "create", "/leaderboard/" + A
 case("너무 짧은 닉네임은 거절", "DENY", "create", "/leaderboard/" + A, A,
      new_data={"nickname": "가", "maxLevel": 12, "clears": 11, "noItemClears": 2})
 
+# --- 등급 (Elo) ---
+mine = {"nickname": "알파", "maxLevel": 12, "clears": 11, "noItemClears": 2, "rating": 1200}
+
+case("등급을 한 판 몫만큼 올리기", "ALLOW", "update", "/leaderboard/" + A, A,
+     resource=mine, new_data={**mine, "rating": 1216})
+
+case("등급을 한 번에 크게 올리기", "DENY", "update", "/leaderboard/" + A, A,
+     resource=mine, new_data={**mine, "rating": 1900})
+
+case("등급을 한 번에 크게 내리기", "DENY", "update", "/leaderboard/" + A, A,
+     resource=mine, new_data={**mine, "rating": 800})
+
+case("높은 등급으로 새로 시작하기", "DENY", "create", "/leaderboard/" + A, A,
+     new_data={**mine, "rating": 2500})
+
+case("기본 등급으로 새로 시작하기", "ALLOW", "create", "/leaderboard/" + A, A,
+     new_data={**mine, "rating": 1200})
+
+# --- 결과 신고 (양쪽 합의) ---
+finished = {**playing, "status": "done", "winner": A, "endReason": "five",
+            "claims": {A: "win"}}
+
+case("끝난 판에 내 결과 신고하기", "ALLOW", "update", "/matches/m1", B,
+     resource=finished,
+     new_data={**finished, "claims": {A: "win", B: "lose"}})
+
+case("상대의 신고를 뜯어고치기", "DENY", "update", "/matches/m1", B,
+     resource=finished,
+     new_data={**finished, "claims": {A: "lose", B: "win"}})
+
+case("신고를 핑계로 승자 바꾸기", "DENY", "update", "/matches/m1", B,
+     resource=finished,
+     new_data={**finished, "winner": B, "claims": {A: "win", B: "lose"}})
+
+case("신고를 핑계로 끝난 판 되살리기", "DENY", "update", "/matches/m1", B,
+     resource=finished,
+     new_data={**finished, "status": "playing", "claims": {A: "win", B: "lose"}})
+
 # --- 기존 기록 백업이 그대로인지 ---
 case("내 기록 백업 쓰기", "ALLOW", "create", "/users/" + A + "/records/main", A,
      new_data={"snapshot": "{}"})
