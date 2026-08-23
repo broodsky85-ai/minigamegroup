@@ -1166,6 +1166,32 @@
   }
   .item-note { min-height:20px; text-align:center; color:var(--muted); font-size:12px; }
 
+  /* 전체 명예의 전당 */
+  .hall-global { margin-bottom:10px; }
+  .hall-note { margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.6; word-break:keep-all; }
+  .hall-note.warn { color:var(--gold); }
+  .hall-nick { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .hall-nick label { color:var(--muted); font-size:12px; font-weight:800; }
+  .hall-nick input {
+    flex:1 1 140px; min-width:0; min-height:40px; padding:0 11px;
+    border:1px solid var(--border); border-radius:9px; background:var(--panel2);
+    color:var(--text); font-size:14px; font-weight:700;
+  }
+  .hall-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .hall-kinds { display:flex; gap:6px; }
+  .hall-kind {
+    min-height:38px; padding:0 13px; border:1px solid var(--border); border-radius:9px;
+    background:var(--panel2); color:var(--muted); font-size:13px; font-weight:800; cursor:pointer;
+  }
+  .hall-kind.active { border-color:var(--gold); color:var(--gold); }
+  .hall-controls select {
+    min-height:38px; padding:0 9px; border:1px solid var(--border); border-radius:9px;
+    background:var(--panel2); color:var(--text); font-size:13px; font-weight:700;
+  }
+  .hall-controls [hidden], .hall-nick [hidden] { display:none; }
+  .records-table tr.me-row td { background:rgba(255,209,102,.1); color:var(--gold); font-weight:900; }
+  .hall-rank { width:52px; }
+
   /* 힌트로 추천된 자리 */
   .cell.suggest::before {
     content: "";
@@ -1744,6 +1770,30 @@
     <h3 class="section-title">🏛️ 개인 명예의 전당</h3>
     <div class="hall-grid" id="hallGrid"></div>
 
+    <h3 class="section-title">🏆 전체 명예의 전당</h3>
+    <div class="hall-global">
+      <p class="hall-note" id="hallNote"></p>
+      <div class="hall-nick" id="hallNickRow" hidden>
+        <label for="hallNickInput">닉네임</label>
+        <input id="hallNickInput" type="text" maxlength="12" placeholder="2~12자" autocomplete="off" spellcheck="false">
+        <button class="btn" id="hallPublishBtn">기록 올리기</button>
+      </div>
+      <div class="hall-controls" id="hallControls" hidden>
+        <div class="hall-kinds">
+          <button class="hall-kind active" id="hallKindLevel" data-kind="level" type="button">도달 단계</button>
+          <button class="hall-kind" id="hallKindTime" data-kind="time" type="button">타임어택</button>
+        </div>
+        <select id="hallLevelSelect" hidden aria-label="타임어택 단계"></select>
+        <button class="btn btn-ghost" id="hallRefreshBtn" type="button">새로고침</button>
+      </div>
+      <div class="table-wrap" id="hallTableWrap" hidden>
+        <table class="records-table">
+          <thead id="hallHead"></thead>
+          <tbody id="hallBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <h3 class="section-title">📋 단계별 기록</h3>
     <div class="table-wrap">
       <table class="records-table">
@@ -2245,6 +2295,18 @@
   const futureCountEl = document.getElementById("futureCount");
   const itemNoteEl = document.getElementById("itemNote");
   const hallGridEl = document.getElementById("hallGrid");
+  const hallNoteEl = document.getElementById("hallNote");
+  const hallNickRowEl = document.getElementById("hallNickRow");
+  const hallNickInputEl = document.getElementById("hallNickInput");
+  const hallPublishBtn = document.getElementById("hallPublishBtn");
+  const hallControlsEl = document.getElementById("hallControls");
+  const hallKindLevelBtn = document.getElementById("hallKindLevel");
+  const hallKindTimeBtn = document.getElementById("hallKindTime");
+  const hallLevelSelectEl = document.getElementById("hallLevelSelect");
+  const hallRefreshBtn = document.getElementById("hallRefreshBtn");
+  const hallTableWrapEl = document.getElementById("hallTableWrap");
+  const hallHeadEl = document.getElementById("hallHead");
+  const hallBodyEl = document.getElementById("hallBody");
   const settingsBtn = document.getElementById("settingsBtn");
   const settingsOverlayEl = document.getElementById("settingsOverlay");
   const settingsCloseBtn = document.getElementById("settingsCloseBtn");
@@ -2605,6 +2667,11 @@
     delete accountMessageEl.dataset.custom;
     renderAccountUI();
     maybeShowAccountGate();
+    hallState.linked = !!(accountState.signedIn && !accountState.anonymous);
+    if (hallState.linked && window.OmokAccount && typeof window.OmokAccount.fetchProfile === "function") {
+      try { window.OmokAccount.fetchProfile(); } catch (e) { /* 구버전 앱은 순위를 모른다 */ }
+    }
+    renderGlobalHall();
   };
 
   window.setOmokAccountMessage = function (message) {
@@ -4442,6 +4509,7 @@
     cards.push(["무아이템 클리어", noItemClears + "명", noItemClears > 0]);
     cards.push(["총 전적", totalWins + "승 / " + totalGames + "판", false]);
     renderHallOfFame(cleared, totalWins, noItemClears);
+    renderGlobalHall();
 
     summaryGridEl.innerHTML = "";
     for (const [k, v, gold] of cards) {
@@ -4497,6 +4565,187 @@
       recordsBodyEl.appendChild(tr);
     });
   }
+
+  /* ---------- 전체 명예의 전당 ----------
+     여기 보이는 숫자는 전부 서버에서 받은 실제 기록이다. 지어낸 비율이나 추정치를 넣지 말 것.
+     게스트는 순위에 오르지 않는다 — 보안 규칙도 같은 조건이라 서버가 거절한다. */
+  const NICKNAME_KEY = "omok-nickname-v1";
+  const hallState = { linked: false, nickname: "", kind: "level", level: 1, rows: [], loading: false, note: "", ok: true };
+
+  function readNickname() {
+    try { return localStorage.getItem(NICKNAME_KEY) || ""; } catch (e) { return ""; }
+  }
+  function writeNickname(name) {
+    try { localStorage.setItem(NICKNAME_KEY, name); } catch (e) { /* 저장이 막혀도 이번 실행에는 쓴다 */ }
+  }
+
+  // 최단 시간을 낸 판의 착수 수를 함께 올린다. 다른 판의 최소 수를 섞으면 없는 기록이 된다.
+  function bestTimeWin(level) {
+    const wins = getStats(level).wins;
+    let best = null;
+    for (const w of wins) {
+      if (best === null || w.seconds < best.seconds) best = w;
+    }
+    return best;
+  }
+
+  function buildLeaderboardPayload(nickname) {
+    let clears = 0, noItemClears = 0, maxLevel = 0;
+    const levels = {};
+    for (let level = 1; level <= LEVELS.length; level++) {
+      const s = summarize(level);
+      if (s.wins > 0) { clears++; maxLevel = Math.max(maxLevel, level); }
+      if (s.bestNoItemMoves !== null) noItemClears++;
+      const best = bestTimeWin(level);
+      if (best) levels[String(level)] = { seconds: best.seconds, moves: best.moves };
+    }
+    return { nickname: nickname, maxLevel: maxLevel, clears: clears, noItemClears: noItemClears, levels: levels };
+  }
+
+  function hallBridgeReady() {
+    return !!(window.OmokAccount && typeof window.OmokAccount.fetchLeaderboard === "function");
+  }
+
+  function requestLeaderboard() {
+    if (!hallBridgeReady() || !hallState.linked) return;
+    hallState.loading = true;
+    hallState.note = "순위를 불러오는 중입니다…";
+    renderGlobalHall();
+    try { window.OmokAccount.fetchLeaderboard(hallState.kind, hallState.level); }
+    catch (e) { hallState.loading = false; hallState.note = "순위를 불러오지 못했습니다."; renderGlobalHall(); }
+  }
+
+  function publishMyRecords() {
+    const name = (hallNickInputEl.value || "").trim();
+    if (name.length < 2 || name.length > 12) {
+      hallState.note = "닉네임은 2자 이상 12자 이하로 정해 주세요.";
+      renderGlobalHall();
+      return;
+    }
+    if (!hallBridgeReady() || !hallState.linked) {
+      hallState.note = "Google 계정을 연결한 뒤에 기록을 올릴 수 있습니다.";
+      renderGlobalHall();
+      return;
+    }
+    writeNickname(name);
+    hallState.nickname = name;
+    hallState.note = "기록을 올리는 중입니다…";
+    renderGlobalHall();
+    try { window.OmokAccount.publishProfile(JSON.stringify(buildLeaderboardPayload(name))); }
+    catch (e) { hallState.note = "기록을 올리지 못했습니다."; renderGlobalHall(); }
+  }
+
+  window.onOmokProfile = function (payload) {
+    const data = payload || {};
+    hallState.linked = !!data.linked;
+    if (data.nickname) { hallState.nickname = data.nickname; writeNickname(data.nickname); }
+    else if (!hallState.nickname) hallState.nickname = readNickname();
+    renderGlobalHall();
+    if (hallState.linked) requestLeaderboard();
+  };
+
+  window.onOmokLeaderboard = function (payload) {
+    const data = payload || {};
+    hallState.loading = false;
+    hallState.ok = data.ok !== false;
+    hallState.rows = Array.isArray(data.rows) ? data.rows : [];
+    if (data.kind) hallState.kind = data.kind === "time" ? "time" : "level";
+    if (data.level) hallState.level = Number(data.level) || hallState.level;
+    if (data.reason === "guest") hallState.note = "Google 계정을 연결하면 순위를 볼 수 있습니다.";
+    else if (!hallState.ok) hallState.note = "순위를 불러오지 못했습니다. 네트워크를 확인해 주세요.";
+    else if (!hallState.rows.length) hallState.note = "아직 올라온 기록이 없습니다. 첫 기록의 주인이 되어 보세요.";
+    else hallState.note = "";
+    renderGlobalHall();
+  };
+
+  function fillHallLevelSelect() {
+    if (hallLevelSelectEl.options.length === LEVELS.length) return;
+    hallLevelSelectEl.innerHTML = "";
+    LEVELS.forEach((lv, i) => {
+      const option = document.createElement("option");
+      option.value = String(i + 1);
+      option.textContent = (i + 1) + "단계 · " + lv.name;
+      hallLevelSelectEl.appendChild(option);
+    });
+    hallLevelSelectEl.value = String(hallState.level);
+  }
+
+  function renderGlobalHall() {
+    // 계정 기능이 없는 웹에서는 순위 자체가 없다.
+    if (!accountState.native || !hallBridgeReady()) {
+      hallNoteEl.textContent = "전체 명예의 전당은 Android 앱에서 볼 수 있습니다.";
+      hallNoteEl.className = "hall-note";
+      hallNickRowEl.hidden = hallControlsEl.hidden = hallTableWrapEl.hidden = true;
+      return;
+    }
+    if (!hallState.linked) {
+      hallNoteEl.textContent = "Google 계정을 연결하면 닉네임으로 다른 도전자들과 겨룰 수 있습니다. 설정에서 연결할 수 있습니다.";
+      hallNoteEl.className = "hall-note";
+      hallNickRowEl.hidden = hallControlsEl.hidden = hallTableWrapEl.hidden = true;
+      return;
+    }
+
+    fillHallLevelSelect();
+    hallNickRowEl.hidden = false;
+    hallControlsEl.hidden = false;
+    if (document.activeElement !== hallNickInputEl) hallNickInputEl.value = hallState.nickname;
+    hallPublishBtn.textContent = hallState.nickname ? "기록 올리기" : "닉네임 정하고 올리기";
+    hallKindLevelBtn.classList.toggle("active", hallState.kind === "level");
+    hallKindTimeBtn.classList.toggle("active", hallState.kind === "time");
+    hallLevelSelectEl.hidden = hallState.kind !== "time";
+    hallRefreshBtn.disabled = hallState.loading;
+
+    hallNoteEl.textContent = hallState.note;
+    hallNoteEl.className = "hall-note" + (hallState.ok ? "" : " warn");
+
+    hallTableWrapEl.hidden = hallState.rows.length === 0;
+    hallHeadEl.innerHTML = "";
+    hallBodyEl.innerHTML = "";
+    if (!hallState.rows.length) return;
+
+    const columns = hallState.kind === "time"
+      ? ["순위", "닉네임", "기록", "수"]
+      : ["순위", "닉네임", "도달", "클리어", "무아이템"];
+    const headRow = document.createElement("tr");
+    columns.forEach((label, i) => {
+      const th = document.createElement("th");
+      th.textContent = label;
+      if (i === 0) th.className = "hall-rank";
+      else if (i >= 2) th.className = "num";
+      headRow.appendChild(th);
+    });
+    hallHeadEl.appendChild(headRow);
+
+    hallState.rows.forEach((row, index) => {
+      const tr = document.createElement("tr");
+      if (row.me) tr.className = "me-row";
+      const values = hallState.kind === "time"
+        ? [String(index + 1), row.nickname || "—", formatTime(Math.round(Number(row.seconds) || 0)), (row.moves || 0) + "수"]
+        : [String(index + 1), row.nickname || "—", (row.maxLevel || 0) + "단계", (row.clears || 0) + "명", (row.noItemClears || 0) + "명"];
+      values.forEach((text, i) => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        if (i === 0) td.className = "hall-rank";
+        else if (i >= 2) td.className = "num";
+        tr.appendChild(td);
+      });
+      hallBodyEl.appendChild(tr);
+    });
+  }
+
+  hallPublishBtn.addEventListener("click", publishMyRecords);
+  hallRefreshBtn.addEventListener("click", requestLeaderboard);
+  [hallKindLevelBtn, hallKindTimeBtn].forEach((btn) => {
+    btn.addEventListener("click", () => {
+      hallState.kind = btn.dataset.kind;
+      renderGlobalHall();
+      requestLeaderboard();
+    });
+  });
+  hallLevelSelectEl.addEventListener("change", () => {
+    hallState.level = Number(hallLevelSelectEl.value) || 1;
+    requestLeaderboard();
+  });
 
   function renderHallOfFame(cleared, totalWins, noItemClears) {
     const titles = [
@@ -5032,6 +5281,7 @@
   renderAccountUI();
   if (window.OmokAccount && window.OmokAccount.getStatus) window.OmokAccount.getStatus();
   maybeShowAccountGate();
+  hallState.nickname = readNickname();
   updateBannerVisibility();
   setupPwa();
   renderChallengeCopy();
