@@ -107,6 +107,41 @@ assert.match(rules, /match \/levelRanks\/\{level\}\/entries\/\{userId\}/,
 assert.match(rules, /match \/users\/\{userId\}\/records\/\{recordId\}/,
   "the existing private record backup must keep working");
 
+// ---- 온라인 대국 ----
+const online = read("android", "app", "src", "main", "java", "com", "broodsky85", "omokchallenge", "OnlineMatch.java");
+assert.match(activity, /@JavascriptInterface\s+public void findRandom\(String nickname\)/,
+  "Android bridge must expose random matchmaking");
+assert.match(activity, /@JavascriptInterface\s+public void createInvite\(String nickname\)/,
+  "Android bridge must expose friend invites");
+assert.match(activity, /@JavascriptInterface\s+public void joinInvite\(String code, String nickname\)/,
+  "Android bridge must let a friend join by code");
+assert.match(activity, /@JavascriptInterface\s+public void move\(int r, int c\)/,
+  "Android bridge must relay a stone to the server");
+assert.match(html, /window\.onOmokMatchState\s*=\s*function/, "the game must receive live match state");
+assert.match(html, /window\.onOmokMatchMessage\s*=\s*function/, "the game must receive match messages");
+assert.match(html, /window\.OmokOnline && typeof window\.OmokOnline\.findRandom === "function"/,
+  "the online bridge must be guarded so the web build keeps working");
+
+// 광고를 보는 동안에는 내 시계가 멈춰야 한다. 광고를 볼수록 불리하면 아무도 보지 않는다.
+assert.match(activity, /onlineMatch\.beginAdPause\(\)/, "watching a rewarded ad must pause the online clock");
+assert.match(activity, /pausedForAd && onlineMatch != null\) onlineMatch\.endAdPause\(\)/,
+  "the clock must resume once the ad is over");
+assert.match(online, /AD_PAUSE_LIMIT = 3/, "ad pauses must be capped so nobody stalls forever");
+assert.match(online, /TURN_SECONDS = 60/, "a turn must give 60 seconds");
+assert.match(online, /myAdPauses >= AD_PAUSE_LIMIT/, "the cap must actually be checked");
+
+// 온라인에서는 되돌리기가 없다 — 상대가 이미 본 수다.
+assert.match(html, /type !== "undo" \|\| \(!online && history\.length >= 2\)/,
+  "undo must be unavailable in an online match");
+
+assert.match(rules, /match \/matches\/\{matchId\}/, "security rules must cover online matches");
+assert.match(rules, /match \/matchQueue\/\{userId\}/, "security rules must cover the matchmaking queue");
+assert.match(rules, /match \/invites\/\{code\}/, "security rules must cover invite codes");
+assert.match(rules, /resource\.data\.turn == request\.auth\.uid/,
+  "security rules must reject a stone played out of turn");
+assert.match(rules, /moves\[0:resource\.data\.moves\.size\(\)\] == resource\.data\.moves/,
+  "security rules must keep already-played stones from being rewritten");
+
 assert.match(manifest, /\$\{admobAppId\}/, "manifest must use the build-specific AdMob app ID");
 assert.match(manifest, /android\.permission\.INTERNET/, "ads require internet permission");
 assert.match(build, /play-services-ads:25\.4\.0/, "Google Mobile Ads dependency must be pinned");

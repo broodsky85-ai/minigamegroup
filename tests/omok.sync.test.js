@@ -47,6 +47,7 @@ assert.ok(dom.window.document.getElementById("accountGate").hidden,
 const bannerCalls = [];
 const leaderboardCalls = [];
 const publishCalls = [];
+const onlineCalls = [];
 const nativeDom = new JSDOM(html, {
   runScripts: "dangerously",
   pretendToBeVisual: true,
@@ -61,6 +62,15 @@ const nativeDom = new JSDOM(html, {
       publishProfile(json) { publishCalls.push(json); },
     };
     window.OmokAds = { setBannerVisible(visible) { bannerCalls.push(visible); } };
+    window.OmokOnline = {
+      findRandom(nickname) { onlineCalls.push(["findRandom", nickname]); },
+      createInvite(nickname) { onlineCalls.push(["createInvite", nickname]); },
+      joinInvite(code, nickname) { onlineCalls.push(["joinInvite", code, nickname]); },
+      move(r, c) { onlineCalls.push(["move", r, c]); },
+      finish(winner, reason) { onlineCalls.push(["finish", winner, reason]); },
+      claimTimeout() { onlineCalls.push(["claimTimeout"]); },
+      leave() { onlineCalls.push(["leave"]); },
+    };
   },
 });
 const nativeDom_window = nativeDom.window;
@@ -198,5 +208,95 @@ assert.match(nativeDoc.getElementById("hallNote").textContent, /아직 올라온
   "an empty leaderboard must say so plainly");
 
 console.log("Omok hall of fame checks passed (guest gate, server rows only, time attack)");
+
+// ---- 온라인 대국 ----
+// 웹에는 온라인이 없다.
+assert.ok(dom.window.document.getElementById("onlineEnterBtn"), "the entry button exists everywhere");
+
+// 계정을 연결하고 닉네임이 있어야 시작할 수 있다.
+nativeDoc.querySelector('.tab-btn[data-tab="game"]').click();
+nativeDoc.getElementById("onlineEnterBtn").click();
+assert.ok(nativeDoc.getElementById("onlineView").classList.contains("active"),
+  "the online lobby must open");
+assert.strictEqual(bannerCalls.pop(), false, "the online lobby is not one of the banner screens");
+
+onlineCalls.length = 0;
+nativeDom_window.onOmokAccountChanged({ signedIn: true, anonymous: true, name: "", email: "" });
+nativeDoc.getElementById("onlineRandomBtn").click();
+assert.strictEqual(onlineCalls.length, 0, "a guest must not be able to start an online match");
+assert.match(nativeDoc.getElementById("onlineStatus").textContent, /Google 계정/,
+  "a guest must be told why online play is unavailable");
+
+nativeDom_window.onOmokAccountChanged({ signedIn: true, anonymous: false, name: "테스터", email: "" });
+nativeDom_window.onOmokProfile({ linked: true, nickname: "돌부처", ok: true });
+nativeDoc.getElementById("onlineRandomBtn").click();
+assert.deepStrictEqual(onlineCalls.pop(), ["findRandom", "돌부처"],
+  "random matchmaking must carry my nickname");
+nativeDoc.getElementById("onlineInviteBtn").click();
+assert.deepStrictEqual(onlineCalls.pop(), ["createInvite", "돌부처"], "invites must carry my nickname");
+
+// 코드는 여섯 자리여야 한다.
+onlineCalls.length = 0;
+nativeDoc.getElementById("onlineCodeInput").value = "AB1";
+nativeDoc.getElementById("onlineJoinBtn").click();
+assert.strictEqual(onlineCalls.length, 0, "a short invite code must not be sent");
+nativeDoc.getElementById("onlineCodeInput").value = "abc123";
+nativeDoc.getElementById("onlineJoinBtn").click();
+assert.deepStrictEqual(onlineCalls.pop(), ["joinInvite", "ABC123", "돌부처"],
+  "invite codes must be sent in upper case");
+
+// 대국이 시작되면 보드로 넘어간다.
+const started = {
+  phase: "playing", myColor: "black", myTurn: true, opponent: "번개",
+  turnSeconds: 60, adPauseLeft: 3, adPaused: null,
+  turnStartedAt: Date.now(), now: Date.now(), moves: [],
+};
+nativeDom_window.onOmokMatchState(started);
+assert.ok(nativeDoc.getElementById("battleView").classList.contains("active"),
+  "an online match must open the board");
+assert.ok(!nativeDoc.getElementById("onlineBar").hidden, "the online bar must show who I am playing");
+assert.match(nativeDoc.getElementById("onlineWho").textContent, /번개/, "the opponent name must show");
+assert.strictEqual(bannerCalls.pop(), false, "the banner must stay down during an online match");
+
+// 온라인에서는 되돌리기를 쓸 수 없다.
+assert.ok(nativeDoc.getElementById("undoBtn").disabled, "undo must be disabled online");
+
+// 내 차례에 두면 서버로 보낸다. 화면은 서버가 준 수순으로만 그린다.
+onlineCalls.length = 0;
+nativeDoc.querySelector('.cell[data-r="7"][data-c="7"]').click();
+assert.deepStrictEqual(onlineCalls.pop(), ["move", 7, 7], "my stone must be sent to the server");
+assert.strictEqual(nativeDoc.querySelectorAll("#board .stone").length, 0,
+  "the board must wait for the server instead of drawing the stone locally");
+
+// 서버가 수순을 돌려주면 그때 그린다.
+nativeDom_window.onOmokMatchState({
+  ...started, myTurn: false,
+  moves: [{ r: 7, c: 7, mine: true }],
+});
+assert.strictEqual(nativeDoc.querySelectorAll("#board .stone").length, 1,
+  "the server's move list must be drawn");
+
+// 상대 차례에는 둘 수 없다.
+onlineCalls.length = 0;
+nativeDoc.querySelector('.cell[data-r="8"][data-c="8"]').click();
+assert.strictEqual(onlineCalls.length, 0, "I must not be able to play on my opponent's turn");
+
+// 광고를 보는 동안에는 시계가 멈췄다고 알린다.
+nativeDom_window.onOmokMatchState({
+  ...started, myTurn: false, adPaused: "opponent",
+  moves: [{ r: 7, c: 7, mine: true }],
+});
+assert.match(nativeDoc.getElementById("onlineClock").textContent, /광고/,
+  "a paused clock must say the opponent is watching an ad");
+
+// 판이 끝나면 결과가 뜬다.
+nativeDom_window.onOmokMatchState({
+  ...started, phase: "done", result: "win", endReason: "resign",
+  moves: [{ r: 7, c: 7, mine: true }],
+});
+assert.match(nativeDoc.getElementById("turnInfo").textContent, /승리/, "the result must be shown");
+assert.match(nativeDoc.getElementById("turnInfo").textContent, /기권/, "the reason must be shown");
+
+console.log("Omok online match checks passed (guest gate, invite codes, server-driven board, ad pause)");
 
 console.log("Omok Android layout checks passed (native shell, account gate, banner, compact battle mode)");
