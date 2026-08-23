@@ -1220,6 +1220,13 @@
   .online-clock.urgent { color:#fb7185; }
   .online-clock.paused { color:var(--gold); font-size:13px; }
   .online-bar .btn { min-height:34px; padding:0 12px; font-size:12px; }
+  .tier-badge {
+    display:inline-block; padding:2px 8px; margin-right:6px; border-radius:999px;
+    border:1px solid var(--gold); color:var(--gold); font-size:10.5px; font-weight:900;
+    vertical-align:middle; white-space:nowrap;
+  }
+  .online-mine { width:100%; margin:0 0 12px; text-align:center; color:var(--muted); font-size:12.5px; }
+  .online-mine .rating-num { color:var(--text); font-weight:900; }
 
   /* 전체 명예의 전당 */
   .hall-global { margin-bottom:10px; }
@@ -1765,6 +1772,8 @@
         <button class="btn btn-ghost" id="onlineBackBtn" type="button">← 상대 선택</button>
       </div>
 
+      <p class="online-mine" id="onlineMine"></p>
+
       <div class="online-card">
         <h3>🎲 아무나와 겨루기</h3>
         <p>기다리는 사람이 있으면 바로 이어지고, 없으면 상대가 올 때까지 기다립니다.</p>
@@ -1879,6 +1888,7 @@
       <div class="hall-controls" id="hallControls" hidden>
         <div class="hall-kinds">
           <button class="hall-kind active" id="hallKindLevel" data-kind="level" type="button">도달 단계</button>
+          <button class="hall-kind" id="hallKindRating" data-kind="rating" type="button">온라인 등급</button>
           <button class="hall-kind" id="hallKindTime" data-kind="time" type="button">타임어택</button>
         </div>
         <select id="hallLevelSelect" hidden aria-label="타임어택 단계"></select>
@@ -2415,6 +2425,7 @@
   const onlineInviteCodeEl = document.getElementById("onlineInviteCode");
   const onlineCodeInputEl = document.getElementById("onlineCodeInput");
   const onlineJoinBtn = document.getElementById("onlineJoinBtn");
+  const onlineMineEl = document.getElementById("onlineMine");
   const onlineStatusEl = document.getElementById("onlineStatus");
   const onlineCancelWrap = document.getElementById("onlineCancelWrap");
   const onlineCancelBtn = document.getElementById("onlineCancelBtn");
@@ -2429,6 +2440,7 @@
   const hallPublishBtn = document.getElementById("hallPublishBtn");
   const hallControlsEl = document.getElementById("hallControls");
   const hallKindLevelBtn = document.getElementById("hallKindLevel");
+  const hallKindRatingBtn = document.getElementById("hallKindRating");
   const hallKindTimeBtn = document.getElementById("hallKindTime");
   const hallLevelSelectEl = document.getElementById("hallLevelSelect");
   const hallRefreshBtn = document.getElementById("hallRefreshBtn");
@@ -4712,6 +4724,24 @@
   /* ---------- 전체 명예의 전당 ----------
      여기 보이는 숫자는 전부 서버에서 받은 실제 기록이다. 지어낸 비율이나 추정치를 넣지 말 것.
      게스트는 순위에 오르지 않는다 — 보안 규칙도 같은 조건이라 서버가 거절한다. */
+  /* 온라인 등급은 Elo 점수 하나로 관리하고, 보여줄 때만 이름을 붙인다.
+     점수를 바꾸지 않고 이름만 손보고 싶을 때 이 표만 고치면 된다. */
+  const TIERS = [
+    { min: 2000, name: "신선" },
+    { min: 1800, name: "국수" },
+    { min: 1600, name: "명인" },
+    { min: 1400, name: "고수" },
+    { min: 1200, name: "숙련자" },
+    { min: 1000, name: "도전자" },
+    { min: 0,    name: "견습" },
+  ];
+  function tierName(rating) {
+    const score = Number(rating);
+    if (!Number.isFinite(score)) return "견습";
+    for (const tier of TIERS) if (score >= tier.min) return tier.name;
+    return "견습";
+  }
+
   const NICKNAME_KEY = "omok-nickname-v1";
   const hallState = { linked: false, nickname: "", kind: "level", level: 1, rows: [], loading: false, note: "", ok: true };
 
@@ -4835,6 +4865,7 @@
     if (document.activeElement !== hallNickInputEl) hallNickInputEl.value = hallState.nickname;
     hallPublishBtn.textContent = hallState.nickname ? "기록 올리기" : "닉네임 정하고 올리기";
     hallKindLevelBtn.classList.toggle("active", hallState.kind === "level");
+    hallKindRatingBtn.classList.toggle("active", hallState.kind === "rating");
     hallKindTimeBtn.classList.toggle("active", hallState.kind === "time");
     hallLevelSelectEl.hidden = hallState.kind !== "time";
     hallRefreshBtn.disabled = hallState.loading;
@@ -4849,7 +4880,9 @@
 
     const columns = hallState.kind === "time"
       ? ["순위", "닉네임", "기록", "수"]
-      : ["순위", "닉네임", "도달", "클리어", "무아이템"];
+      : hallState.kind === "rating"
+        ? ["순위", "닉네임", "등급", "점수"]
+        : ["순위", "닉네임", "도달", "클리어", "무아이템"];
     const headRow = document.createElement("tr");
     columns.forEach((label, i) => {
       const th = document.createElement("th");
@@ -4865,7 +4898,9 @@
       if (row.me) tr.className = "me-row";
       const values = hallState.kind === "time"
         ? [String(index + 1), row.nickname || "—", formatTime(Math.round(Number(row.seconds) || 0)), (row.moves || 0) + "수"]
-        : [String(index + 1), row.nickname || "—", (row.maxLevel || 0) + "단계", (row.clears || 0) + "명", (row.noItemClears || 0) + "명"];
+        : hallState.kind === "rating"
+          ? [String(index + 1), row.nickname || "—", tierName(row.rating), String(Math.round(Number(row.rating) || 0))]
+          : [String(index + 1), row.nickname || "—", (row.maxLevel || 0) + "단계", (row.clears || 0) + "명", (row.noItemClears || 0) + "명"];
       values.forEach((text, i) => {
         const td = document.createElement("td");
         td.textContent = text;
@@ -4950,7 +4985,7 @@
     publishMyRecords();
   });
   hallRefreshBtn.addEventListener("click", requestLeaderboard);
-  [hallKindLevelBtn, hallKindTimeBtn].forEach((btn) => {
+  [hallKindLevelBtn, hallKindRatingBtn, hallKindTimeBtn].forEach((btn) => {
     btn.addEventListener("click", () => {
       hallState.kind = btn.dataset.kind;
       renderGlobalHall();
@@ -5109,6 +5144,9 @@
     turnSeconds: ONLINE_TURN_SECONDS,
     adPaused: null,       // null / "me" / "opponent"
     adPauseLeft: 3,
+    myRating: 1200,
+    opponentRating: 1200,
+    ranked: true,         // 친구 초대전은 등급에 반영되지 않는다
     result: null,
     endReason: null,
     reportedWin: false,   // 같은 판을 두 번 신고하지 않는다
@@ -5132,6 +5170,7 @@
     battleView.classList.remove("active");
     onlineView.classList.add("active");
     document.body.classList.remove("battle-active");
+    renderOnlineMine();
     updateBannerVisibility();
     scrollTop();
   }
@@ -5260,6 +5299,22 @@
     }
   }
 
+  function renderOnlineMine() {
+    if (!onlineMineEl) return;
+    const tier = tierName(onlineState.myRating);
+    onlineMineEl.innerHTML = "";
+    const badge = document.createElement("span");
+    badge.className = "tier-badge";
+    badge.textContent = tier;
+    onlineMineEl.appendChild(badge);
+    const score = document.createElement("span");
+    score.className = "rating-num";
+    score.textContent = Math.round(onlineState.myRating) + "점";
+    onlineMineEl.appendChild(score);
+    onlineMineEl.appendChild(document.createTextNode(
+      " · 비슷한 등급을 먼저 찾고, 없으면 기다리는 분과 바로 붙습니다"));
+  }
+
   function renderOnlineBar() {
     const colorLabel = onlineState.myColor === "black" ? "흑 선공" : "백 후공";
     const turnLabel = onlineState.phase !== "playing" ? ""
@@ -5269,8 +5324,13 @@
     tag.className = "tag";
     tag.textContent = colorLabel;
     onlineWhoEl.appendChild(tag);
+    // 상대 등급을 함께 보여준다. 초대전은 등급이 걸리지 않으므로 그렇다고 알린다.
+    const tier = document.createElement("span");
+    tier.className = "tier-badge";
+    tier.textContent = tierName(onlineState.opponentRating);
+    onlineWhoEl.appendChild(tier);
     onlineWhoEl.appendChild(document.createTextNode(
-      (onlineState.opponent || "상대") + turnLabel));
+      (onlineState.opponent || "상대") + turnLabel + (onlineState.ranked ? "" : " · 연습")));
   }
 
   // 마지막 수로 승패를 가린다. 내가 이겼으면 내가 신고한다.
@@ -5321,6 +5381,10 @@
     if (data.phase) onlineState.phase = data.phase;
     if (typeof data.turnSeconds === "number") onlineState.turnSeconds = data.turnSeconds;
     if (typeof data.adPauseLeft === "number") onlineState.adPauseLeft = data.adPauseLeft;
+    if (typeof data.myRating === "number") onlineState.myRating = data.myRating;
+    if (typeof data.opponentRating === "number") onlineState.opponentRating = data.opponentRating;
+    if (typeof data.ranked === "boolean") onlineState.ranked = data.ranked;
+    renderOnlineMine();
     if (typeof data.inviteCode === "string") onlineState.inviteCode = data.inviteCode;
     if (data.message) setOnlineStatus(data.message);
 
