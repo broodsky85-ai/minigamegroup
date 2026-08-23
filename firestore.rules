@@ -124,6 +124,16 @@ service cloud.firestore {
           && historyKept();
       }
 
+      // 광고를 보는 동안 시계를 멈춘다. 판 자체는 하나도 건드리지 못한다.
+      function isAdPause() {
+        return resource.data.status == 'playing'
+          && request.resource.data.status == 'playing'
+          && request.resource.data.moves == resource.data.moves
+          && request.resource.data.turn == resource.data.turn
+          && request.resource.data.players == resource.data.players
+          && request.resource.data.adPausedBy == request.auth.uid;
+      }
+
       allow read: if joined()
         || (isLinkedUser() && resource.data.status == 'waiting');
       allow create: if isLinkedUser()
@@ -136,6 +146,7 @@ service cloud.firestore {
         && (
           (isLinkedUser() && isJoin())
           || (joined() && historyKept() && isMyMove())
+          || (joined() && isAdPause())
           || (joined() && isFinish())
         );
       allow delete: if joined() && resource.data.status != 'playing';
