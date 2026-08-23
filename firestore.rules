@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 게스트(익명 로그인)는 기록 백업만 되고 공개 순위에는 오르지 않는다.
+    // 게스트(익명 로그인)는 기록 백업만 되고 공개 순위·온라인 대국에는 참여하지 않는다.
     // 닉네임으로 겨루는 자리라 계정을 실제로 연결한 사람만 쓸 수 있다.
     function isLinkedUser() {
       return request.auth != null
@@ -12,6 +12,10 @@ service cloud.firestore {
 
     function isMe(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+
+    function nicknameOk(name) {
+      return name is string && name.size() >= 2 && name.size() <= 12;
     }
 
     // 내 기록 백업 — 예전부터 있던 자리. 본인만 읽고 쓴다.
@@ -25,9 +29,7 @@ service cloud.firestore {
       allow delete: if isMe(userId);
       allow write: if isMe(userId)
         && isLinkedUser()
-        && request.resource.data.nickname is string
-        && request.resource.data.nickname.size() >= 2
-        && request.resource.data.nickname.size() <= 12
+        && nicknameOk(request.resource.data.nickname)
         && request.resource.data.maxLevel is int
         && request.resource.data.maxLevel >= 0
         && request.resource.data.maxLevel <= 30
@@ -45,15 +47,98 @@ service cloud.firestore {
       allow delete: if isMe(userId);
       allow write: if isMe(userId)
         && isLinkedUser()
-        && request.resource.data.nickname is string
-        && request.resource.data.nickname.size() >= 2
-        && request.resource.data.nickname.size() <= 12
+        && nicknameOk(request.resource.data.nickname)
         && request.resource.data.seconds is number
         && request.resource.data.seconds > 0
         && request.resource.data.seconds <= 36000
         && request.resource.data.moves is int
         && request.resource.data.moves >= 5
         && request.resource.data.moves <= 225;
+    }
+
+    /* ---------- 온라인 대국 ----------
+       한 판이 문서 하나다. 착수는 moves 배열에 하나씩 쌓인다.
+       규칙이 지키는 것: 남의 판을 못 보고, 남의 차례에 못 두고,
+       이미 둔 수를 고치거나 지우지 못하며, 끝난 판은 되살아나지 않는다. */
+
+    // 랜덤 매칭 대기열 — 내 줄만 올리고 내리지만, 짝을 찾으려면 남의 줄도 봐야 한다.
+    match /matchQueue/{userId} {
+      allow read: if isLinkedUser();
+      allow delete: if isMe(userId);
+      allow write: if isMe(userId)
+        && isLinkedUser()
+        && nicknameOk(request.resource.data.nickname);
+    }
+
+    // 친구 초대 코드 — 코드를 아는 사람이 방을 찾아 들어온다.
+    match /invites/{code} {
+      allow read: if isLinkedUser();
+      allow create: if isLinkedUser() && isMe(request.resource.data.host);
+      allow delete: if isLinkedUser() && isMe(resource.data.host);
+    }
+
+    match /matches/{matchId} {
+      function joined() {
+        return isLinkedUser() && request.auth.uid in resource.data.players;
+      }
+
+      // 이미 둔 수는 그대로 남아 있어야 한다. 앞부분을 고쳐 판을 뒤집지 못하게 막는다.
+      function historyKept() {
+        return request.resource.data.moves.size() >= resource.data.moves.size()
+          && request.resource.data.moves[0:resource.data.moves.size()] == resource.data.moves;
+      }
+
+      function addedOneMove() {
+        return request.resource.data.moves.size() == resource.data.moves.size() + 1;
+      }
+
+      function lastMove() {
+        return request.resource.data.moves[request.resource.data.moves.size() - 1];
+      }
+
+      // 내 차례에, 판 안의 자리에, 내 이름으로 한 수만 둔다.
+      function isMyMove() {
+        return resource.data.status == 'playing'
+          && resource.data.turn == request.auth.uid
+          && addedOneMove()
+          && lastMove().by == request.auth.uid
+          && lastMove().r is int && lastMove().r >= 0 && lastMove().r <= 14
+          && lastMove().c is int && lastMove().c >= 0 && lastMove().c <= 14
+          && request.resource.data.turn != request.auth.uid;
+      }
+
+      // 빈 방에 들어가 상대가 된다. 방을 만든 사람은 그대로 두고 내 자리만 채운다.
+      function isJoin() {
+        return resource.data.status == 'waiting'
+          && request.resource.data.status == 'playing'
+          && !(request.auth.uid in resource.data.players)
+          && request.resource.data.players.size() == 2
+          && resource.data.players[0] == request.resource.data.players[0]
+          && request.resource.data.players[1] == request.auth.uid
+          && request.resource.data.moves.size() == 0;
+      }
+
+      // 판을 끝낸다 — 이겼거나, 졌다고 인정했거나, 상대가 시간을 넘겼거나.
+      function isFinish() {
+        return request.resource.data.status == 'done'
+          && historyKept();
+      }
+
+      allow read: if joined()
+        || (isLinkedUser() && resource.data.status == 'waiting');
+      allow create: if isLinkedUser()
+        && request.resource.data.players.size() == 1
+        && request.resource.data.players[0] == request.auth.uid
+        && request.resource.data.moves.size() == 0
+        && request.resource.data.status == 'waiting'
+        && nicknameOk(request.resource.data.hostName);
+      allow update: if resource.data.status != 'done'
+        && (
+          (isLinkedUser() && isJoin())
+          || (joined() && historyKept() && isMyMove())
+          || (joined() && isFinish())
+        );
+      allow delete: if joined() && resource.data.status != 'playing';
     }
   }
 }

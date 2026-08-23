@@ -45,6 +45,8 @@ assert.ok(dom.window.document.getElementById("accountGate").hidden,
   "the web build must never show the account gate");
 
 const bannerCalls = [];
+const leaderboardCalls = [];
+const publishCalls = [];
 const nativeDom = new JSDOM(html, {
   runScripts: "dangerously",
   pretendToBeVisual: true,
@@ -52,7 +54,12 @@ const nativeDom = new JSDOM(html, {
   beforeParse(window) {
     window.__OMOK_TEST_FAST__ = true;
     window.scrollTo = () => {};
-    window.OmokAccount = { getStatus() {} };
+    window.OmokAccount = {
+      getStatus() {},
+      fetchProfile() {},
+      fetchLeaderboard(kind, level) { leaderboardCalls.push({ kind, level }); },
+      publishProfile(json) { publishCalls.push(json); },
+    };
     window.OmokAds = { setBannerVisible(visible) { bannerCalls.push(visible); } };
   },
 });
@@ -118,5 +125,78 @@ const returningDom = new JSDOM(html, {
 });
 assert.ok(returningDom.window.document.getElementById("accountGate").hidden,
   "a returning player must not be asked again");
+
+// ---- 전체 명예의 전당 ----
+// 웹에는 순위가 없다.
+nativeDoc.querySelector('.tab-btn[data-tab="records"]').click();
+assert.match(dom.window.document.getElementById("hallNote").textContent, /Android 앱에서/,
+  "the web build must say the public hall lives in the app");
+
+// 게스트로 남으면 순위표가 열리지 않는다. (앞선 게이트 검사에서 연결해 둔 상태를 되돌린다)
+nativeDom_window.onOmokAccountChanged({ signedIn: true, anonymous: true, name: "", email: "" });
+nativeDom_window.onOmokProfile({ linked: false, nickname: "" });
+assert.ok(nativeDoc.getElementById("hallControls").hidden,
+  "a guest must not see the leaderboard controls");
+assert.match(nativeDoc.getElementById("hallNote").textContent, /Google 계정을 연결하면/,
+  "a guest must be told how to join the hall");
+
+// 계정을 연결하면 순위표가 열린다.
+nativeDom_window.onOmokAccountChanged({ signedIn: true, anonymous: false, name: "테스터", email: "" });
+nativeDom_window.onOmokProfile({ linked: true, nickname: "돌부처", ok: true });
+assert.ok(!nativeDoc.getElementById("hallControls").hidden, "a linked player must see the leaderboard controls");
+assert.strictEqual(nativeDoc.getElementById("hallNickInput").value, "돌부처",
+  "the stored nickname must be shown back");
+
+// 서버가 준 줄만 그대로 그린다 — 지어낸 비율이나 추정치는 넣지 않는다.
+nativeDom_window.onOmokLeaderboard({
+  ok: true,
+  kind: "level",
+  rows: [
+    { nickname: "천지창조", maxLevel: 30, clears: 30, noItemClears: 12, me: false },
+    { nickname: "돌부처", maxLevel: 18, clears: 17, noItemClears: 3, me: true },
+  ],
+});
+const hallRows = nativeDoc.getElementById("hallBody").querySelectorAll("tr");
+assert.strictEqual(hallRows.length, 2, "every row the server returned must be drawn");
+assert.strictEqual(hallRows[0].children[1].textContent, "천지창조", "the top row must keep the server order");
+assert.ok(hallRows[1].classList.contains("me-row"), "my own row must be marked");
+assert.strictEqual(hallRows[1].children[2].textContent, "18단계", "reached level must come from the server row");
+
+// 타임어택으로 바꾸면 단계 선택이 열리고 표 머리도 바뀐다.
+nativeDoc.getElementById("hallKindTime").click();
+assert.ok(!nativeDoc.getElementById("hallLevelSelect").hidden, "time attack must let you pick a level");
+nativeDom_window.onOmokLeaderboard({
+  ok: true, kind: "time", level: 3,
+  rows: [{ nickname: "번개", seconds: 65, moves: 11, me: false }],
+});
+const timeRow = nativeDoc.getElementById("hallBody").querySelector("tr");
+assert.strictEqual(timeRow.children[2].textContent, "1분 05초", "time attack must show the recorded time");
+assert.strictEqual(timeRow.children[3].textContent, "11수", "time attack must show the moves of that same win");
+
+// 기록 올리기는 닉네임과 요약을 그대로 브릿지에 넘긴다.
+publishCalls.length = 0;
+nativeDoc.getElementById("hallNickInput").value = "돌부처";
+nativeDoc.getElementById("hallPublishBtn").click();
+assert.strictEqual(publishCalls.length, 1, "publishing must reach the native bridge once");
+const published = JSON.parse(publishCalls[0]);
+assert.strictEqual(published.nickname, "돌부처", "the chosen nickname must be sent");
+assert.ok(typeof published.maxLevel === "number" && typeof published.levels === "object",
+  "the payload must carry the summary the leaderboard needs");
+
+// 너무 짧은 닉네임은 올리지 않고 그 자리에서 알린다.
+publishCalls.length = 0;
+nativeDoc.getElementById("hallNickInput").value = "가";
+nativeDoc.getElementById("hallPublishBtn").click();
+assert.strictEqual(publishCalls.length, 0, "an invalid nickname must never be published");
+assert.match(nativeDoc.getElementById("hallNote").textContent, /2자 이상/,
+  "an invalid nickname must say why");
+
+// 아직 아무도 없으면 빈 표 대신 안내를 보여준다.
+nativeDom_window.onOmokLeaderboard({ ok: true, kind: "level", rows: [] });
+assert.ok(nativeDoc.getElementById("hallTableWrap").hidden, "an empty leaderboard must not draw an empty table");
+assert.match(nativeDoc.getElementById("hallNote").textContent, /아직 올라온 기록이 없습니다/,
+  "an empty leaderboard must say so plainly");
+
+console.log("Omok hall of fame checks passed (guest gate, server rows only, time attack)");
 
 console.log("Omok Android layout checks passed (native shell, account gate, banner, compact battle mode)");

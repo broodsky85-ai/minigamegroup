@@ -83,6 +83,30 @@ assert.match(html, /window\.OmokAds\.setBannerVisible/, "the web game must tell 
 assert.match(html, /typeof window\.OmokAds\.setBannerVisible !== "function"\) return;/,
   "calling the banner bridge must be guarded so the web build keeps working");
 
+// ---- 명예의 전당 ----
+// 이름이 바뀌면 앱과 웹이 서로를 못 찾는다. 여기서 고정한다.
+assert.match(activity, /@JavascriptInterface\s+public void publishProfile\(String json\)/,
+  "Android bridge must expose publishProfile");
+assert.match(activity, /@JavascriptInterface\s+public void fetchProfile\(\)/,
+  "Android bridge must expose fetchProfile");
+assert.match(activity, /@JavascriptInterface\s+public void fetchLeaderboard\(String kind, int level\)/,
+  "Android bridge must expose fetchLeaderboard");
+assert.match(html, /window\.onOmokProfile\s*=\s*function/, "the game must receive its own leaderboard row");
+assert.match(html, /window\.onOmokLeaderboard\s*=\s*function/, "the game must receive leaderboard rows");
+assert.match(activity, /user\.isAnonymous\(\)\) \{\s*sendAccountMessage\("명예의 전당은 Google 계정/,
+  "guests must not be published to the public leaderboard");
+assert.match(activity, /leaderboardCollection\(\)\.document\(user\.getUid\(\)\)\.delete\(\)/,
+  "deleting an account must remove its public leaderboard row");
+
+const rules = read("firestore.rules");
+assert.match(rules, /sign_in_provider != 'anonymous'/,
+  "security rules must keep anonymous guests out of the public leaderboard");
+assert.match(rules, /match \/leaderboard\/\{userId\}/, "security rules must cover the leaderboard collection");
+assert.match(rules, /match \/levelRanks\/\{level\}\/entries\/\{userId\}/,
+  "security rules must cover per-level time attack rows");
+assert.match(rules, /match \/users\/\{userId\}\/records\/\{recordId\}/,
+  "the existing private record backup must keep working");
+
 assert.match(manifest, /\$\{admobAppId\}/, "manifest must use the build-specific AdMob app ID");
 assert.match(manifest, /android\.permission\.INTERNET/, "ads require internet permission");
 assert.match(build, /play-services-ads:25\.4\.0/, "Google Mobile Ads dependency must be pinned");
