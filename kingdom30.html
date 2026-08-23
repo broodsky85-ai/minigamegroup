@@ -2757,8 +2757,13 @@ function renderCodex() {
 }
 
 /* ---------- 도전장 링크 ---------- */
+// 안드로이드 앱은 file:///android_asset/... 으로 열려 location.origin이 "null"이 된다.
+// 도전장은 남에게 보내는 주소이므로 그럴 때는 웹 주소를 쓴다.
+const WEB_URL = "https://broodsky85-ai.github.io/minigamegroup/kingdom30.html";
 function shareLink() {
-  const url = location.origin + location.pathname + "?s=" + seed;
+  const onWeb = location.protocol === "http:" || location.protocol === "https:";
+  const base = onWeb ? location.origin + location.pathname : WEB_URL;
+  const url = base + "?s=" + seed;
   const text = `멸망까지 30일 — 나는 ${S ? S.day : 0}일 버텼다. 같은 운명으로 해보겠나?\n${url}`;
   if (navigator.share) {
     navigator.share({ title: "멸망까지 30일", text: text }).catch(() => {});
