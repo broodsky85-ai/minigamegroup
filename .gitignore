@@ -7,6 +7,7 @@ tests/package-lock.json
 
 # 업로드 키스토어와 비밀번호 — 절대 커밋하지 않는다
 android/keystore.properties
+android-kingdom30/keystore.properties
 *.jks
 *.keystore
 
@@ -16,6 +17,11 @@ android/local.properties
 android/app/build/
 android/build/
 android/app/src/main/assets/web/
+android-kingdom30/.gradle/
+android-kingdom30/local.properties
+android-kingdom30/app/build/
+android-kingdom30/build/
+android-kingdom30/app/src/main/assets/web/
 
 # 로컬 작업 지침 / 배포 인수인계 메모
 AGENTS.md

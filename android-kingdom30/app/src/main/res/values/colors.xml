@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- kingdom30.html의 --bg / --gold 와 같은 값이다. 웹 배경을 고치면 여기도 맞출 것. -->
+    <!-- kingdom30.html의 배경/금색 변수와 같은 값이다. 웹 배경을 고치면 여기도 맞출 것. -->
     <color name="app_background">#120D08</color>
     <color name="app_accent">#D9B45C</color>
 </resources>
