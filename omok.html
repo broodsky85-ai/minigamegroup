@@ -1135,6 +1135,9 @@
   }
   .item-grid .btn.ad-refill .count { display:none; }
   .item-grid .btn.ad-refill .item-ad-copy { display:block; }
+  .item-grid .btn.ad-exhausted { border-color:rgba(255,255,255,.12); opacity:.55; }
+  .item-grid .btn.ad-exhausted .count { display:none; }
+  .item-grid .btn.ad-exhausted .item-ad-copy { display:block; color:var(--muted); }
   .item-grid .btn.ad-refill:not(:disabled) { animation:adRefillPulse 1.8s ease-in-out infinite; }
   @keyframes adRefillPulse {
     50% { box-shadow:0 0 20px rgba(255,209,102,.42); }
@@ -1585,7 +1588,7 @@
     font-size: 9px;
   }
   body.native-app.battle-active #battleView .item-grid .item-ad-copy { font-size: 0; margin: 0; }
-  body.native-app.battle-active #battleView .item-grid .item-ad-copy::after { content: "📺 +1 충전"; font-size: 10px; }
+  body.native-app.battle-active #battleView .item-grid .item-ad-copy::after { content: attr(data-short); font-size: 10px; }
   body.native-app.battle-active #battleView .board-shell {
     order: 5;
     scrollbar-width: none;
@@ -1665,13 +1668,13 @@
             <span class="item-ad-copy">📺 광고 보고 +1 충전</span>
           </button>
           <button class="btn btn-neon" id="undoBtn" title="당신과 AI의 마지막 수를 함께 되돌립니다">
-            <span class="item-label">↩️ 되돌리기 <span class="count" id="undoCount">1</span></span>
+            <span class="item-label">↩️ 되돌리기 <span class="count" id="undoCount">0</span></span>
             <span class="item-ad-copy">📺 광고 보고 +1 충전</span>
           </button>
           <button class="btn btn-neon" id="dangerBtn" title="AI의 가장 위험한 다음 수를 표시합니다"><span class="item-label">🛡 위기 감지 <span class="count" id="dangerCount">1</span></span><span class="item-ad-copy">📺 광고 보고 +1 충전</span></button>
           <button class="btn btn-neon" id="futureBtn" title="AI 예상 수와 추천 대응 수를 표시합니다"><span class="item-label">🔮 미래보기 <span class="count" id="futureCount">1</span></span><span class="item-ad-copy">📺 광고 보고 +1 충전</span></button>
         </div>
-        <div class="item-note" id="itemNote">각 아이템은 판마다 1회 무료입니다.</div>
+        <div class="item-note" id="itemNote">되돌리기는 광고로만 얻습니다. 나머지는 판마다 1회 무료입니다.</div>
         <div class="turn-info" id="turnInfo">당신(⚫) 차례입니다</div>
         <div class="rule-note" id="ruleNote">자유룰 · 장목 승리 · 3-3/4-4 금수 없음</div>
         <div class="board-zoom" aria-label="보드 확대 축소">
@@ -2279,11 +2282,23 @@
   let selectedRealm = "human";
 
   let history = [];            // [{r, c, player}] — 차례 되돌리기용
-  const ITEM_LIMIT = 1;
-  let hintsLeft = ITEM_LIMIT;
-  let undosLeft = ITEM_LIMIT;
-  let dangersLeft = ITEM_LIMIT;
-  let futuresLeft = ITEM_LIMIT;
+  /* 아이템 상한 — free는 판 시작 때 거저 주는 횟수, adMax는 광고로 더 받을 수 있는 최대 횟수.
+     되돌리기는 실수 자체를 무르는 가장 센 아이템이라 무료분이 없고 상한도 가장 낮다.
+     아래로 갈수록 알려주는 정보가 좁아지므로 상한을 넉넉히 준다. */
+  const ITEM_CONFIG = {
+    undo:   { free: 0, adMax: 3 },   // 내 수와 AI 응수를 함께 되감는다
+    future: { free: 1, adMax: 3 },   // AI 예상 수 + 추천 대응까지
+    danger: { free: 1, adMax: 4 },   // AI가 노리는 한 곳만
+    hint:   { free: 1, adMax: 5 }    // 상위 세 곳을 넓게만, 고르는 건 본인
+  };
+  const ITEM_TYPES = ["hint", "undo", "danger", "future"];
+  let itemsLeft = {};          // 남은 사용 횟수
+  let itemAdUses = {};         // 아이템별로 이번 판에 광고를 본 횟수
+  function resetItems() {
+    ITEM_TYPES.forEach((type) => { itemsLeft[type] = ITEM_CONFIG[type].free; itemAdUses[type] = 0; });
+  }
+  function adRefillsLeft(type) { return ITEM_CONFIG[type].adMax - (itemAdUses[type] || 0); }
+  resetItems();
   let itemsUsed = 0;           // 이번 판에서 아이템을 쓴 횟수
   let adRefills = 0;
   const SETTINGS_KEY = "omok-settings-v1";
@@ -3563,15 +3578,30 @@
     boardEl.querySelectorAll(".cell.suggest,.cell.danger,.cell.future-ai,.cell.future-player").forEach((el) => el.classList.remove("suggest", "danger", "future-ai", "future-player"));
   }
 
-  const itemCounts = () => ({ hint: hintsLeft, undo: undosLeft, danger: dangersLeft, future: futuresLeft });
+  const itemCounts = () => Object.assign({}, itemsLeft);
   function requestRewardedRefill(type) {
+    if (!ITEM_CONFIG[type]) return;
+    if (adRefillsLeft(type) <= 0) {
+      itemNoteEl.textContent = "이 아이템은 이번 판에서 더 충전할 수 없습니다. 다음 판에 다시 채워집니다.";
+      return;
+    }
     itemNoteEl.textContent = "안드로이드 배포판에서는 보상형 광고 완료 후 선택한 아이템이 1회 충전됩니다.";
     if (window.OmokAds && typeof window.OmokAds.showRewarded === "function") window.OmokAds.showRewarded(type);
   }
   window.grantOmokItemReward = function (type) {
-    if (type === "hint") hintsLeft++; else if (type === "undo") undosLeft++;
-    else if (type === "danger") dangersLeft++; else if (type === "future") futuresLeft++; else return;
-    adRefills++; updateItemButtons(); itemNoteEl.textContent = "광고 보상으로 아이템 1회를 충전했습니다.";
+    if (!ITEM_CONFIG[type]) return;
+    // 광고를 봤더라도 상한을 넘겨 충전하지는 않는다.
+    if (adRefillsLeft(type) <= 0) {
+      itemNoteEl.textContent = "이 아이템은 이번 판의 충전 한도를 모두 썼습니다.";
+      updateItemButtons();
+      return;
+    }
+    itemsLeft[type]++; itemAdUses[type]++; adRefills++;
+    updateItemButtons();
+    const remain = adRefillsLeft(type);
+    itemNoteEl.textContent = remain > 0
+      ? "광고 보상으로 1회 충전했습니다. 이 판에 " + remain + "회 더 충전할 수 있습니다."
+      : "광고 보상으로 1회 충전했습니다. 이 판의 충전 한도를 모두 썼습니다.";
   };
   window.setOmokAdMessage = function (message) {
     if (typeof message === "string" && message) itemNoteEl.textContent = message;
@@ -3593,33 +3623,39 @@
   }
 
   function updateItemButtons() {
-    hintCountEl.textContent = hintsLeft;
-    undoCountEl.textContent = undosLeft;
-    dangerCountEl.textContent = dangersLeft;
-    futureCountEl.textContent = futuresLeft;
     const playable = !gameOver && !aiThinking && currentTurn === BLACK;
     [
-      [hintBtn, hintsLeft, "유리한 수가 있는 위치를 표시합니다"],
-      [undoBtn, undosLeft, "당신과 AI의 마지막 수를 함께 되돌립니다"],
-      [dangerBtn, dangersLeft, "AI의 가장 위험한 다음 수를 표시합니다"],
-      [futureBtn, futuresLeft, "AI 예상 수와 추천 대응 수를 표시합니다"]
-    ].forEach(([button, count, normalTitle]) => {
-      button.classList.toggle("ad-refill", count <= 0);
-      button.title = count <= 0 ? "보상형 광고를 보고 아이템을 1회 충전합니다" : normalTitle;
+      [hintBtn, hintCountEl, "hint", "유리한 수가 있는 위치를 표시합니다"],
+      [undoBtn, undoCountEl, "undo", "당신과 AI의 마지막 수를 함께 되돌립니다"],
+      [dangerBtn, dangerCountEl, "danger", "AI의 가장 위험한 다음 수를 표시합니다"],
+      [futureBtn, futureCountEl, "future", "AI 예상 수와 추천 대응 수를 표시합니다"]
+    ].forEach(([button, countEl, type, normalTitle]) => {
+      const left = itemsLeft[type];
+      const adLeft = adRefillsLeft(type);
+      // 되돌릴 수가 없으면 광고를 봐도 쓸 데가 없다. 그런 광고는 애초에 열지 않는다.
+      const meaningful = type !== "undo" || history.length >= 2;
+      countEl.textContent = left;
+      button.classList.toggle("ad-refill", left <= 0 && adLeft > 0);
+      button.classList.toggle("ad-exhausted", left <= 0 && adLeft <= 0);
+      const adCopyEl = button.querySelector(".item-ad-copy");
+      if (adCopyEl) {
+        adCopyEl.textContent = adLeft > 0 ? "📺 광고 보고 +1 (" + adLeft + "회 남음)" : "이 판 충전 한도 소진";
+        adCopyEl.dataset.short = adLeft > 0 ? "📺 +1 (" + adLeft + ")" : "소진";
+      }
+      button.title = left > 0 ? normalTitle
+        : (adLeft > 0 ? "보상형 광고를 보고 1회 충전합니다 (이 판 " + adLeft + "회 남음)"
+                      : "이 판에서는 더 충전할 수 없습니다");
+      button.disabled = !playable || !meaningful || (left <= 0 && adLeft <= 0);
     });
-    hintBtn.disabled = !playable;
-    undoBtn.disabled = !playable || (undosLeft > 0 && history.length < 2);
-    dangerBtn.disabled = !playable;
-    futureBtn.disabled = !playable;
   }
 
   function useHint() {
-    if (hintsLeft <= 0) { requestRewardedRefill("hint"); return; }
+    if (itemsLeft.hint <= 0) { requestRewardedRefill("hint"); return; }
     if (gameOver || aiThinking || currentTurn !== BLACK) return;
     setPersona(NEUTRAL_PERSONA);   // 힌트는 상대 성격에 물들지 않게 중립으로 본다
     const picks = orderedCandidates(board, BLACK, 3);
     if (!picks.length) return;
-    hintsLeft--;
+    itemsLeft.hint--;
     itemsUsed++;
     clearSuggestions();
     for (const [r, c] of picks) cellEls[r][c].classList.add("suggest");
@@ -3629,12 +3665,12 @@
   }
 
   function useUndo() {
-    if (undosLeft <= 0) { requestRewardedRefill("undo"); return; }
+    if (itemsLeft.undo <= 0) { requestRewardedRefill("undo"); return; }
     if (gameOver || aiThinking || currentTurn !== BLACK) return;
     if (history.length < 2) return;   // 내 수와 AI의 응수가 둘 다 있어야 되돌릴 수 있다
     history.pop();                    // AI의 응수
     history.pop();                    // 나의 마지막 수
-    undosLeft--;
+    itemsLeft.undo--;
     itemsUsed++;
     clearSuggestions();
     rebuildFromHistory();
@@ -3779,19 +3815,19 @@
   }
 
   function useDanger() {
-    if (dangersLeft <= 0) { requestRewardedRefill("danger"); return; }
+    if (itemsLeft.danger <= 0) { requestRewardedRefill("danger"); return; }
     if (gameOver || aiThinking || currentTurn !== BLACK) return;
     setPersona(LEVELS[currentLevel - 1].persona); const move = chooseAiMove(currentLevel); if (!move) return;
-    dangersLeft--; itemsUsed++; clearSuggestions(); cellEls[move[0]][move[1]].classList.add("danger"); updateItemButtons();
+    itemsLeft.danger--; itemsUsed++; clearSuggestions(); cellEls[move[0]][move[1]].classList.add("danger"); updateItemButtons();
     itemNoteEl.textContent = "AI가 노리는 가장 위험한 지점을 표시했습니다.";
   }
 
   function useFuture() {
-    if (futuresLeft <= 0) { requestRewardedRefill("future"); return; }
+    if (itemsLeft.future <= 0) { requestRewardedRefill("future"); return; }
     if (gameOver || aiThinking || currentTurn !== BLACK) return;
     const aiMove = chooseAiMove(currentLevel); if (!aiMove) return; board[aiMove[0]][aiMove[1]] = WHITE;
     setPersona(NEUTRAL_PERSONA); const reply = orderedCandidates(board, BLACK, 1)[0]; board[aiMove[0]][aiMove[1]] = EMPTY;
-    futuresLeft--; itemsUsed++; clearSuggestions(); cellEls[aiMove[0]][aiMove[1]].classList.add("future-ai");
+    itemsLeft.future--; itemsUsed++; clearSuggestions(); cellEls[aiMove[0]][aiMove[1]].classList.add("future-ai");
     if (reply) cellEls[reply[0]][reply[1]].classList.add("future-player"); updateItemButtons(); itemNoteEl.textContent = "보라색은 AI 예상 수, 파란색은 추천 대응 수입니다.";
   }
 
@@ -4632,13 +4668,10 @@
     lastMoveEl = null;
     moveCount = 0;
     history = [];
-    hintsLeft = ITEM_LIMIT;
-    undosLeft = ITEM_LIMIT;
-    dangersLeft = ITEM_LIMIT;
-    futuresLeft = ITEM_LIMIT;
+    resetItems();
     itemsUsed = 0;
     adRefills = 0;
-    itemNoteEl.textContent = "각 아이템은 판마다 1회 무료입니다.";
+    itemNoteEl.textContent = "되돌리기는 광고로만 얻습니다. 나머지는 판마다 1회 무료입니다.";
     liveMovesEl.textContent = "0";
     liveTimeEl.textContent = "0초";
     boardShellEl.classList.remove("shake", "finish-impact", "finish-win", "finish-lose", "finish-draw");
