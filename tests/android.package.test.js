@@ -60,6 +60,29 @@ for (const type of ["hint", "undo", "danger", "future"]) {
   assert.ok(activity.includes(`"${type}"`), `Android bridge must allow ${type}`);
 }
 
+// ---- 하단 배너 ----
+// 배너는 보스 선택과 기록실에서만 뜬다. 대국 화면을 덮으면 착수를 잘못 누른다.
+assert.match(activity, /@JavascriptInterface\s+public void setBannerVisible\(boolean visible\)/,
+  "Android bridge must expose setBannerVisible");
+assert.match(activity, /BuildConfig\.BANNER_AD_UNIT_ID/, "banner ads must use the build-specific unit ID");
+assert.match(activity, /BANNER_AD_UNIT_ID\.isEmpty\(\)\) return;/,
+  "an empty banner unit must skip the banner entirely instead of crashing");
+assert.match(activity, /boolean show = bannerWanted && bannerLoaded/,
+  "the banner must only take space once a real ad has filled it");
+assert.match(activity, /bannerAdView\.pause\(\)[\s\S]*bannerAdView\.resume\(\)[\s\S]*bannerAdView\.destroy\(\)/,
+  "the banner must follow the activity lifecycle");
+assert.match(build, /ca-app-pub-3940256099942544\/6300978111/, "debug builds must use Google's banner test unit");
+
+const releaseBanner = /release \{[\s\S]*?BANNER_AD_UNIT_ID", "\\"([^\\"]*)\\""/.exec(build);
+assert.ok(releaseBanner, "release builds must declare a banner unit field");
+assert.ok(!releaseBanner[1].startsWith("ca-app-pub-3940256099942544"),
+  "release builds must never ship Google's test banner unit");
+
+assert.match(html, /function updateBannerVisibility\(\)/, "the web game must decide when the banner shows");
+assert.match(html, /window\.OmokAds\.setBannerVisible/, "the web game must tell the app to show or hide the banner");
+assert.match(html, /typeof window\.OmokAds\.setBannerVisible !== "function"\) return;/,
+  "calling the banner bridge must be guarded so the web build keeps working");
+
 assert.match(manifest, /\$\{admobAppId\}/, "manifest must use the build-specific AdMob app ID");
 assert.match(manifest, /android\.permission\.INTERNET/, "ads require internet permission");
 assert.match(build, /play-services-ads:25\.4\.0/, "Google Mobile Ads dependency must be pinned");
@@ -67,8 +90,8 @@ assert.match(build, /androidx\.activity:activity:1\.13\.0/, "predictive back sup
 assert.match(build, /user-messaging-platform:4\.0\.0/, "Google UMP dependency must be pinned");
 assert.match(activity, /requestConsentInfoUpdate[\s\S]*loadAndShowConsentFormIfRequired[\s\S]*canRequestAds\(\)/,
   "ads must wait for the current UMP consent state");
-assert.match(build, /versionCode = 6[\s\S]*versionName = "1\.2\.3"/,
-  "the next Play upload must use version code 6 and version name 1.2.3");
+assert.match(build, /versionCode = 7[\s\S]*versionName = "1\.3\.0"/,
+  "the next Play upload must use version code 7 and version name 1.3.0");
 assert.match(build, /ca-app-pub-3940256099942544\/5224354917/, "debug builds must use Google's rewarded test unit");
 assert.match(build, /ca-app-pub-7962806628383813\/6058105442/, "release builds must use the production rewarded unit");
 assert.match(build, /ca-app-pub-7962806628383813~6236666471/, "release builds must use the production AdMob app ID");
