@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "leaderboard",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "maxLevel", "order": "DESCENDING" },
+        { "fieldPath": "clears", "order": "DESCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "seconds", "order": "ASCENDING" },
+        { "fieldPath": "moves", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
