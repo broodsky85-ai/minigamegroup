@@ -2834,6 +2834,19 @@ function bindSwipe() {
   window.addEventListener("mouseup", end);
 }
 
+/* ---------- 안드로이드 뒤로가기 ---------- */
+// 앱 껍데기(MainActivity)가 뒤로가기를 받으면 먼저 이걸 부른다.
+// true를 돌려주면 여기서 처리한 것이고, false면 앱이 종료할지 묻는다.
+// 진행 중인 판은 여기서 절대 건드리지 않는다 — 뒤로가기 한 번에 30일이 날아가면 안 된다.
+window.handleKingdomAndroidBack = function () {
+  const cur = document.querySelector(".screen.on");
+  if (!cur) return false;
+  // 도감에서 나가는 길은 화면의 「돌아가기」 버튼과 같아야 한다.
+  if (cur.id === "codex") { show(S && S.over ? "ending" : "title"); return true; }
+  if (cur.id === "ending") { show("title"); return true; }
+  return false;
+};
+
 /* ---------- 시작 ---------- */
 function init() {
   buildGauges();
