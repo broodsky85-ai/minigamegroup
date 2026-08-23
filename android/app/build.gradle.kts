@@ -52,9 +52,7 @@ android {
             isMinifyEnabled = false
             manifestPlaceholders["admobAppId"] = "ca-app-pub-7962806628383813~6236666471"
             buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"ca-app-pub-7962806628383813/6058105442\"")
-            // TODO: AdMob에서 배너 광고 단위를 만들어 여기에 넣는다.
-            // 빈 문자열이면 배너를 아예 만들지 않으므로, 값이 없는 채로 출시해도 앱은 정상이다.
-            buildConfigField("String", "BANNER_AD_UNIT_ID", "\"\"")
+            buildConfigField("String", "BANNER_AD_UNIT_ID", "\"ca-app-pub-7962806628383813/4417889552\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

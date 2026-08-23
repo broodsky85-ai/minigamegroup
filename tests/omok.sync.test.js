@@ -297,6 +297,53 @@ nativeDom_window.onOmokMatchState({
 assert.match(nativeDoc.getElementById("turnInfo").textContent, /승리/, "the result must be shown");
 assert.match(nativeDoc.getElementById("turnInfo").textContent, /기권/, "the reason must be shown");
 
+// ---- 온라인 등급 ----
+// 상대 등급이 대국 바에 뜨고, 등급이 걸리지 않는 판은 그렇다고 알린다.
+nativeDom_window.onOmokMatchState({
+  ...started, myTurn: true, ranked: true, myRating: 1450, opponentRating: 1620,
+  moves: [{ r: 7, c: 7, mine: true }],
+});
+assert.match(nativeDoc.getElementById("onlineWho").textContent, /명인/,
+  "the opponent's tier must be shown from their rating");
+
+nativeDom_window.onOmokMatchState({
+  ...started, myTurn: true, ranked: false, myRating: 1450, opponentRating: 1200,
+  moves: [{ r: 7, c: 7, mine: true }],
+});
+assert.match(nativeDoc.getElementById("onlineWho").textContent, /연습/,
+  "an unranked (friend) match must say so");
+
+// 등급 순위표
+nativeDoc.querySelector('.tab-btn[data-tab="records"]').click();
+nativeDoc.getElementById("hallKindRating").click();
+nativeDom_window.onOmokLeaderboard({
+  ok: true, kind: "rating",
+  rows: [
+    { nickname: "절대신", rating: 2050, me: false },
+    { nickname: "돌부처", rating: 1310, me: true },
+  ],
+});
+const ratingRows = nativeDoc.getElementById("hallBody").querySelectorAll("tr");
+assert.strictEqual(ratingRows[0].children[2].textContent, "신선",
+  "2000점 이상은 가장 높은 등급으로 보인다");
+assert.strictEqual(ratingRows[1].children[2].textContent, "숙련자",
+  "등급 이름은 점수 구간을 따른다");
+assert.strictEqual(ratingRows[1].children[3].textContent, "1310",
+  "점수는 서버 값 그대로 보여준다");
+
+// 온라인 시계(setInterval)가 남으면 테스트 프로세스가 끝나지 않는다. 판을 닫아 정리한다.
+nativeDom_window.onOmokMatchState({
+  ...started, phase: "done", result: "win", endReason: "five",
+  moves: [{ r: 7, c: 7, mine: true }],
+});
+
+console.log("Omok rating checks passed (tiers, unranked friend match, rating board)");
+
 console.log("Omok online match checks passed (guest gate, invite codes, server-driven board, ad pause)");
 
 console.log("Omok Android layout checks passed (native shell, account gate, banner, compact battle mode)");
+
+// jsdom 창을 닫지 않으면 남은 타이머 때문에 node가 그대로 떠 있는다.
+[dom, nativeDom, storedDom, returningDom].forEach((instance) => {
+  try { instance.window.close(); } catch (e) { /* 이미 닫혔으면 그만이다 */ }
+});

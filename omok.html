@@ -4742,6 +4742,7 @@
     return "견습";
   }
 
+  const HALL_KINDS = ["level", "rating", "time"];
   const NICKNAME_KEY = "omok-nickname-v1";
   const hallState = { linked: false, nickname: "", kind: "level", level: 1, rows: [], loading: false, note: "", ok: true };
 
@@ -4823,7 +4824,7 @@
     hallState.loading = false;
     hallState.ok = data.ok !== false;
     hallState.rows = Array.isArray(data.rows) ? data.rows : [];
-    if (data.kind) hallState.kind = data.kind === "time" ? "time" : "level";
+    if (data.kind) hallState.kind = HALL_KINDS.indexOf(data.kind) >= 0 ? data.kind : "level";
     if (data.level) hallState.level = Number(data.level) || hallState.level;
     if (data.reason === "guest") hallState.note = "Google 계정을 연결하면 순위를 볼 수 있습니다.";
     else if (!hallState.ok) hallState.note = "순위를 불러오지 못했습니다. 네트워크를 확인해 주세요.";

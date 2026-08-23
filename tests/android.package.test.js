@@ -142,6 +142,23 @@ assert.match(rules, /resource\.data\.turn == request\.auth\.uid/,
 assert.match(rules, /moves\[0:resource\.data\.moves\.size\(\)\] == resource\.data\.moves/,
   "security rules must keep already-played stones from being rewritten");
 
+// ---- 온라인 등급 ----
+// 등급은 조작 대상이라 규칙과 코드 양쪽에서 조인다.
+assert.match(online, /ELO_K = 32/, "rating must move by a bounded Elo step");
+assert.match(online, /RATING_TOLERANCE = 200/, "similar rating must be defined");
+assert.match(online, /nearMatch != null \? nearMatch : anyMatch/,
+  "matchmaking must fall back to anyone waiting when no similar rating is queued");
+assert.match(online, /ranked = false;/, "friend invites must not count toward rating");
+assert.match(online, /if \(!agreed\)/, "rating must only move when both players agree on the result");
+assert.match(online, /claims\." \+ me/, "each player must only write their own result claim");
+assert.match(rules, /affectedKeys\(\)\s*\.hasOnly\(\[request\.auth\.uid\]\)/,
+  "security rules must stop a player from editing the other's claim");
+assert.match(rules, /hasOnly\(\['claims'\]\)/,
+  "a late claim must not be able to change anything else in the match");
+assert.match(rules, /request\.resource\.data\.rating - resource\.data\.rating <= 40/,
+  "security rules must cap how far rating can move in one write");
+assert.match(html, /function tierName\(rating\)/, "the game must name tiers from the rating");
+
 assert.match(manifest, /\$\{admobAppId\}/, "manifest must use the build-specific AdMob app ID");
 assert.match(manifest, /android\.permission\.INTERNET/, "ads require internet permission");
 assert.match(build, /play-services-ads:25\.4\.0/, "Google Mobile Ads dependency must be pinned");
@@ -154,6 +171,7 @@ assert.match(build, /versionCode = 7[\s\S]*versionName = "1\.3\.0"/,
 assert.match(build, /ca-app-pub-3940256099942544\/5224354917/, "debug builds must use Google's rewarded test unit");
 assert.match(build, /ca-app-pub-7962806628383813\/6058105442/, "release builds must use the production rewarded unit");
 assert.match(build, /ca-app-pub-7962806628383813~6236666471/, "release builds must use the production AdMob app ID");
+assert.match(build, /ca-app-pub-7962806628383813\/4417889552/, "release builds must use the production banner unit");
 assert.match(build, /include\("omok\.html"\)/, "the omok game must be copied into the app during preBuild");
 assert.doesNotMatch(build, /include\("\*\.html"\)/, "the dedicated Android app must not package the minigame index or other games");
 
