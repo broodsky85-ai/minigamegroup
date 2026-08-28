@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-import json, io, urllib.request, sys
+import json, io, os, urllib.request, sys
 
-tok = io.open("token.txt").read().strip()
+tok = os.environ.get("FIREBASE_TOKEN", "").strip()
+if not tok:
+    tok = io.open("token.txt").read().strip()
 src = io.open(r"C:\Users\khs04\OneDrive\바탕 화면\claude\firestore.rules", encoding="utf-8").read()
 
 BASE = "/databases/(default)/documents"
@@ -52,6 +54,22 @@ def case(name, expect, method, path, uid, anon=False, resource=None, new_data=No
     cases.append((name, c))
 
 # --- 온라인 대국 착수 ---
+empty_playing = {
+    "players": [A, B],
+    "hostName": "알파",
+    "black": A, "white": B,
+    "blackName": "알파", "whiteName": "브라보",
+    "moves": [],
+    "turn": A,
+    "status": "playing",
+    "winner": None,
+    "claims": {},
+}
+
+case("빈 판에 첫 수 두기", "ALLOW", "update", "/matches/empty", A,
+     resource=empty_playing,
+     new_data=with_moves(empty_playing, [move(7, 7, A)], turn=B))
+
 case("내 차례에 한 수 두기", "ALLOW", "update", "/matches/m1", B,
      resource=playing,
      new_data=with_moves(playing, [move(7, 7, A), move(7, 8, B)], turn=A))
@@ -92,12 +110,19 @@ waiting = {
     "turn": A,
     "status": "waiting",
     "winner": None,
+    "ratings": {A: 1200},
 }
 case("기다리는 방은 누구나 찾을 수 있다", "ALLOW", "get", "/matches/m2", C, resource=waiting)
 
 case("빈 방에 상대로 들어가기", "ALLOW", "update", "/matches/m2", B,
      resource=waiting,
-     new_data={**waiting, "players": [A, B], "status": "playing", "whiteName": "브라보", "white": B})
+     new_data={**waiting, "players": [A, B], "status": "playing", "whiteName": "브라보", "white": B,
+               "ratings": {A: 1200, B: 1200}})
+
+case("입장하면서 호스트 등급 바꾸기", "DENY", "update", "/matches/m2", B,
+     resource=waiting,
+     new_data={**waiting, "players": [A, B], "status": "playing", "whiteName": "브라보", "white": B,
+               "ratings": {A: 4000, B: 1200}})
 
 case("이미 찬 방에 끼어들기", "DENY", "update", "/matches/m1", C,
      resource=playing,
@@ -105,6 +130,14 @@ case("이미 찬 방에 끼어들기", "DENY", "update", "/matches/m1", C,
 
 case("게스트는 온라인 대국을 못 만든다", "DENY", "create", "/matches/m3", A, anon=True,
      new_data={"players": [A], "hostName": "알파", "moves": [], "status": "waiting"})
+
+invite = {"matchId": "m2", "host": A, "createdAt": 1, "updatedAt": 1}
+case("초대 호스트 생존 신호 갱신", "ALLOW", "update", "/invites/ABC234", A,
+     resource=invite, new_data={**invite, "updatedAt": 2})
+case("초대 생존 신호로 방 바꿔치기", "DENY", "update", "/invites/ABC234", A,
+     resource=invite, new_data={**invite, "updatedAt": 2, "matchId": "fake"})
+case("상대가 초대 생존 신호 조작", "DENY", "update", "/invites/ABC234", B,
+     resource=invite, new_data={**invite, "updatedAt": 2})
 
 case("끝난 판은 다시 못 고친다", "DENY", "update", "/matches/m1", B,
      resource={**playing, "status": "done", "winner": A},
@@ -123,9 +156,22 @@ case("남의 이름으로 시계 멈추기", "DENY", "update", "/matches/m1", B,
      resource=playing,
      new_data={**playing, "adPausedBy": A})
 
+paused = {**playing, "adPausedBy": B, "adPausedUntil": 1234}
+case("광고를 본 당사자가 시계 다시 시작", "ALLOW", "update", "/matches/m1", B,
+     resource=paused,
+     new_data={**paused, "adPausedBy": None, "adPausedUntil": None})
+
+case("상대의 광고 정지를 몰래 해제", "DENY", "update", "/matches/m1", A,
+     resource=paused,
+     new_data={**paused, "adPausedBy": None, "adPausedUntil": None})
+
 case("광고 정지로 차례 가로채기", "DENY", "update", "/matches/m1", B,
      resource=playing,
      new_data={**playing, "adPausedBy": B, "turn": A})
+
+case("광고 정지로 승자 미리 쓰기", "DENY", "update", "/matches/m1", B,
+     resource=playing,
+     new_data={**playing, "adPausedBy": B, "adPausedUntil": 30000, "winner": B})
 
 # --- 명예의 전당 ---
 case("내 랭킹 줄 쓰기", "ALLOW", "create", "/leaderboard/" + A, A,
@@ -162,6 +208,21 @@ case("기본 등급으로 새로 시작하기", "ALLOW", "create", "/leaderboard
      new_data={**mine, "rating": 1200})
 
 # --- 결과 신고 (양쪽 합의) ---
+case("한 수도 두기 전 기권", "ALLOW", "update", "/matches/empty", A,
+     resource=empty_playing,
+     new_data={**empty_playing, "status": "done", "winner": B,
+               "endReason": "resign", "claims": {A: "lose"}})
+
+case("기권하면서 자신을 승자로 쓰기", "DENY", "update", "/matches/empty", A,
+     resource=empty_playing,
+     new_data={**empty_playing, "status": "done", "winner": A,
+               "endReason": "resign", "claims": {A: "win"}})
+
+case("착수하면서 상대 이름 바꾸기", "DENY", "update", "/matches/m1", B,
+     resource=playing,
+     new_data={**with_moves(playing, [move(7, 7, A), move(7, 8, B)], turn=A),
+               "blackName": "조작"})
+
 finished = {**playing, "status": "done", "winner": A, "endReason": "five",
             "claims": {A: "win"}}
 

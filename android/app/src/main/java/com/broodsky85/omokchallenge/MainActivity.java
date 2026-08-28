@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.webkit.JsResult;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
@@ -45,6 +46,10 @@ import com.google.android.ump.ConsentRequestParameters;
 import com.google.android.ump.UserMessagingPlatform;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+import com.google.android.play.core.review.ReviewInfo;
+import com.google.android.play.core.review.ReviewManager;
+import com.google.android.play.core.review.ReviewManagerFactory;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
@@ -55,6 +60,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
@@ -67,16 +73,31 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 public class MainActivity extends ComponentActivity {
+    private static final String TAG = "OmokChallenge";
     private static final String GAME_URL = "file:///android_asset/web/omok.html";
     private static final String REWARDED_AD_UNIT_ID = BuildConfig.REWARDED_AD_UNIT_ID;
     private static final String BANNER_AD_UNIT_ID = BuildConfig.BANNER_AD_UNIT_ID;
     private static final Set<String> ITEM_TYPES = new HashSet<>(Arrays.asList("hint", "undo", "danger", "future"));
+    private static final Set<String> ANALYTICS_EVENTS = new HashSet<>(Arrays.asList(
+            "online_lobby_view", "matchmaking_started", "match_found", "first_move",
+            "match_completed", "invite_created", "invite_joined", "boss_started",
+            "boss_win", "share_clicked", "rewarded_ad_completed"
+    ));
+    private static final Set<String> ANALYTICS_NUMBER_PARAMETERS = new HashSet<>(Arrays.asList(
+            "level", "online", "moves", "seconds", "no_item", "first_win", "ranked", "rating"
+    ));
+    private static final Set<String> ANALYTICS_STRING_PARAMETERS = new HashSet<>(Arrays.asList(
+            "item_type", "method", "mode", "color", "result", "reason", "realm"
+    ));
     private static final int LEADERBOARD_LIMIT = 50;
     private static final int MAX_LEVEL = 30;
+    private static final String PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.broodsky85.omokchallenge";
+    private static final String INVITE_URL = "https://broodsky85-ai.github.io/minigamegroup/omok.html?invite=";
 
     private WebView webView;
     private FrameLayout bannerContainer;
@@ -90,12 +111,16 @@ public class MainActivity extends ComponentActivity {
     private ConsentInformation consentInformation;
     private FirebaseAuth firebaseAuth;
     private FirebaseFirestore firestore;
+    private FirebaseAnalytics firebaseAnalytics;
+    private ReviewManager reviewManager;
     private CredentialManager credentialManager;
     private OnlineMatch onlineMatch;
     private boolean syncInProgress;
     private AlertDialog jsConfirmDialog;
     private JsResult pendingJsResult;
     private AlertDialog exitDialog;
+    private boolean reviewFlowInProgress;
+    private String pendingInviteCode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,7 +133,10 @@ public class MainActivity extends ComponentActivity {
         bannerContainer = findViewById(R.id.banner_container);
         firebaseAuth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
+        firebaseAnalytics = FirebaseAnalytics.getInstance(this);
+        reviewManager = ReviewManagerFactory.create(this);
         credentialManager = CredentialManager.create(this);
+        pendingInviteCode = inviteCodeFromIntent(getIntent());
         configureWebView();
         onlineMatch = new OnlineMatch(firestore, firebaseAuth, new OnlineMatch.Bridge() {
             @Override
@@ -132,6 +160,9 @@ public class MainActivity extends ComponentActivity {
         webView.addJavascriptInterface(new AdsBridge(), "OmokAds");
         webView.addJavascriptInterface(new AccountBridge(), "OmokAccount");
         webView.addJavascriptInterface(new OnlineBridge(), "OmokOnline");
+        webView.addJavascriptInterface(new AnalyticsBridge(), "OmokAnalytics");
+        webView.addJavascriptInterface(new ReviewBridge(), "OmokReview");
+        webView.addJavascriptInterface(new ShareBridge(), "OmokShare");
         webView.loadUrl(GAME_URL);
         ensureSignedIn();
 
@@ -211,8 +242,38 @@ public class MainActivity extends ComponentActivity {
                 notifyAccountStatus();
                 notifyPrivacyOptionsAvailability();
                 syncRecords();
+                deliverPendingInvite();
             }
         });
+    }
+
+    private String inviteCodeFromIntent(Intent intent) {
+        Uri data = intent == null ? null : intent.getData();
+        if (data == null) return null;
+        String raw = data.getQueryParameter("invite");
+        if (raw == null) raw = data.getQueryParameter("code");
+        if (raw == null && "omokchallenge".equals(data.getScheme()) && "invite".equals(data.getHost())) {
+            raw = data.getLastPathSegment();
+        }
+        if (raw == null) return null;
+        String code = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        return code.matches("[A-HJ-NP-Z2-9]{6}") ? code : null;
+    }
+
+    private void deliverPendingInvite() {
+        if (webView == null || pendingInviteCode == null) return;
+        String code = pendingInviteCode;
+        pendingInviteCode = null;
+        webView.evaluateJavascript(
+                "window.openOmokInvite && window.openOmokInvite(" + JSONObject.quote(code) + ");", null);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        pendingInviteCode = inviteCodeFromIntent(intent);
+        deliverPendingInvite();
     }
 
     private void requestUserConsent() {
@@ -762,7 +823,13 @@ public class MainActivity extends ComponentActivity {
                 out.put("level", wanted);
                 out.put("ok", task.isSuccessful());
                 if (!task.isSuccessful()) {
-                    out.put("reason", "network");
+                    Exception error = task.getException();
+                    Log.e(TAG, "fetchLeaderboard failed: " + mode, error);
+                    FirebaseFirestoreException.Code code = error instanceof FirebaseFirestoreException
+                            ? ((FirebaseFirestoreException) error).getCode() : null;
+                    if (code == FirebaseFirestoreException.Code.PERMISSION_DENIED) out.put("reason", "permission");
+                    else if (code == FirebaseFirestoreException.Code.FAILED_PRECONDITION) out.put("reason", "index");
+                    else out.put("reason", "network");
                 } else {
                     QuerySnapshot snapshot = task.getResult();
                     List<DocumentSnapshot> docs = snapshot == null
@@ -874,6 +941,93 @@ public class MainActivity extends ComponentActivity {
         @JavascriptInterface
         public void leave() {
             runOnUiThread(() -> onlineMatch.leave());
+        }
+    }
+
+    private void logAnalyticsEvent(String name, String paramsJson) {
+        if (firebaseAnalytics == null || !ANALYTICS_EVENTS.contains(name)) return;
+        Bundle params = new Bundle();
+        try {
+            JSONObject json = new JSONObject(paramsJson == null ? "{}" : paramsJson);
+            Iterator<String> keys = json.keys();
+            int count = 0;
+            while (keys.hasNext() && count < 12) {
+                String key = keys.next();
+                boolean numericParameter = ANALYTICS_NUMBER_PARAMETERS.contains(key);
+                boolean stringParameter = ANALYTICS_STRING_PARAMETERS.contains(key);
+                if (!numericParameter && !stringParameter) continue;
+                Object value = json.opt(key);
+                if (numericParameter && (value instanceof Integer || value instanceof Long)) {
+                    params.putLong(key, ((Number) value).longValue());
+                } else if (numericParameter && value instanceof Number) {
+                    params.putDouble(key, ((Number) value).doubleValue());
+                } else if (numericParameter && value instanceof Boolean) {
+                    params.putLong(key, ((Boolean) value) ? 1L : 0L);
+                } else if (stringParameter && value instanceof String) {
+                    String text = (String) value;
+                    // 이벤트 문자열은 코드·닉네임·자유 입력이 들어오지 못하도록 열거형 모양만 허용한다.
+                    if (!text.matches("[a-z0-9_]{1,32}")) continue;
+                    params.putString(key, text);
+                } else {
+                    continue;
+                }
+                count++;
+            }
+        } catch (Exception error) {
+            Log.w(TAG, "Ignoring malformed analytics parameters for " + name, error);
+        }
+        firebaseAnalytics.logEvent(name, params);
+    }
+
+    private void requestInAppReview(String reason) {
+        if (reviewManager == null || reviewFlowInProgress || isFinishing() || isDestroyed()) return;
+        String preferenceKey = "review_requested_version_" + BuildConfig.VERSION_CODE;
+        if (getPreferences(MODE_PRIVATE).getBoolean(preferenceKey, false)) return;
+
+        reviewFlowInProgress = true;
+        reviewManager.requestReviewFlow().addOnCompleteListener(this, task -> {
+            reviewFlowInProgress = false;
+            if (!task.isSuccessful()) {
+                Log.w(TAG, "In-app review request failed after " + reason, task.getException());
+                return;
+            }
+            ReviewInfo reviewInfo = task.getResult();
+            getPreferences(MODE_PRIVATE).edit().putBoolean(preferenceKey, true).apply();
+            reviewManager.launchReviewFlow(this, reviewInfo).addOnFailureListener(error ->
+                    Log.w(TAG, "In-app review launch failed after " + reason, error));
+        });
+    }
+
+    public class AnalyticsBridge {
+        @JavascriptInterface
+        public void logEvent(String name, String paramsJson) {
+            runOnUiThread(() -> logAnalyticsEvent(name, paramsJson));
+        }
+    }
+
+    public class ReviewBridge {
+        @JavascriptInterface
+        public void request(String reason) {
+            runOnUiThread(() -> requestInAppReview(reason == null ? "milestone" : reason));
+        }
+    }
+
+    public class ShareBridge {
+        @JavascriptInterface
+        public void shareInvite(String rawCode) {
+            runOnUiThread(() -> {
+                String code = rawCode == null ? "" : rawCode.trim().toUpperCase(java.util.Locale.ROOT);
+                if (!code.matches("[A-HJ-NP-Z2-9]{6}")) return;
+                String text = "오목 챌린지 초대 코드: " + code + "\n"
+                        + "링크를 누르거나 앱의 온라인 대국 > 코드로 들어가기에 입력해 주세요.\n"
+                        + INVITE_URL + code + "\n"
+                        + "Google Play: " + PLAY_STORE_URL;
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("text/plain");
+                share.putExtra(Intent.EXTRA_SUBJECT, "오목 챌린지 온라인 대국 초대");
+                share.putExtra(Intent.EXTRA_TEXT, text);
+                startActivity(Intent.createChooser(share, "친구에게 초대 보내기"));
+            });
         }
     }
 
@@ -991,6 +1145,9 @@ public class MainActivity extends ComponentActivity {
         webView.removeJavascriptInterface("OmokAds");
         webView.removeJavascriptInterface("OmokAccount");
         webView.removeJavascriptInterface("OmokOnline");
+        webView.removeJavascriptInterface("OmokAnalytics");
+        webView.removeJavascriptInterface("OmokReview");
+        webView.removeJavascriptInterface("OmokShare");
         webView.destroy();
         super.onDestroy();
     }

@@ -98,6 +98,9 @@ service cloud.firestore {
     match /invites/{code} {
       allow read: if isLinkedUser();
       allow create: if isLinkedUser() && isMe(request.resource.data.host);
+      allow update: if isLinkedUser()
+        && isMe(resource.data.host)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']);
       allow delete: if isLinkedUser() && isMe(resource.data.host);
     }
 
@@ -109,7 +112,10 @@ service cloud.firestore {
       // 이미 둔 수는 그대로 남아 있어야 한다. 앞부분을 고쳐 판을 뒤집지 못하게 막는다.
       function historyKept() {
         return request.resource.data.moves.size() >= resource.data.moves.size()
-          && request.resource.data.moves[0:resource.data.moves.size()] == resource.data.moves;
+          // 빈 목록에 [0:0] 슬라이스를 적용하면 규칙 평가가 실패한다.
+          // 첫 착수와 한 수도 두지 않은 기권은 이 예외를 반드시 먼저 통과해야 한다.
+          && (resource.data.moves.size() == 0
+            || request.resource.data.moves[0:resource.data.moves.size()] == resource.data.moves);
       }
 
       function addedOneMove() {
@@ -123,22 +129,35 @@ service cloud.firestore {
       // 내 차례에, 판 안의 자리에, 내 이름으로 한 수만 둔다.
       function isMyMove() {
         return resource.data.status == 'playing'
+          && resource.data.get('adPausedBy', null) == null
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['moves', 'turn', 'turnStartedAt', 'adPausedBy', 'adPausedUntil'])
           && resource.data.turn == request.auth.uid
           && addedOneMove()
           && lastMove().by == request.auth.uid
           && lastMove().r is int && lastMove().r >= 0 && lastMove().r <= 14
           && lastMove().c is int && lastMove().c >= 0 && lastMove().c <= 14
-          && request.resource.data.turn != request.auth.uid;
+          && request.resource.data.turn != request.auth.uid
+          && request.resource.data.turn in resource.data.players
+          && request.resource.data.get('adPausedBy', null) == null
+          && request.resource.data.get('adPausedUntil', null) == null;
       }
 
       // 빈 방에 들어가 상대가 된다. 방을 만든 사람은 그대로 두고 내 자리만 채운다.
       function isJoin() {
         return resource.data.status == 'waiting'
           && request.resource.data.status == 'playing'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['players', 'white', 'whiteName', 'status', 'turn', 'turnStartedAt', 'ratings'])
           && !(request.auth.uid in resource.data.players)
           && request.resource.data.players.size() == 2
           && resource.data.players[0] == request.resource.data.players[0]
           && request.resource.data.players[1] == request.auth.uid
+          && request.resource.data.white == request.auth.uid
+          && nicknameOk(request.resource.data.whiteName)
+          && request.resource.data.turn == resource.data.players[0]
+          && request.resource.data.ratings.diff(resource.data.ratings)
+            .affectedKeys().hasOnly([request.auth.uid])
           && request.resource.data.moves.size() == 0;
       }
 
@@ -155,7 +174,23 @@ service cloud.firestore {
       function isFinish() {
         return request.resource.data.status == 'done'
           && historyKept()
-          && claimsOk();
+          && claimsOk()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'winner', 'endReason', 'claims'])
+          && (request.resource.data.winner == 'draw'
+            || request.resource.data.winner in resource.data.players)
+          && request.resource.data.endReason in ['five', 'full', 'resign', 'timeout', 'leave']
+          && request.resource.data.get('claims', {})[request.auth.uid]
+            == (request.resource.data.winner == 'draw' ? 'draw'
+              : (request.resource.data.winner == request.auth.uid ? 'win' : 'lose'))
+          // 기권·이탈은 자신을 승자로 쓸 수 없다.
+          && (!(request.resource.data.endReason in ['resign', 'leave'])
+            || request.resource.data.winner != request.auth.uid)
+          // 시간 초과는 실제 제한 시간이 지났고 광고 정지 중이 아닐 때만 인정한다.
+          && (request.resource.data.endReason != 'timeout'
+            || (resource.data.turn != request.auth.uid
+              && resource.data.get('adPausedBy', null) == null
+              && request.time >= resource.data.turnStartedAt + duration.value(60, 's')));
       }
 
       /* 이미 끝난 판에 내 결과만 뒤늦게 적는다.
@@ -170,10 +205,27 @@ service cloud.firestore {
       function isAdPause() {
         return resource.data.status == 'playing'
           && request.resource.data.status == 'playing'
+          && resource.data.get('adPausedBy', null) == null
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['adPausedBy', 'adPausedUntil'])
           && request.resource.data.moves == resource.data.moves
           && request.resource.data.turn == resource.data.turn
           && request.resource.data.players == resource.data.players
           && request.resource.data.adPausedBy == request.auth.uid;
+      }
+
+      // 광고를 본 당사자만 자기 정지를 풀 수 있다.
+      function isAdResume() {
+        return resource.data.status == 'playing'
+          && request.resource.data.status == 'playing'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['adPausedBy', 'adPausedUntil', 'turnStartedAt'])
+          && request.resource.data.moves == resource.data.moves
+          && request.resource.data.turn == resource.data.turn
+          && request.resource.data.players == resource.data.players
+          && resource.data.adPausedBy == request.auth.uid
+          && request.resource.data.adPausedBy == null
+          && request.resource.data.adPausedUntil == null;
       }
 
       allow read: if joined()
@@ -189,6 +241,7 @@ service cloud.firestore {
           (isLinkedUser() && isJoin())
           || (joined() && historyKept() && isMyMove())
           || (joined() && isAdPause())
+          || (joined() && isAdResume())
           || (joined() && isFinish())
         ))
         // 결과가 난 뒤에도 내 신고 한 줄은 남길 수 있다. 그래야 양쪽 합의가 성립한다.

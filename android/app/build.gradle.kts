@@ -25,9 +25,9 @@ android {
         applicationId = "com.broodsky85.omokchallenge"
         minSdk = 23
         targetSdk = 36
-        // versionCode 1~5는 Play 테스트 트랙에 업로드되어 소진됐다. 같은 값은 두 번 못 올린다.
-        versionCode = 7
-        versionName = "1.3.0"
+        // versionCode 1~8은 Play에 업로드되어 소진됐다. 같은 값은 두 번 못 올린다.
+        versionCode = 9
+        versionName = "1.4.0"
     }
 
     signingConfigs {
@@ -72,8 +72,10 @@ dependencies {
     implementation("com.google.android.gms:play-services-ads:25.4.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.android.play:review:2.0.2")
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")

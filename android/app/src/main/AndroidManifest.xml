@@ -22,14 +22,42 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
 
+        <!-- Firebase Analytics는 기능 개선 측정에만 사용한다. 광고 ID와 개인 맞춤 광고 신호는
+             Analytics에서 별도로 수집하지 않고, 유럽권 동의는 UMP 동의 모드가 해석한다. -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- 친구가 받은 링크를 누르면 설치된 앱에서 초대 코드를 자동으로 채운다.
+                 도메인 검증 파일은 broodsky85-ai.github.io/.well-known/assetlinks.json에 둔다. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="broodsky85-ai.github.io"
+                    android:path="/minigamegroup/omok.html" />
+            </intent-filter>
+            <!-- 검증된 웹 링크를 쓸 수 없는 메신저/구형 기기의 보조 경로. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="omokchallenge" android:host="invite" />
             </intent-filter>
         </activity>
     </application>

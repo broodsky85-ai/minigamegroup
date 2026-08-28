@@ -5,8 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "maxLevel", "order": "DESCENDING" },
-        { "fieldPath": "clears", "order": "DESCENDING" },
-        { "fieldPath": "updatedAt", "order": "ASCENDING" }
+        { "fieldPath": "clears", "order": "DESCENDING" }
       ]
     },
     {

@@ -1204,6 +1204,14 @@
     text-transform:uppercase;
   }
   .online-code-row .btn { width:auto; flex:0 0 auto; padding:0 16px; }
+  .online-invite-actions { display:grid; gap:8px; margin-top:8px; }
+  .online-invite-actions[hidden] { display:none; }
+  .online-install-link {
+    display:block; min-height:44px; padding:11px 14px; border:1px solid rgba(34,211,238,.45);
+    border-radius:12px; color:#67e8f9; text-align:center; font-weight:800; text-decoration:none;
+    background:rgba(8,145,178,.12);
+  }
+  .online-install-link[hidden] { display:none; }
   .online-status { min-height:20px; margin:10px 0 0; color:var(--gold); font-size:12.5px; line-height:1.6; word-break:keep-all; text-align:center; }
   .invite-code {
     margin:10px 0 0; padding:12px; border:1px dashed var(--gold); border-radius:11px;
@@ -1214,6 +1222,7 @@
     padding:9px 12px; margin-bottom:10px; border:1px solid var(--border);
     border-radius:11px; background:var(--panel2);
   }
+  .online-bar[hidden] { display:none; }
   .online-bar .who { font-size:13px; font-weight:800; word-break:keep-all; }
   .online-bar .who .tag { margin-right:6px; color:var(--muted); font-size:11px; font-weight:700; }
   .online-clock { font-size:19px; font-weight:900; font-variant-numeric:tabular-nums; }
@@ -1785,6 +1794,9 @@
         <p>방을 만들면 여섯 자리 코드가 나옵니다. 그 코드를 친구에게 알려주세요.</p>
         <button class="btn" id="onlineInviteBtn" type="button">초대 코드 만들기</button>
         <div class="invite-code" id="onlineInviteCode" hidden></div>
+        <div class="online-invite-actions" id="onlineInviteActions" hidden>
+          <button class="btn btn-ghost" id="onlineShareInviteBtn" type="button">📨 초대 링크 보내기</button>
+        </div>
       </div>
 
       <div class="online-card">
@@ -1797,6 +1809,9 @@
       </div>
 
       <p class="online-status" id="onlineStatus"></p>
+      <a class="online-install-link" id="onlineInstallLink"
+         href="https://play.google.com/store/apps/details?id=com.broodsky85.omokchallenge"
+         target="_blank" rel="noopener" hidden>Google Play에서 앱 설치하기</a>
       <div class="cta" id="onlineCancelWrap" hidden>
         <button class="btn btn-ghost" id="onlineCancelBtn" type="button">기다리기 취소</button>
       </div>
@@ -2423,6 +2438,9 @@
   const onlineRandomBtn = document.getElementById("onlineRandomBtn");
   const onlineInviteBtn = document.getElementById("onlineInviteBtn");
   const onlineInviteCodeEl = document.getElementById("onlineInviteCode");
+  const onlineInviteActionsEl = document.getElementById("onlineInviteActions");
+  const onlineShareInviteBtn = document.getElementById("onlineShareInviteBtn");
+  const onlineInstallLink = document.getElementById("onlineInstallLink");
   const onlineCodeInputEl = document.getElementById("onlineCodeInput");
   const onlineJoinBtn = document.getElementById("onlineJoinBtn");
   const onlineMineEl = document.getElementById("onlineMine");
@@ -2564,6 +2582,23 @@
   let resultMusicSources = [];
   let finalImpactTimer = null;
   let deferredInstallPrompt = null;
+
+  /* Android의 Firebase Analytics와 Play 인앱 리뷰는 선택 기능이다.
+     브릿지가 없는 웹에서도 게임은 똑같이 동작하며, 닉네임·초대 코드 같은 식별 정보는 보내지 않는다. */
+  const OMOK_ANALYTICS_EVENTS = new Set([
+    "online_lobby_view", "matchmaking_started", "match_found", "first_move",
+    "match_completed", "invite_created", "invite_joined", "boss_started",
+    "boss_win", "share_clicked", "rewarded_ad_completed"
+  ]);
+  function trackOmokEvent(name, params) {
+    if (!OMOK_ANALYTICS_EVENTS.has(name)) return;
+    if (!window.OmokAnalytics || typeof window.OmokAnalytics.logEvent !== "function") return;
+    try { window.OmokAnalytics.logEvent(name, JSON.stringify(params || {})); } catch (e) { /* 분석 실패가 게임을 막지 않는다 */ }
+  }
+  function requestOmokReview(reason) {
+    if (!window.OmokReview || typeof window.OmokReview.request !== "function") return;
+    try { window.OmokReview.request(reason || "milestone"); } catch (e) { /* Play가 지원하지 않아도 게임은 계속된다 */ }
+  }
 
   function setupPwa() {
     window.addEventListener("beforeinstallprompt", (event) => {
@@ -3889,6 +3924,10 @@
   const itemCounts = () => Object.assign({}, itemsLeft);
   function requestRewardedRefill(type) {
     if (!ITEM_CONFIG[type]) return;
+    if (type === "undo" && typeof onlineState !== "undefined" && onlineState.active) {
+      itemNoteEl.textContent = "온라인 대국에서는 이미 전송한 수를 되돌릴 수 없습니다.";
+      return;
+    }
     if (adRefillsLeft(type) <= 0) {
       itemNoteEl.textContent = "이 아이템은 이번 판에서 더 충전할 수 없습니다. 다음 판에 다시 채워집니다.";
       return;
@@ -3905,6 +3944,7 @@
       return;
     }
     itemsLeft[type]++; itemAdUses[type]++; adRefills++;
+    trackOmokEvent("rewarded_ad_completed", { item_type: type, level: currentLevel, online: onlineState.active ? 1 : 0 });
     updateItemButtons();
     const remain = adRefillsLeft(type);
     itemNoteEl.textContent = remain > 0
@@ -3936,6 +3976,7 @@
     const playable = online
       ? (onlineState.phase === "playing" && !gameOver && onlineState.myTurn)
       : (!gameOver && !aiThinking && currentTurn === BLACK);
+    undoBtn.hidden = online;
     [
       [hintBtn, hintCountEl, "hint", "유리한 수가 있는 위치를 표시합니다"],
       [undoBtn, undoCountEl, "undo", "당신과 AI의 마지막 수를 함께 되돌립니다"],
@@ -3964,9 +4005,12 @@
 
   function useHint() {
     if (itemsLeft.hint <= 0) { requestRewardedRefill("hint"); return; }
-    if (gameOver || aiThinking || currentTurn !== BLACK) return;
+    const online = typeof onlineState !== "undefined" && onlineState.active;
+    if (gameOver || (!online && (aiThinking || currentTurn !== BLACK))
+        || (online && (onlineState.phase !== "playing" || !onlineState.myTurn))) return;
     setPersona(NEUTRAL_PERSONA);   // 힌트는 상대 성격에 물들지 않게 중립으로 본다
-    const picks = orderedCandidates(board, BLACK, 3);
+    const mine = online && onlineState.myColor === "white" ? WHITE : BLACK;
+    const picks = orderedCandidates(board, mine, 3);
     if (!picks.length) return;
     itemsLeft.hint--;
     itemsUsed++;
@@ -3978,6 +4022,7 @@
   }
 
   function useUndo() {
+    if (typeof onlineState !== "undefined" && onlineState.active) return;
     if (itemsLeft.undo <= 0) { requestRewardedRefill("undo"); return; }
     if (gameOver || aiThinking || currentTurn !== BLACK) return;
     if (history.length < 2) return;   // 내 수와 AI의 응수가 둘 다 있어야 되돌릴 수 있다
@@ -4115,6 +4160,19 @@
 
     const noItem = itemsUsed === 0;
     const summary = saveRecord(currentLevel, result, moveCount, seconds, noItem);
+    if (result === "win") {
+      trackOmokEvent("boss_win", {
+        level: currentLevel,
+        moves: moveCount,
+        seconds: seconds,
+        no_item: noItem ? 1 : 0,
+        first_win: summary.firstWin ? 1 : 0
+      });
+      const cleared = LEVELS.reduce((count, _, index) => count + (getStats(index + 1).wins.length ? 1 : 0), 0);
+      if (currentLevel === 10 || currentLevel === 20 || currentLevel === 30 || (summary.firstWin && cleared >= 3)) {
+        requestOmokReview("boss_milestone");
+      }
+    }
     if (summary.unlockedLevel) renderBossGrid();
     renderRecords();
 
@@ -4129,17 +4187,40 @@
 
   function useDanger() {
     if (itemsLeft.danger <= 0) { requestRewardedRefill("danger"); return; }
-    if (gameOver || aiThinking || currentTurn !== BLACK) return;
-    setPersona(LEVELS[currentLevel - 1].persona); const move = chooseAiMove(currentLevel); if (!move) return;
+    const online = typeof onlineState !== "undefined" && onlineState.active;
+    if (gameOver || (!online && (aiThinking || currentTurn !== BLACK))
+        || (online && (onlineState.phase !== "playing" || !onlineState.myTurn))) return;
+    let move;
+    if (online) {
+      const opponent = onlineState.myColor === "white" ? BLACK : WHITE;
+      setPersona(NEUTRAL_PERSONA);
+      move = orderedCandidates(board, opponent, 1)[0];
+    } else {
+      setPersona(LEVELS[currentLevel - 1].persona);
+      move = chooseAiMove(currentLevel);
+    }
+    if (!move) return;
     itemsLeft.danger--; itemsUsed++; clearSuggestions(); cellEls[move[0]][move[1]].classList.add("danger"); updateItemButtons();
     itemNoteEl.textContent = "AI가 노리는 가장 위험한 지점을 표시했습니다.";
   }
 
   function useFuture() {
     if (itemsLeft.future <= 0) { requestRewardedRefill("future"); return; }
-    if (gameOver || aiThinking || currentTurn !== BLACK) return;
-    const aiMove = chooseAiMove(currentLevel); if (!aiMove) return; board[aiMove[0]][aiMove[1]] = WHITE;
-    setPersona(NEUTRAL_PERSONA); const reply = orderedCandidates(board, BLACK, 1)[0]; board[aiMove[0]][aiMove[1]] = EMPTY;
+    const online = typeof onlineState !== "undefined" && onlineState.active;
+    if (gameOver || (!online && (aiThinking || currentTurn !== BLACK))
+        || (online && (onlineState.phase !== "playing" || !onlineState.myTurn))) return;
+    const mine = online && onlineState.myColor === "white" ? WHITE : BLACK;
+    const opponent = mine === BLACK ? WHITE : BLACK;
+    let aiMove;
+    if (online) {
+      setPersona(NEUTRAL_PERSONA);
+      aiMove = orderedCandidates(board, opponent, 1)[0];
+    } else {
+      aiMove = chooseAiMove(currentLevel);
+    }
+    if (!aiMove) return;
+    board[aiMove[0]][aiMove[1]] = opponent;
+    setPersona(NEUTRAL_PERSONA); const reply = orderedCandidates(board, mine, 1)[0]; board[aiMove[0]][aiMove[1]] = EMPTY;
     itemsLeft.future--; itemsUsed++; clearSuggestions(); cellEls[aiMove[0]][aiMove[1]].classList.add("future-ai");
     if (reply) cellEls[reply[0]][reply[1]].classList.add("future-player"); updateItemButtons(); itemNoteEl.textContent = "보라색은 AI 예상 수, 파란색은 추천 대응 수입니다.";
   }
@@ -4604,6 +4685,7 @@
       a.download = "오목챌린지_" + level + "단계.png";
       document.body.appendChild(a);
       a.click();
+      trackOmokEvent("share_clicked", { method: "image", level: level });
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       shareMessage("기록 카드를 저장했습니다.");
@@ -4625,7 +4707,10 @@
 
   function copyShareText(level, moves, seconds, noItem, summary) {
     const text = buildShareText(level, moves, seconds, noItem, summary);
-    const done = () => shareMessage("기록 문구를 복사했습니다.");
+    const done = () => {
+      trackOmokEvent("share_clicked", { method: "text", level: level });
+      shareMessage("기록 문구를 복사했습니다.");
+    };
     const fail = () => shareMessage("복사에 실패했습니다. 카드를 저장해 보세요.");
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(done, fail);
@@ -4827,6 +4912,8 @@
     if (data.kind) hallState.kind = HALL_KINDS.indexOf(data.kind) >= 0 ? data.kind : "level";
     if (data.level) hallState.level = Number(data.level) || hallState.level;
     if (data.reason === "guest") hallState.note = "Google 계정을 연결하면 순위를 볼 수 있습니다.";
+    else if (data.reason === "permission") hallState.note = "순위 서버 권한 설정이 올바르지 않습니다. 앱을 최신 버전으로 업데이트해 주세요.";
+    else if (data.reason === "index") hallState.note = "순위 서버 색인을 준비하는 중입니다. 잠시 후 다시 시도해 주세요.";
     else if (!hallState.ok) hallState.note = "순위를 불러오지 못했습니다. 네트워크를 확인해 주세요.";
     else if (!hallState.rows.length) hallState.note = "아직 올라온 기록이 없습니다. 첫 기록의 주인이 되어 보세요.";
     else hallState.note = "";
@@ -5154,6 +5241,11 @@
     timeoutClaimed: false,
   };
   let onlineClockTimer = null;
+  let onlineAnalyticsMode = "";
+  let onlineAnalyticsMatchFound = false;
+  let onlineAnalyticsFirstMove = false;
+  let onlineAnalyticsCompleted = false;
+  let onlineAnalyticsInviteCode = "";
 
   function onlineBridgeReady() {
     return !!(window.OmokOnline && typeof window.OmokOnline.findRandom === "function");
@@ -5164,8 +5256,12 @@
   }
 
   function openOnlineLobby() {
+    trackOmokEvent("online_lobby_view", {});
     if (!onlineBridgeReady()) {
       setOnlineStatus("온라인 대국은 Android 앱에서 이용할 수 있습니다.");
+      onlineInstallLink.hidden = false;
+    } else {
+      onlineInstallLink.hidden = true;
     }
     selectView.classList.remove("active");
     battleView.classList.remove("active");
@@ -5207,8 +5303,13 @@
     document.body.classList.toggle("battle-active", accountState.native);
     onlineBarEl.hidden = false;
     bossBannerEl.hidden = true;
+    backBtn.textContent = "← 온라인 나가기";
+    resetBtn.hidden = true;
+    ruleNoteEl.textContent = "실시간 온라인 · 한 수 60초 · 자유룰 · 장목 승리 · 3-3/4-4 금수 없음";
+    gameHintEl.textContent = "서버가 확인한 수순만 보드에 표시됩니다. 내 차례에 교차점을 눌러 착수하세요.";
     hideResult();
     resetOnlineBoard();
+    itemNoteEl.textContent = "온라인에서는 되돌릴 수 없습니다. 수읽기·위기 감지·미래보기는 사용할 수 있습니다.";
     updateBannerVisibility();
     scrollTop();
   }
@@ -5249,10 +5350,18 @@
     onlineState.reportedWin = false;
     onlineState.timeoutClaimed = false;
     onlineState.inviteCode = null;
+    onlineAnalyticsMode = "";
+    onlineAnalyticsMatchFound = false;
+    onlineAnalyticsFirstMove = false;
+    onlineAnalyticsCompleted = false;
+    onlineAnalyticsInviteCode = "";
     onlineBarEl.hidden = true;
     bossBannerEl.hidden = false;
+    backBtn.textContent = "← 상대 선택";
+    resetBtn.hidden = false;
     stopOnlineClock();
     onlineInviteCodeEl.hidden = true;
+    onlineInviteActionsEl.hidden = true;
     onlineCancelWrap.hidden = true;
     if (!silent && onlineBridgeReady()) {
       try { window.OmokOnline.leave(); } catch (e) { /* 이미 끝난 판일 수 있다 */ }
@@ -5392,6 +5501,11 @@
     if (onlineState.inviteCode) {
       onlineInviteCodeEl.hidden = false;
       onlineInviteCodeEl.textContent = onlineState.inviteCode;
+      onlineInviteActionsEl.hidden = false;
+      if (onlineAnalyticsMode === "invite_create" && onlineAnalyticsInviteCode !== onlineState.inviteCode) {
+        onlineAnalyticsInviteCode = onlineState.inviteCode;
+        trackOmokEvent("invite_created", {});
+      }
     }
     onlineCancelWrap.hidden = !(onlineState.phase === "waiting" || onlineState.phase === "searching");
 
@@ -5407,6 +5521,16 @@
       const moves = Array.isArray(data.moves) ? data.moves : [];
       const changed = moves.length !== onlineState.moves.length;
       onlineState.moves = moves;
+
+      if (!onlineAnalyticsMatchFound) {
+        onlineAnalyticsMatchFound = true;
+        trackOmokEvent("match_found", { mode: onlineAnalyticsMode || (onlineState.ranked ? "random" : "invite"), ranked: onlineState.ranked ? 1 : 0 });
+        if (onlineAnalyticsMode === "invite_join") trackOmokEvent("invite_joined", {});
+      }
+      if (changed && !onlineAnalyticsFirstMove && moves.some((move) => move && move.mine)) {
+        onlineAnalyticsFirstMove = true;
+        trackOmokEvent("first_move", { mode: onlineAnalyticsMode || (onlineState.ranked ? "random" : "invite"), color: onlineState.myColor });
+      }
 
       if (!onlineState.active) startOnlineBattle();
       if (changed) {
@@ -5427,6 +5551,17 @@
       } else {
         onlineState.result = data.result || null;
         onlineState.endReason = data.endReason || null;
+        if (!onlineAnalyticsCompleted) {
+          onlineAnalyticsCompleted = true;
+          trackOmokEvent("match_completed", {
+            mode: onlineAnalyticsMode || (onlineState.ranked ? "random" : "invite"),
+            ranked: onlineState.ranked ? 1 : 0,
+            result: onlineState.result || "draw",
+            reason: onlineState.endReason || "unknown",
+            moves: onlineState.moves.length
+          });
+          if (onlineState.result === "win") requestOmokReview("online_win");
+        }
         showOnlineResult();
       }
     }
@@ -5438,6 +5573,64 @@
       turnInfoEl.textContent = message;
       turnInfoEl.className = "turn-info";
     }
+  };
+
+  function normalizedInviteCode(raw) {
+    const code = String(raw || "").trim().toUpperCase();
+    return /^[A-HJ-NP-Z2-9]{6}$/.test(code) ? code : "";
+  }
+
+  function inviteShareText(code) {
+    return [
+      "오목 챌린지 초대 코드: " + code,
+      "링크를 누르거나 앱의 온라인 대국 > 코드로 들어가기에 입력해 주세요.",
+      "https://broodsky85-ai.github.io/minigamegroup/omok.html?invite=" + code,
+      "Google Play: https://play.google.com/store/apps/details?id=com.broodsky85.omokchallenge"
+    ].join("\n");
+  }
+
+  function shareOnlineInvite() {
+    const code = normalizedInviteCode(onlineState.inviteCode);
+    if (!code) return;
+    if (window.OmokShare && typeof window.OmokShare.shareInvite === "function") {
+      try {
+        window.OmokShare.shareInvite(code);
+        trackOmokEvent("share_clicked", { method: "invite", mode: "native" });
+        return;
+      } catch (e) { /* 아래 복사 방식으로 이어간다 */ }
+    }
+    const done = () => {
+      setOnlineStatus("초대 문구와 링크를 복사했습니다. 친구에게 붙여넣어 보내주세요.");
+      trackOmokEvent("share_clicked", { method: "invite", mode: "copy" });
+    };
+    const fail = () => setOnlineStatus("초대 문구를 복사하지 못했습니다. 코드 " + code + "를 직접 알려주세요.");
+    const text = inviteShareText(code);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else {
+      try {
+        const input = document.createElement("textarea");
+        input.value = text;
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        if (!document.execCommand("copy")) throw new Error("copy failed");
+        document.body.removeChild(input);
+        done();
+      } catch (e) { fail(); }
+    }
+  }
+
+  window.openOmokInvite = function (rawCode) {
+    const code = normalizedInviteCode(rawCode);
+    if (!code) return false;
+    openOnlineLobby();
+    onlineCodeInputEl.value = code;
+    setOnlineStatus(onlineBridgeReady()
+      ? "초대 코드 " + code + "를 불러왔습니다. 참가를 눌러 대국에 들어가세요."
+      : "초대 코드 " + code + "를 받았습니다. Android 앱을 설치한 뒤 같은 코드를 입력해 주세요.");
+    return true;
   };
 
   function playOnlineMove(r, c) {
@@ -5459,22 +5652,27 @@
     const name = requireOnlineNickname(startRandomMatch);
     if (!name) return;
     onlineInviteCodeEl.hidden = true;
+    onlineAnalyticsMode = "random";
+    trackOmokEvent("matchmaking_started", { mode: "random", rating: Math.round(onlineState.myRating) });
     setOnlineStatus("상대를 찾는 중입니다…");
     window.OmokOnline.findRandom(name);
   }
   function startInviteRoom() {
     const name = requireOnlineNickname(startInviteRoom);
     if (!name) return;
+    onlineAnalyticsMode = "invite_create";
     setOnlineStatus("초대 방을 만드는 중입니다…");
     window.OmokOnline.createInvite(name);
   }
   onlineRandomBtn.addEventListener("click", startRandomMatch);
   onlineInviteBtn.addEventListener("click", startInviteRoom);
+  onlineShareInviteBtn.addEventListener("click", shareOnlineInvite);
   onlineJoinBtn.addEventListener("click", function joinByCode() {
     const name = requireOnlineNickname(joinByCode);
     if (!name) return;
     const code = (onlineCodeInputEl.value || "").trim().toUpperCase();
     if (code.length !== 6) { setOnlineStatus("초대 코드는 여섯 자리입니다."); return; }
+    onlineAnalyticsMode = "invite_join";
     setOnlineStatus("방을 찾는 중입니다…");
     window.OmokOnline.joinInvite(code, name);
   });
@@ -5664,6 +5862,9 @@
   function startBattle(level) {
     hideResult();
     currentLevel = level;
+    trackOmokEvent("boss_started", { level: level, realm: LEVELS[level - 1].realm });
+    backBtn.textContent = "← 상대 선택";
+    resetBtn.hidden = false;
     renderBossBanner(level);
     selectView.classList.remove("active");
     battleView.classList.add("active");
@@ -5693,6 +5894,7 @@
   }
 
   function requestRestart() {
+    if (onlineState.active) return false;
     if (!gameOver && hasHumanMove() && !window.confirm("현재 대국을 포기하고 처음부터 다시 시작할까요?")) return false;
     hideResult();
     newGame();
@@ -5700,6 +5902,13 @@
   }
 
   function requestBackToSelect() {
+    if (onlineState.active) {
+      if (onlineState.phase === "playing"
+          && !window.confirm("대국 중입니다. 나가면 기권으로 처리됩니다. 나갈까요?")) return false;
+      leaveOnline(false);
+      closeOnlineLobby();
+      return true;
+    }
     if (!gameOver && hasHumanMove() && !window.confirm("현재 대국을 포기하고 상대 선택으로 돌아갈까요?")) return false;
     hideResult();
     backToSelect();
@@ -5925,6 +6134,12 @@
   updateScoreDisplay();
   applyBoardZoom();
   updateItemButtons();
+  try {
+    const launchParams = new URLSearchParams(location.search);
+    const inviteFromUrl = launchParams.get("invite");
+    if (inviteFromUrl) window.openOmokInvite(inviteFromUrl);
+    else if (launchParams.get("online") === "1") openOnlineLobby();
+  } catch (e) { /* 오래된 WebView에서는 온라인 바로가기만 건너뛴다 */ }
   requestAnimationFrame(() => appLoaderEl.classList.add("hidden"));
 })();
 </script>
