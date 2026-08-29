@@ -3,7 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>미니게임 모음</title>
+<title>무료 미니게임 모음 | 설치 없이 즐기는 브라우저 게임 8종</title>
+<meta name="description" content="오목 챌린지, 멸망까지 30일, 여명의 서약, 지뢰찾기, 숫자야구 등 8가지 무료 브라우저 게임을 설치 없이 바로 즐겨보세요.">
+<meta name="author" content="Broodsky Games">
+<link rel="canonical" href="https://broodsky85-ai.github.io/minigamegroup/">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Broodsky Games">
+<meta property="og:title" content="무료 미니게임 모음 | 브라우저 게임 8종">
+<meta property="og:description" content="전략, 생존, SRPG, 퍼즐까지 8가지 무료 HTML5 게임을 설치 없이 바로 플레이하세요.">
+<meta property="og:url" content="https://broodsky85-ai.github.io/minigamegroup/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="무료 미니게임 모음 | 브라우저 게임 8종">
+<meta name="twitter:description" content="전략, 생존, SRPG, 퍼즐까지 8가지 무료 HTML5 게임을 설치 없이 바로 플레이하세요.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "미니게임 모음",
+  "alternateName": "Broodsky Games",
+  "url": "https://broodsky85-ai.github.io/minigamegroup/",
+  "description": "오목, 왕국 경영 생존, 도트 SRPG, 지뢰찾기와 숫자야구 등 8가지 무료 브라우저 게임 모음.",
+  "inLanguage": "ko-KR",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Broodsky Games"
+  }
+}
+</script>
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -138,6 +165,18 @@
     border-color: var(--accent);
     box-shadow: 0 16px 32px rgba(0,0,0,0.35);
   }
+  .game-card:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.2);
+  }
+  .game-card-main {
+    color: inherit;
+    text-decoration: none;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 10px;
+  }
   .game-card .icon {
     font-size: 34px;
     line-height: 1;
@@ -158,6 +197,30 @@
     font-size: 14px;
     font-weight: 700;
     color: var(--accent);
+  }
+  .game-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .game-card-actions .play { margin-top: 0; }
+  .store-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 7px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .store-link:hover { border-color: var(--accent-2); color: var(--accent-2); }
+  .store-link:focus-visible, .game-card-main:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
   }
 
   /* ---------- Features ---------- */
@@ -246,7 +309,7 @@
       <span class="icon">👑</span>
       <span class="tag">선택 · 왕국 경영 생존</span>
       <h3>멸망까지 30일</h3>
-      <p>식량·군사·민심·국고를 저울질하며 30일을 버텨라. 하루에 한 번, 선택은 언제나 둘뿐. 사건 78장, 결말 18가지.</p>
+      <p>식량·군사·민심·국고를 저울질하며 30일을 버텨라. 사건 138장, 공개 엔딩 26종과 발견 전에는 이름도 보이지 않는 히든 엔딩 4종.</p>
       <span class="play">플레이하기 →</span>
     </a>
     <a class="game-card" href="hero.html">
@@ -256,13 +319,18 @@
       <p>재능 없는 소년이 검을 만 번 휘둘러 천재를 쫓는다. 격자 위 전술 전투에 대사와 선택이 얹힌 도트 SRPG. 3부 10장, 후일담 18종.</p>
       <span class="play">플레이하기 →</span>
     </a>
-    <a class="game-card" href="omok.html">
-      <span class="icon">⚫</span>
-      <span class="tag">전략 · 30단계 보스전</span>
-      <h3>오목 챌린지</h3>
-      <p>인간계를 넘어 신들의 전쟁을 끝내라. 1단계 새싹부터 오목왕과 천원신, 연속 강제 수순을 읽는 30단계 절대신까지. 당신은 몇 단계까지 갈 수 있나요?</p>
-      <span class="play">플레이하기 →</span>
-    </a>
+    <article class="game-card">
+      <a class="game-card-main" href="omok.html" aria-label="오목 챌린지 웹게임 플레이">
+        <span class="icon">⚫</span>
+        <span class="tag">전략 · 30단계 보스전</span>
+        <h3>오목 챌린지</h3>
+        <p>인간계를 넘어 신들의 전쟁을 끝내라. 1단계 새싹부터 오목왕과 천원신, 연속 강제 수순을 읽는 30단계 절대신까지. 당신은 몇 단계까지 갈 수 있나요?</p>
+      </a>
+      <div class="game-card-actions">
+        <a class="play" href="omok.html">웹에서 플레이 →</a>
+        <a class="store-link" href="https://play.google.com/store/apps/details?id=com.broodsky85.omokchallenge" target="_blank" rel="noopener noreferrer" aria-label="Google Play에서 오목 챌린지 설치하기">Google Play에서 설치</a>
+      </div>
+    </article>
   </div>
 </section>
 
@@ -288,7 +356,7 @@
 </section>
 
 <footer>
-  8개의 미니게임으로 구성된 순수 웹 게임 모음 사이트 · 제작: Claude Code
+  8개의 미니게임으로 구성된 순수 웹 게임 모음 사이트 · 제작: Broodsky Games
 </footer>
 
 </body>

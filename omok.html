@@ -9,7 +9,44 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/omok-192.png">
 <link rel="apple-touch-icon" href="icons/omok-192.png">
-<title>오목 챌린지 - 신들의 전쟁을 끝내라</title>
+<title>오목 챌린지 | AI 보스 30명·온라인 대국</title>
+<meta name="description" content="30명의 AI 보스에게 도전하고 랜덤 매칭·친구 초대로 온라인 오목을 즐기세요. 무료 웹게임과 Android 앱으로 플레이할 수 있습니다.">
+<meta name="author" content="Broodsky Games">
+<link rel="canonical" href="https://broodsky85-ai.github.io/minigamegroup/omok.html">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Broodsky Games">
+<meta property="og:title" content="오목 챌린지 | AI 보스 30명·온라인 대국">
+<meta property="og:description" content="인간계부터 신들의 전쟁까지 30명의 AI 보스를 꺾고, 랜덤 매칭과 친구 초대로 온라인 오목에 도전하세요.">
+<meta property="og:url" content="https://broodsky85-ai.github.io/minigamegroup/omok.html">
+<meta property="og:image" content="https://broodsky85-ai.github.io/minigamegroup/icons/omok-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="오목 챌린지 | AI 보스 30명·온라인 대국">
+<meta name="twitter:description" content="30명의 AI 보스전과 랜덤 매칭·친구 초대 온라인 오목을 무료로 즐겨보세요.">
+<meta name="twitter:image" content="https://broodsky85-ai.github.io/minigamegroup/icons/omok-512.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "오목 챌린지",
+  "alternateName": "오목 챌린지: AI 보스·온라인 대국",
+  "description": "30명의 AI 보스에게 도전하고 랜덤 매칭과 친구 초대로 온라인 오목을 즐기는 무료 게임",
+  "url": "https://broodsky85-ai.github.io/minigamegroup/omok.html",
+  "image": "https://broodsky85-ai.github.io/minigamegroup/icons/omok-512.png",
+  "inLanguage": "ko",
+  "genre": ["보드 게임", "전략 게임", "오목"],
+  "gamePlatform": ["Web Browser", "Android"],
+  "playMode": ["SinglePlayer", "MultiPlayer"],
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Web, Android",
+  "isAccessibleForFree": true,
+  "publisher": {
+    "@type": "Organization",
+    "name": "Broodsky Games"
+  },
+  "sameAs": "https://play.google.com/store/apps/details?id=com.broodsky85.omokchallenge"
+}
+</script>
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -937,6 +974,23 @@
     background: #22d3ee;
     box-shadow: 0 0 4px #0891b2;
   }
+  .review-cell.critical::after {
+    content: "";
+    position: absolute;
+    z-index: 3;
+    inset: 11%;
+    border: 2px solid #fb7185;
+    border-radius: 50%;
+    background: rgba(251, 113, 133, 0.18);
+    box-shadow: 0 0 7px rgba(251, 113, 133, 0.9);
+  }
+  .move-review .review-tip {
+    color: #fecdd3;
+    padding: 8px 9px;
+    border-left: 3px solid #fb7185;
+    border-radius: 6px;
+    background: rgba(251, 113, 133, 0.08);
+  }
   .review-controls {
     display: grid;
     grid-template-columns: 34px minmax(0, 1fr) 34px;
@@ -1458,6 +1512,12 @@
     font-size: clamp(15px, 3.8vw, 17px);
     text-align: center;
   }
+  .status.ai-intent {
+    color: #c4b5fd;
+    font-size: clamp(11.5px, 3.15vw, 13px);
+    font-weight: 750;
+    line-height: 1.45;
+  }
   .status.win { color: var(--accent-2); }
   .status.lose { color: var(--danger); }
   .status.draw { color: var(--gold); }
@@ -1844,7 +1904,7 @@
           <button class="btn btn-neon" id="dangerBtn" title="AI의 가장 위험한 다음 수를 표시합니다"><span class="item-label">🛡 위기 감지 <span class="count" id="dangerCount">1</span></span><span class="item-ad-copy">📺 광고 보고 +1 충전</span></button>
           <button class="btn btn-neon" id="futureBtn" title="AI 예상 수와 추천 대응 수를 표시합니다"><span class="item-label">🔮 미래보기 <span class="count" id="futureCount">1</span></span><span class="item-ad-copy">📺 광고 보고 +1 충전</span></button>
         </div>
-        <div class="item-note" id="itemNote">되돌리기는 광고로만 얻습니다. 나머지는 판마다 1회 무료입니다.</div>
+        <div class="item-note" id="itemNote">수읽기·위기 감지·미래보기는 판마다 1회 무료입니다. 되돌리기는 필요할 때 충전할 수 있습니다.</div>
         <div class="turn-info" id="turnInfo">당신(⚫) 차례입니다</div>
         <div class="rule-note" id="ruleNote">자유룰 · 장목 승리 · 3-3/4-4 금수 없음</div>
         <div class="board-zoom" aria-label="보드 확대 축소">
@@ -1863,7 +1923,7 @@
         <div class="board-magnifier" id="boardMagnifier" hidden aria-hidden="true">
           <div class="magnifier-grid" id="magnifierGrid"></div>
         </div>
-        <div class="status" id="status"></div>
+        <div class="status" id="status" aria-live="polite"></div>
         <div class="score">
           <span>착수 <b id="liveMoves">0</b>수</span>
           <span>시간 <b id="liveTime">0초</b></span>
@@ -1885,7 +1945,7 @@
     <div class="hero">
       <div class="eyebrow">내 도전 기록</div>
       <h2>기록실</h2>
-      <p>이 브라우저에 저장된 나의 기록입니다. 다른 기기나 다른 사람의 기록과는 합쳐지지 않습니다.</p>
+      <p>이 기기에 저장된 나의 기록입니다. 다른 기기나 다른 사람의 기록과는 합쳐지지 않습니다.</p>
     </div>
 
     <div class="summary-grid" id="summaryGrid"></div>
@@ -2059,13 +2119,13 @@
       </div>
     </section>
     <button class="btn" id="settingsCloseBtn">설정 완료</button>
-    <p class="hint" style="margin:12px auto 0;">오목 챌린지 v1.3.0</p>
+    <p class="hint" id="appVersionLabel" style="margin:12px auto 0;">오목 챌린지 v1.4.0</p>
   </div>
 </div>
 <div class="update-banner" id="updateBanner" hidden><span>새 버전이 준비되었습니다.</span><button class="btn" id="updateBtn">업데이트</button></div>
 
 <footer>
-  오목 챌린지 · 미니게임 모음 · 제작: Claude Code
+  오목 챌린지 · 미니게임 모음 · 제작: Broodsky Games
 </footer>
 
 <script>
@@ -2489,6 +2549,7 @@
   const accountSignOutBtn = document.getElementById("accountSignOutBtn");
   const deleteAccountBtn = document.getElementById("deleteAccountBtn");
   const privacyOptionsBtn = document.getElementById("privacyOptionsBtn");
+  const appVersionLabelEl = document.getElementById("appVersionLabel");
   const installBtn = document.getElementById("installBtn");
   const updateBannerEl = document.getElementById("updateBanner");
   const updateBtn = document.getElementById("updateBtn");
@@ -2588,12 +2649,25 @@
   const OMOK_ANALYTICS_EVENTS = new Set([
     "online_lobby_view", "matchmaking_started", "match_found", "first_move",
     "match_completed", "invite_created", "invite_joined", "boss_started",
-    "boss_win", "share_clicked", "rewarded_ad_completed"
+    "boss_win", "share_clicked", "rewarded_ad_completed", "app_ready",
+    "account_gate_view", "account_choice", "first_boss_started"
   ]);
+  let firstBossEventTrackedThisSession = false;
   function trackOmokEvent(name, params) {
-    if (!OMOK_ANALYTICS_EVENTS.has(name)) return;
-    if (!window.OmokAnalytics || typeof window.OmokAnalytics.logEvent !== "function") return;
-    try { window.OmokAnalytics.logEvent(name, JSON.stringify(params || {})); } catch (e) { /* 분석 실패가 게임을 막지 않는다 */ }
+    if (!OMOK_ANALYTICS_EVENTS.has(name)) return false;
+    if (!window.OmokAnalytics || typeof window.OmokAnalytics.logEvent !== "function") return false;
+    try {
+      window.OmokAnalytics.logEvent(name, JSON.stringify(params || {}));
+      return true;
+    } catch (e) { return false; /* 분석 실패가 게임을 막지 않는다 */ }
+  }
+  function syncNativeAppVersion() {
+    if (!appVersionLabelEl || !window.OmokAnalytics
+        || typeof window.OmokAnalytics.getAppVersion !== "function") return;
+    try {
+      const version = String(window.OmokAnalytics.getAppVersion() || "").trim();
+      if (/^\d+(?:\.\d+){1,3}$/.test(version)) appVersionLabelEl.textContent = "오목 챌린지 v" + version;
+    } catch (e) { /* 버전 표시 실패가 게임을 막지 않는다 */ }
   }
   function requestOmokReview(reason) {
     if (!window.OmokReview || typeof window.OmokReview.request !== "function") return;
@@ -2785,6 +2859,7 @@
      앱을 처음 켰을 때 한 번만 묻는다. 고른 값은 남겨서 다음부터 건너뛴다.
      어느 쪽도 자동으로 골라주지 않는다 — 사용자가 직접 누른 것만 선택으로 친다. */
   const ACCOUNT_CHOICE_KEY = "omok-account-choice-v1";
+  let accountGateViewTracked = false;
 
   function readAccountChoice() {
     try { return localStorage.getItem(ACCOUNT_CHOICE_KEY) || ""; } catch (e) { return ""; }
@@ -2805,6 +2880,10 @@
     if (accountState.signedIn && !accountState.anonymous) { writeAccountChoice("google"); closeAccountGate(); return; }
     if (readAccountChoice()) { closeAccountGate(); return; }
     accountGateEl.hidden = false;
+    if (!accountGateViewTracked) {
+      accountGateViewTracked = true;
+      trackOmokEvent("account_gate_view", {});
+    }
   }
 
   gateGoogleBtn.addEventListener("click", () => {
@@ -2814,10 +2893,12 @@
     }
     gateGoogleBtn.disabled = true;
     gateMessageEl.textContent = "Google 계정 선택 창을 여는 중입니다…";
+    trackOmokEvent("account_choice", { method: "google" });
     window.OmokAccount.signInWithGoogle();
   });
 
   gateGuestBtn.addEventListener("click", () => {
+    trackOmokEvent("account_choice", { method: "guest" });
     writeAccountChoice("guest");
     closeAccountGate();
   });
@@ -3224,6 +3305,9 @@
 
   function renderBossBanner(level) {
     const lv = LEVELS[level - 1];
+    const realmStart = lv.realm === "war" ? 21 : lv.realm === "divine" ? 11 : 1;
+    const realmName = lv.realm === "war" ? "신들의 전쟁" : lv.realm === "divine" ? "신계" : "인간계";
+    const realmProgress = level - realmStart + 1;
     bossBannerEl.style.setProperty("--neon", lv.neon);
     bossBannerEl.innerHTML =
       '<div class="row">' +
@@ -3238,7 +3322,7 @@
       '<p class="quote"></p>';
     bossBannerEl.querySelector(".icon").textContent = lv.icon;
     bossBannerEl.querySelector(".stage").textContent =
-      level + "단계" + (lv.final ? " · 최종보스" : "");
+      level + "단계 · " + realmName + " " + realmProgress + "/10" + (lv.final ? " · 최종보스" : "");
     bossBannerEl.querySelector(".name").textContent = lv.name;
     bossBannerEl.querySelector(".boss-trait").textContent = lv.tag;
     bossBannerEl.querySelector(".boss-behavior").textContent = lv.tagline;
@@ -3989,14 +4073,21 @@
       // 온라인 대국에서는 상대가 이미 본 수라 되돌리기 자체가 없다.
       const meaningful = type !== "undo" || (!online && history.length >= 2);
       countEl.textContent = left;
-      button.classList.toggle("ad-refill", left <= 0 && adLeft > 0);
+      const canOfferAd = left <= 0 && adLeft > 0 && meaningful;
+      button.classList.toggle("ad-refill", canOfferAd);
       button.classList.toggle("ad-exhausted", left <= 0 && adLeft <= 0);
       const adCopyEl = button.querySelector(".item-ad-copy");
       if (adCopyEl) {
-        adCopyEl.textContent = adLeft > 0 ? "📺 광고 보고 +1 (" + adLeft + "회 남음)" : "이 판 충전 한도 소진";
-        adCopyEl.dataset.short = adLeft > 0 ? "📺 +1 (" + adLeft + ")" : "소진";
+        if (type === "undo" && !meaningful) {
+          adCopyEl.textContent = "두 수 진행 후 사용";
+          adCopyEl.dataset.short = "착수 후 사용";
+        } else {
+          adCopyEl.textContent = adLeft > 0 ? "📺 광고 보고 +1 (" + adLeft + "회 남음)" : "이 판 충전 한도 소진";
+          adCopyEl.dataset.short = adLeft > 0 ? "📺 +1 (" + adLeft + ")" : "소진";
+        }
       }
-      button.title = left > 0 ? normalTitle
+      button.title = type === "undo" && !meaningful ? "두 수 이상 진행한 뒤 사용할 수 있습니다"
+        : left > 0 ? normalTitle
         : (adLeft > 0 ? "보상형 광고를 보고 1회 충전합니다 (이 판 " + adLeft + "회 남음)"
                       : "이 판에서는 더 충전할 수 없습니다");
       button.disabled = !playable || !meaningful || (left <= 0 && adLeft <= 0);
@@ -4031,6 +4122,7 @@
     itemsLeft.undo--;
     itemsUsed++;
     clearSuggestions();
+    clearAiMoveIntent();
     rebuildFromHistory();
     updateItemButtons();
     turnInfoEl.textContent = "이전 차례로 돌아왔습니다. 같은 실수를 반복하지 마세요.";
@@ -4290,6 +4382,49 @@
     return firstThreat;
   }
 
+  function diagnoseLoss(moves, turning) {
+    const finalMove = moves[moves.length - 1];
+    if (finalMove && finalMove.player === WHITE) {
+      const beforeFinal = Array.from({ length: SIZE }, () => new Array(SIZE).fill(EMPTY));
+      moves.slice(0, -1).forEach((move) => { beforeFinal[move.r][move.c] = move.player; });
+      const threats = immediateWinningMoves(beforeFinal, WHITE);
+      if (threats.length >= 2) {
+        const places = threats.slice(0, 3).map(([r, c]) => moveCoordinate({ r: r, c: c })).join("·");
+        return {
+          threats: threats,
+          text: "다음 판 포인트 · 패배 직전 보스의 즉시 승리 자리가 " + places +
+            "처럼 여러 곳이었습니다. 양수가 완성된 뒤에는 한 수로 막을 수 없으니 한 수 앞에서 연결을 끊으세요."
+        };
+      }
+      if (threats.length === 1) {
+        const place = moveCoordinate({ r: threats[0][0], c: threats[0][1] });
+        return {
+          threats: threats,
+          text: "다음 판 포인트 · 패배 직전 " + place +
+            "가 반드시 막아야 했던 자리였습니다. 내 공격보다 상대의 열린 4와 즉시 승리 칸을 먼저 확인하세요."
+        };
+      }
+    }
+    if (turning && turning.type === "fork") {
+      return {
+        threats: [],
+        text: "다음 판 포인트 · " + (turning.index + 1) + "수 " + moveCoordinate(turning.move) +
+          " 전후가 마지막 방어 기회였습니다. 서로 다른 두 방향이 열린 수는 완성되기 전에 끊어야 합니다."
+      };
+    }
+    if (turning) {
+      return {
+        threats: [],
+        text: "다음 판 포인트 · " + (turning.index + 1) + "수 " + moveCoordinate(turning.move) +
+          "부터는 보스의 위협에 먼저 응수해야 했습니다. 매 수를 두기 전 상대의 다음 한 수 승리를 확인하세요."
+      };
+    }
+    return {
+      threats: [],
+      text: "다음 판 포인트 · 마지막 세 수에서 보스 돌이 이어진 가로·세로·대각선을 먼저 확인하고, 내 공격보다 4목 차단을 우선하세요."
+    };
+  }
+
   function buildLossReview(sourceMoves) {
     const reviewMoves = (sourceMoves || history).map((move) => ({ r: move.r, c: move.c, player: move.player }));
     const section = document.createElement("section");
@@ -4312,6 +4447,12 @@
         : "마지막 수순에서 보스의 연결을 끊지 못했습니다.";
     }
     section.appendChild(insight);
+
+    const diagnosis = diagnoseLoss(reviewMoves, turning);
+    const tip = document.createElement("p");
+    tip.className = "review-tip";
+    tip.textContent = diagnosis.text;
+    section.appendChild(tip);
 
     const replayBoard = document.createElement("div");
     replayBoard.className = "review-board";
@@ -4344,7 +4485,9 @@
     range.className = "review-range";
     range.min = "0";
     range.max = String(reviewMoves.length);
-    range.value = String(reviewMoves.length);
+    const reviewStart = diagnosis.threats.length && reviewMoves.length > 0
+      ? reviewMoves.length - 1 : reviewMoves.length;
+    range.value = String(reviewStart);
     range.setAttribute("aria-label", "복기 수순 이동");
     controls.append(prev, status, next, range);
     section.appendChild(controls);
@@ -4364,6 +4507,10 @@
       } else {
         status.textContent = "0/" + reviewMoves.length + "수 · 대국 시작";
       }
+      if (shown === reviewMoves.length - 1) {
+        diagnosis.threats.forEach(([r, c]) => replayCells[r * SIZE + c].classList.add("critical"));
+        if (diagnosis.threats.length) status.textContent += " · 붉은 표시를 막아야 했습니다";
+      }
       replayBoard.setAttribute("aria-label", status.textContent + "까지의 오목판");
       range.value = String(shown);
       prev.disabled = shown === 0;
@@ -4372,7 +4519,7 @@
     prev.addEventListener("click", () => renderReplay(Number(range.value) - 1));
     next.addEventListener("click", () => renderReplay(Number(range.value) + 1));
     range.addEventListener("input", () => renderReplay(Number(range.value)));
-    renderReplay(reviewMoves.length);
+    renderReplay(reviewStart);
 
     const list = document.createElement("div");
     list.className = "move-review-list";
@@ -4520,17 +4667,6 @@
     const actions = document.createElement("div");
     actions.className = "result-actions";
 
-    if (isWin) {
-      if (shareCanvas) {
-        actions.appendChild(makeButton("🖼️ 기록 카드 저장", false, () => {
-          downloadCard(shareCanvas, currentLevel);
-        }));
-      }
-      actions.appendChild(makeButton("📋 기록 문구 복사", false, () => {
-        copyShareText(currentLevel, moveCount, seconds, noItem, summary);
-      }));
-    }
-
     if (isWin && currentLevel < LEVELS.length && store.unlocked > currentLevel) {
       const next = LEVELS[currentLevel];
       actions.appendChild(makeButton(
@@ -4543,6 +4679,16 @@
         result === "lose" ? "바로 재도전" : "다시 도전", true,
         () => { hideResult(); newGame(); }
       ));
+    }
+    if (isWin) {
+      if (shareCanvas) {
+        actions.appendChild(makeButton("🖼️ 기록 카드 저장", false, () => {
+          downloadCard(shareCanvas, currentLevel);
+        }));
+      }
+      actions.appendChild(makeButton("📋 기록 문구 복사", false, () => {
+        copyShareText(currentLevel, moveCount, seconds, noItem, summary);
+      }));
     }
     actions.appendChild(makeButton("상대 선택", false, () => { hideResult(); backToSelect(); }));
     resultCardEl.appendChild(actions);
@@ -5116,6 +5262,31 @@
     }
   }
 
+  function clearAiMoveIntent() {
+    if (!statusEl.classList.contains("ai-intent")) return;
+    statusEl.textContent = "";
+    statusEl.className = "status";
+    delete statusEl.dataset.reason;
+  }
+
+  function showAiMoveIntent(r, c, reason) {
+    const boss = LEVELS[currentLevel - 1];
+    const messages = {
+      block: "당신의 즉시 승리 수를 막았습니다.",
+      fork: "두 방향을 동시에 노리는 양수를 만들었습니다.",
+      "block-fork": "당신의 양수 가능성을 미리 끊었습니다.",
+      forcing: "반드시 받아야 하는 강제 수순을 시작했습니다.",
+      "block-forcing": "이어질 강제 수순을 미리 끊었습니다.",
+      opening: "중앙 주도권을 넓히는 포석을 뒀습니다.",
+      safe: "당신의 반격을 허용하지 않는 안전한 수를 골랐습니다.",
+      search: "공격과 수비를 비교해 가장 유리한 자리를 골랐습니다."
+    };
+    statusEl.textContent = "🧠 " + boss.name + "의 수읽기 · " + moveCoordinate({ r: r, c: c }) +
+      " · " + (messages[reason] || messages.search);
+    statusEl.className = "status ai-intent";
+    statusEl.dataset.reason = reason || "search";
+  }
+
   function cancelPendingAiTurn() {
     aiTurnToken++;
     if (aiTimer !== null) clearTimeout(aiTimer);
@@ -5171,6 +5342,7 @@
     if (gameOver || aiThinking || currentTurn !== BLACK || board[r][c] !== EMPTY) return;
 
     clearSuggestions();
+    clearAiMoveIntent();
     placeStone(r, c, BLACK);
     const win = findWinningLine(board, r, c, BLACK);
     if (win) { endGame(win, BLACK); return; }
@@ -5205,9 +5377,10 @@
           placeStone(r2, c2, WHITE);
           const win2 = findWinningLine(board, r2, c2, WHITE);
           if (win2) { endGame(win2, WHITE); return; }
-          if (isBoardFull()) { endGame(null, null); return; }
-          currentTurn = BLACK;
-          updateStatus();
+           if (isBoardFull()) { endGame(null, null); return; }
+           currentTurn = BLACK;
+           showAiMoveIntent(r2, c2, lastAiDecisionReason);
+           updateStatus();
           updateItemButtons();
         }, remaining);
       });
@@ -5320,6 +5493,7 @@
     history = [];
     moveCount = 0;
     lastMoveEl = null;
+    clearAiMoveIntent();
     buildBoard();
     renderBoard();
     resetItems();
@@ -5823,12 +5997,13 @@
     resetItems();
     itemsUsed = 0;
     adRefills = 0;
-    itemNoteEl.textContent = "되돌리기는 광고로만 얻습니다. 나머지는 판마다 1회 무료입니다.";
+    itemNoteEl.textContent = "수읽기·위기 감지·미래보기는 판마다 1회 무료입니다. 되돌리기는 필요할 때 충전할 수 있습니다.";
     liveMovesEl.textContent = "0";
     liveTimeEl.textContent = "0초";
     boardShellEl.classList.remove("shake", "finish-impact", "finish-win", "finish-lose", "finish-draw");
     statusEl.textContent = "";
     statusEl.className = "status";
+    delete statusEl.dataset.reason;
     turnInfoEl.style.visibility = "visible";
     const boss = LEVELS[currentLevel - 1];
     if (boss.initiative) {
@@ -5863,6 +6038,16 @@
     hideResult();
     currentLevel = level;
     trackOmokEvent("boss_started", { level: level, realm: LEVELS[level - 1].realm });
+    const firstBossEventKey = "omok-first-boss-started-v1";
+    let firstBossAlreadyTracked = firstBossEventTrackedThisSession;
+    if (!firstBossAlreadyTracked) {
+      try { firstBossAlreadyTracked = localStorage.getItem(firstBossEventKey) === "1"; } catch (e) { /* 계속 진행 */ }
+    }
+    if (!firstBossAlreadyTracked
+        && trackOmokEvent("first_boss_started", { level: level, realm: LEVELS[level - 1].realm })) {
+      firstBossEventTrackedThisSession = true;
+      try { localStorage.setItem(firstBossEventKey, "1"); } catch (e) { /* 분석 저장 실패가 대국을 막지 않는다 */ }
+    }
     backBtn.textContent = "← 상대 선택";
     resetBtn.hidden = false;
     renderBossBanner(level);
@@ -6121,6 +6306,7 @@
   });
 
   syncSettingsUI();
+  syncNativeAppVersion();
   renderAccountUI();
   if (window.OmokAccount && window.OmokAccount.getStatus) window.OmokAccount.getStatus();
   maybeShowAccountGate();
@@ -6140,6 +6326,7 @@
     if (inviteFromUrl) window.openOmokInvite(inviteFromUrl);
     else if (launchParams.get("online") === "1") openOnlineLobby();
   } catch (e) { /* 오래된 WebView에서는 온라인 바로가기만 건너뛴다 */ }
+  trackOmokEvent("app_ready", { online: onlineBridgeReady() ? 1 : 0 });
   requestAnimationFrame(() => appLoaderEl.classList.add("hidden"));
 })();
 </script>
