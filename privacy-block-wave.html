@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개인정보처리방침 — 블록웨이브</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;padding:36px 18px;background:#07121f;color:#eaf4ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;line-height:1.75}main{max-width:780px;margin:auto}h1{margin:0 0 8px;color:#8cecff}h2{margin-top:38px;padding-bottom:7px;border-bottom:1px solid #24405b;color:#ffd36a}.meta{color:#9bb2c8}.lead{padding:16px 18px;border:1px solid #24405b;border-left:3px solid #8cecff;border-radius:10px;background:#0c1d30}code{padding:1px 5px;border-radius:5px;background:#112842;color:#bcefff}a{color:#8cecff}footer{margin-top:48px;padding-top:18px;border-top:1px solid #24405b;color:#9bb2c8}
+</style>
+</head>
+<body><main>
+<h1>개인정보처리방침</h1>
+<p class="meta">블록웨이브 (<code>com.broodsky85.blockwave</code>) · 시행일 2026년 9월 29일</p>
+<p class="lead">블록웨이브는 로그인 없이 게임을 플레이할 수 있습니다. Google 계정 연결은 온라인 닉네임과 항구별 최고 기록 랭킹을 이용할 때 선택적으로 사용합니다. 광고 SDK와 제3자 분석 SDK는 사용하지 않습니다.</p>
+
+<h2>1. 처리하는 정보와 목적</h2>
+<ul>
+<li><strong>Google 로그인:</strong> Firebase Authentication 및 Google 로그인 서비스가 계정 식별자, 표시 이름, 이메일 주소와 인증 정보를 처리할 수 있습니다. 앱은 로그인 상태 확인과 이용자 본인의 온라인 기록 구분에 사용합니다.</li>
+<li><strong>온라인 프로필:</strong> 이용자가 직접 만든 2~12자 닉네임과 갱신 시각을 Firebase Firestore의 본인 프로필에 저장합니다.</li>
+<li><strong>온라인 랭킹:</strong> 항구별 최고 점수, 등급, 닉네임과 갱신 시각을 Firebase Firestore에 저장합니다. 로그인한 이용자는 랭킹을 조회할 수 있습니다.</li>
+<li><strong>식별자 사용:</strong> Firebase 인증 UID는 본인 프로필과 랭킹 문서를 구분하는 문서 식별자로 사용됩니다. 앱 화면에는 UID나 Google 이메일을 공개하지 않습니다.</li>
+</ul>
+<p>개발자는 개인정보를 판매하지 않으며 광고 목적으로 사용하지 않습니다.</p>
+
+<h2>2. 기기에 저장되는 정보</h2>
+<p><code>block-wave-state-v5</code>, <code>block-wave-progress-v1</code>, <code>block-wave-settings-v1</code>, <code>block-wave-online-nickname-v1</code> 등 앱의 로컬 저장 영역에 게임 진행, 최고 기록, 설정, 온라인 제출 대기 상태와 닉네임이 저장될 수 있습니다. 앱 저장공간을 지우거나 앱을 삭제하면 기기 저장 정보도 제거됩니다.</p>
+
+<h2>3. 앱 권한</h2>
+<p>온라인 로그인과 랭킹을 위한 인터넷/네트워크 상태 권한, 게임 반응을 위한 진동 권한을 사용합니다. 카메라, 마이크, 위치, 연락처, 사진 및 파일 접근 권한은 요청하지 않습니다.</p>
+
+<h2>4. 공개 닉네임과 랭킹</h2>
+<p>온라인 닉네임은 Google 표시 이름과 별도로 이용자가 직접 만듭니다. 닉네임은 한글·영문·숫자·밑줄·하이픈을 이용한 2~12자로 제한됩니다. 최고 기록은 항구별로 기존 최고점보다 낮아지지 않도록 저장됩니다.</p>
+<p>랭킹 화면에는 닉네임, 점수와 등급이 표시됩니다. Google 이메일과 Google 프로필 이름은 랭킹에 표시하지 않습니다.</p>
+
+<h2 id="data-deletion">5. 계정 및 데이터 삭제</h2>
+<p><strong>앱 안에서:</strong> 기록실의 <strong>온라인 계정·기록 삭제</strong>를 선택하면 블록웨이브의 온라인 프로필과 모든 항구 랭킹 기록을 삭제한 뒤, 블록웨이브 전용 Firebase 인증 계정 삭제를 시도합니다. Firebase가 보안을 위해 최근 로그인을 요구하는 경우 Google 계정으로 다시 로그인한 뒤 삭제를 다시 실행하면 됩니다. 로컬 게임 기록은 유지됩니다.</p>
+<p><strong>앱을 설치할 수 없는 경우:</strong> <a href="mailto:broodsky85@gmail.com?subject=Block%20Wave%20data%20deletion">broodsky85@gmail.com</a>으로 “블록웨이브 데이터 삭제 요청”이라고 보내 주세요. 본인 확인에 필요한 최소 계정 정보를 요청할 수 있으며, 확인 후 블록웨이브 전용 Firebase 프로필·랭킹·인증 계정 삭제를 처리합니다.</p>
+
+<h2>6. 제3자 서비스</h2>
+<ul>
+<li><a href="https://firebase.google.com/support/privacy">Google Firebase 개인정보 보호 및 보안</a></li>
+<li><a href="https://policies.google.com/privacy">Google 개인정보처리방침</a></li>
+</ul>
+
+<h2>7. 보관 기간</h2>
+<p>온라인 프로필과 랭킹 기록은 이용자가 삭제할 때까지 보관될 수 있습니다. 랭킹 기록은 더 높은 최고점으로 갱신될 수 있습니다. 법적 의무나 보안상 별도 보관이 필요한 최소 정보가 있는 경우 해당 범위와 기간 동안만 처리합니다.</p>
+
+<h2>8. 아동</h2>
+<p>블록웨이브는 아동을 대상으로 개인정보를 의도적으로 수집하는 서비스가 아닙니다. 관련 법령 또는 Google Play 정책에 따라 추가 조치가 필요한 경우 이를 적용합니다.</p>
+
+<h2>9. 방침 변경</h2>
+<p>앱 기능이나 정보 처리 방식이 바뀌면 이 페이지의 내용과 시행일을 갱신합니다.</p>
+
+<h2>10. 문의</h2>
+<p>개발자: Broodsky Games<br>이메일: <a href="mailto:broodsky85@gmail.com">broodsky85@gmail.com</a></p>
+
+<footer>© 2026 Broodsky Games</footer>
+</main></body></html>
